@@ -5,7 +5,8 @@
     {
       "name": "tbb"
     },
-    "usd"
+    "usd",
+    "gtest"
   ],
   "builtin-baseline": "fc6345e114c2e2c4f9714037340ccb08326b3e8c",
   "overrides": [
