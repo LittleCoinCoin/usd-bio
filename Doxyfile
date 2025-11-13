@@ -1,0 +1,27 @@
+# USD-Bio Doxygen Configuration
+
+PROJECT_NAME           = "USD-Bio"
+PROJECT_NUMBER         = 0.1.0
+PROJECT_BRIEF          = "OpenUSD Extensions for Biology Data"
+
+OUTPUT_DIRECTORY       = docs/doxygen_output
+CREATE_SUBDIRS         = NO
+
+INPUT                  = src/include
+RECURSIVE              = YES
+FILE_PATTERNS          = *.h *.hpp
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+
+OPTIMIZE_OUTPUT_FOR_C  = NO
+MARKDOWN_SUPPORT       = YES
