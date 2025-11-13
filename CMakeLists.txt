@@ -16,7 +16,7 @@ if(BUILD_USD_BIO)
 endif()
 
 # Testing (will be configured in Milestone 1.3)
-option(BUILD_TESTS "Build test suite" OFF)
+option(BUILD_TESTS "Build test suite" ON)
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
