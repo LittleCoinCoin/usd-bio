@@ -181,7 +181,7 @@ We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) 
 
 ## License
 
-USD-Bio is licensed under the [MIT License](LICENSE.md).
+USD-Bio is licensed under the [AGPL-3.0 License](LICENSE.md).
 
 This project builds on [Pixar's OpenUSD](https://github.com/PixarAnimationStudios/OpenUSD), used under the Modified Apache 2.0 License.
 
@@ -202,13 +202,9 @@ If you use USD-Bio in your research, please cite:
 ```bibtex
 @software{usd_bio_2025,
   title={USD-Bio: OpenUSD Extensions for Biology Data},
-  author={PRIMe Collaboration},
+  author={Eliott Jacopin, Ai Shinobu},
   year={2025},
   url={https://github.com/LittleCoinCoin/usd-bio},
   version={0.1.0}
 }
 ```
-
----
-
-**Status**: v0.1.0 | **License**: MIT | **Community**: PRIMe Collaboration
