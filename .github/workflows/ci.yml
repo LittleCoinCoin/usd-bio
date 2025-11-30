@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        config: [Debug, Release]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup vcpkg
+      run: |
+        cd vcpkg
+        ./bootstrap-vcpkg.sh
+      shell: bash
+      if: runner.os != 'Windows'
+    
+    - name: Setup vcpkg (Windows)
+      run: |
+        cd vcpkg
+        .\bootstrap-vcpkg.bat
+      if: runner.os == 'Windows'
+    
+    - name: Install dependencies
+      run: vcpkg install
+    
+    - name: Configure CMake (Unix)
+      run: cmake --preset=GCC -DBUILD_TESTS=ON
+      if: runner.os == 'Linux'
+    
+    - name: Configure CMake (macOS)
+      run: cmake --preset=Clang -DBUILD_TESTS=ON
+      if: runner.os == 'macOS'
+    
+    - name: Configure CMake (Windows)
+      run: cmake --preset=MSVC-x64 -DBUILD_TESTS=ON
+      if: runner.os == 'Windows'
+    
+    - name: Build
+      run: cmake --build out/build/${{ runner.os == 'Linux' && 'GCC' || runner.os == 'macOS' && 'Clang' || 'MSVC-x64' }} --config ${{ matrix.config }}
+    
+    - name: Run tests
+      run: |
+        cd out/build/${{ runner.os == 'Linux' && 'GCC' || runner.os == 'macOS' && 'Clang' || 'MSVC-x64' }}
+        ctest -C ${{ matrix.config }} --output-on-failure

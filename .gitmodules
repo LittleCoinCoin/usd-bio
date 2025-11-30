@@ -1,3 +1,6 @@
 [submodule "vcpkg"]
 	path = vcpkg
 	url = https://github.com/microsoft/vcpkg.git
+[submodule "cracking-shells-playbook"]
+	path = cracking-shells-playbook
+	url = https://github.com/CrackingShells/cracking-shells-playbook.git
