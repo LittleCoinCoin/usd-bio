@@ -388,7 +388,7 @@ FodyWeavers.xsd
 *.code-workspace
 
 # Local History for Visual Studio Code
-.history/
+.localhistory/
 
 # Windows Installer files from build outputs
 *.cab
@@ -412,3 +412,6 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+
+# Environment variables
+.env
