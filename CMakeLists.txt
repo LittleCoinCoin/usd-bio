@@ -1,13 +1,51 @@
-﻿# ./CMakeList.txt
-cmake_minimum_required (VERSION 3.20)
+# ./CMakeLists.txt
+cmake_minimum_required(VERSION 3.20)
 
-set(TargetName "OpenUSD-setup-vcpkg")
-project (${TargetName})
+project(usd-bio LANGUAGES CXX)
 
-# Because the USD plugin file directory resolution expects the dlls to be in a "/bin" folder
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${TargetName}/$<CONFIG>/bin" CACHE STRING "" )
+# Set a C++ standard
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory (${TargetName})
+# --- Dependencies ---
+
+# Find OpenUSD on the system.
+# Users should set CMAKE_PREFIX_PATH to their OpenUSD installation.
+find_package(pxr REQUIRED)
+
+# Manually find TBB (since find_package(TBB) is failing for user)
+find_path(TBB_INCLUDE_DIR
+    NAMES tbb/tbb.h
+    PATHS /usr/local/include /usr/include
+    # Add common TBB installation paths if needed
+    # PATHS "${CMAKE_PREFIX_PATH}/tbb/include"
+    # PATHS "/opt/homebrew/Cellar/tbb/*/include"
+)
+
+find_library(TBB_LIBRARY
+    NAMES tbb
+    PATHS /usr/local/lib /usr/lib
+    # Add common TBB installation paths if needed
+    # PATHS "${CMAKE_PREFIX_PATH}/tbb/lib"
+    # PATHS "/opt/homebrew/Cellar/tbb/*/lib"
+)
+
+if(TBB_INCLUDE_DIR AND TBB_LIBRARY)
+    set(TBB_FOUND TRUE)
+    set(TBB_LIBRARIES ${TBB_LIBRARY})
+    set(TBB_INCLUDE_DIRS ${TBB_INCLUDE_DIR})
+    message(STATUS "Found TBB: ${TBB_LIBRARIES} (include: ${TBB_INCLUDE_DIRS})")
+else()
+    message(FATAL_ERROR "Could not find TBB. Please set TBB_INCLUDE_DIR and TBB_LIBRARY manually, or ensure TBB is installed in a standard location.")
+endif()
+
+# Find GTest
+find_package(GTest REQUIRED)
+
+# Find OpenGL for garch (OpenUSD dependency)
+find_package(OpenGL REQUIRED)
+
+# --- Targets ---
 
 # USD-Bio Extension Library
 option(BUILD_USD_BIO "Build USD-Bio extension library" ON)
@@ -15,14 +53,14 @@ if(BUILD_USD_BIO)
     add_subdirectory(src)
 endif()
 
-# Testing (will be configured in Milestone 1.3)
+# Testing
 option(BUILD_TESTS "Build test suite" ON)
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
 
-# Examples (optional)
+# Examples
 option(BUILD_EXAMPLES "Build example programs" ON)
 if(BUILD_EXAMPLES AND BUILD_USD_BIO)
     add_subdirectory(examples)
