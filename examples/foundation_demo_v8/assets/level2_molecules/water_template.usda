@@ -1,0 +1,333 @@
+#usda 1.0
+(
+    subLayers = [
+        @/Users/hacker/Documents/src/LittleCoinCoin/usd-bio/examples/foundation_demo_v8/assets/level1_elements/element_templates.usda@
+    ]
+    upAxis = "Y"
+)
+
+over "_class_"
+{
+    class "Water" (
+        prepend variantSets = "representation"
+    )
+    {
+        custom float bio:bondAngleHOH = 104.52
+        custom float bio:bondLengthOH = 0.9572
+        custom float bio:dipoleMoment = 1.85
+        custom string bio:formula = "H2O"
+        custom token bio:model = "TIP3P"
+        custom float bio:molecularWeight = 18.015
+        custom string bio:name = "Water"
+
+        def Xform "O" (
+            prepend inherits = </_class_/O>
+            prepend variantSets = "representation"
+        )
+        {
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            variantSet "representation" = {
+                "balls" {
+
+                }
+                "ballstick" {
+
+                }
+                "points" {
+
+                }
+                "vdw" {
+
+                }
+            }
+        }
+
+        def Xform "H1" (
+            prepend inherits = </_class_/H>
+            prepend variantSets = "representation"
+        )
+        {
+            double3 xformOp:translate = (0.7569503272636612, 0.585882276618295, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            variantSet "representation" = {
+                "balls" {
+
+                }
+                "ballstick" {
+
+                }
+                "points" {
+
+                }
+                "vdw" {
+
+                }
+            }
+        }
+
+        def Xform "H2" (
+            prepend inherits = </_class_/H>
+            prepend variantSets = "representation"
+        )
+        {
+            double3 xformOp:translate = (-0.7569503272636612, 0.585882276618295, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            variantSet "representation" = {
+                "balls" {
+
+                }
+                "ballstick" {
+
+                }
+                "points" {
+
+                }
+                "vdw" {
+
+                }
+            }
+        }
+
+        def Xform "Bond_O_H1" (
+            prepend variantSets = "representation"
+        )
+        {
+            quatf xformOp:orient = (0.8977971, 0, 0, -0.4404093)
+            double3 xformOp:translate = (0.3784751636318306, 0.2929411383091475, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+
+            def Cylinder "Cylinder"
+            {
+                uniform token axis = "Y"
+                double height = 0.9572
+                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)]
+                double radius = 0.1
+            }
+            variantSet "representation" = {
+                "balls" {
+                    token visibility = "invisible"
+
+                }
+                "ballstick" {
+                    token visibility = "inherited"
+
+                }
+                "points" {
+                    token visibility = "invisible"
+
+                }
+                "vdw" {
+                    token visibility = "invisible"
+
+                }
+            }
+        }
+
+        def Xform "Bond_O_H2" (
+            prepend variantSets = "representation"
+        )
+        {
+            quatf xformOp:orient = (0.8977971, 0, -0, 0.4404093)
+            double3 xformOp:translate = (-0.3784751636318306, 0.2929411383091475, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+
+            def Cylinder "Cylinder"
+            {
+                uniform token axis = "Y"
+                double height = 0.9572
+                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)]
+                double radius = 0.1
+            }
+            variantSet "representation" = {
+                "balls" {
+                    token visibility = "invisible"
+
+                }
+                "ballstick" {
+                    token visibility = "inherited"
+
+                }
+                "points" {
+                    token visibility = "invisible"
+
+                }
+                "vdw" {
+                    token visibility = "invisible"
+
+                }
+            }
+        }
+        variantSet "representation" = {
+            "balls" {
+                over "O" (
+                    variants = {
+                        string representation = "balls"
+                    }
+                )
+                {
+                }
+
+                over "H1" (
+                    variants = {
+                        string representation = "balls"
+                    }
+                )
+                {
+                }
+
+                over "H2" (
+                    variants = {
+                        string representation = "balls"
+                    }
+                )
+                {
+                }
+
+                over "Bond_O_H1" (
+                    variants = {
+                        string representation = "balls"
+                    }
+                )
+                {
+                }
+
+                over "Bond_O_H2" (
+                    variants = {
+                        string representation = "balls"
+                    }
+                )
+                {
+                }
+
+            }
+            "ballstick" {
+                over "O" (
+                    variants = {
+                        string representation = "ballstick"
+                    }
+                )
+                {
+                }
+
+                over "H1" (
+                    variants = {
+                        string representation = "ballstick"
+                    }
+                )
+                {
+                }
+
+                over "H2" (
+                    variants = {
+                        string representation = "ballstick"
+                    }
+                )
+                {
+                }
+
+                over "Bond_O_H1" (
+                    variants = {
+                        string representation = "ballstick"
+                    }
+                )
+                {
+                }
+
+                over "Bond_O_H2" (
+                    variants = {
+                        string representation = "ballstick"
+                    }
+                )
+                {
+                }
+
+            }
+            "points" {
+                over "O" (
+                    variants = {
+                        string representation = "points"
+                    }
+                )
+                {
+                }
+
+                over "H1" (
+                    variants = {
+                        string representation = "points"
+                    }
+                )
+                {
+                }
+
+                over "H2" (
+                    variants = {
+                        string representation = "points"
+                    }
+                )
+                {
+                }
+
+                over "Bond_O_H1" (
+                    variants = {
+                        string representation = "points"
+                    }
+                )
+                {
+                }
+
+                over "Bond_O_H2" (
+                    variants = {
+                        string representation = "points"
+                    }
+                )
+                {
+                }
+
+            }
+            "vdw" {
+                over "O" (
+                    variants = {
+                        string representation = "vdw"
+                    }
+                )
+                {
+                }
+
+                over "H1" (
+                    variants = {
+                        string representation = "vdw"
+                    }
+                )
+                {
+                }
+
+                over "H2" (
+                    variants = {
+                        string representation = "vdw"
+                    }
+                )
+                {
+                }
+
+                over "Bond_O_H1" (
+                    variants = {
+                        string representation = "vdw"
+                    }
+                )
+                {
+                }
+
+                over "Bond_O_H2" (
+                    variants = {
+                        string representation = "vdw"
+                    }
+                )
+                {
+                }
+
+            }
+        }
+    }
+}
+
