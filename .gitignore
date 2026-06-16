@@ -419,3 +419,14 @@ _deps
 
 # Environment variables
 .env
+
+# AI coding tooling (kept local, never committed)
+CLAUDE.md
+.claude/
+AGENTS.md
+.cursor/
+.cursorrules
+.aider*
+
+# Stray npm lockfile (no package.json in this repo)
+package-lock.json
