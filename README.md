@@ -47,8 +47,15 @@ Researchers can visualize, analyze, and collaborate on biological data using ind
 
 - **CMake** 3.20 or higher
 - **C++20** compatible compiler (MSVC 2019+, GCC 10+, Clang 12+)
-- **vcpkg** for dependency management
 - **Git** with submodule support
+- **OpenUSD**: Follow the official instructions to build and install OpenUSD. Make sure to note the installation path (e.g., `/path/to/your/usd/install`).
+- **TBB (Threading Building Blocks)**:
+    *   If installed via a package manager (e.g., Homebrew on macOS: `brew install tbb`), CMake should find it automatically.
+    *   If TBB is part of your OpenUSD installation (and `usdview` runs), but CMake still cannot find it, you might need to:
+        1.  **Locate TBB's CMake configuration files**: Search for `TBBConfig.cmake` or `tbb-config.cmake` within your OpenUSD installation directory. It might be in a subdirectory like `OpenUSD/lib/cmake/TBB` or similar.
+        2.  **Add the containing directory to `CMAKE_PREFIX_PATH`**: If you find the directory (e.g., `/path/to/your/usd/install/lib/cmake/TBB`), add it to your `CMAKE_PREFIX_PATH` when configuring CMake.
+        3.  **Alternatively, set `TBB_DIR`**: Set the CMake variable `TBB_DIR` to the directory containing `TBBConfig.cmake` or `tbb-config.cmake`.
+- **GTest (Google Test)**: Can be installed with a package manager (e.g., Homebrew on macOS: `brew install googletest`) or built from source.
 
 ### Installation
 
@@ -58,33 +65,17 @@ git clone --recursive https://github.com/LittleCoinCoin/usd-bio.git
 cd usd-bio
 ```
 
-**2. Bootstrap vcpkg (if not already installed):**
+**2. Configure and build:**
 ```bash
-# Windows
-.\vcpkg\bootstrap-vcpkg.bat
-
-# Linux/macOS
-./vcpkg/bootstrap-vcpkg.sh
+# Replace /path/to/your/usd/install with your actual OpenUSD installation path.
+# If TBB is not found, you may need to extend CMAKE_PREFIX_PATH or set TBB_DIR as described above.
+cmake -B build -DCMAKE_PREFIX_PATH="/path/to/your/usd/install"
+cmake --build build
 ```
 
-**3. Configure and build:**
+**3. Run tests (optional):**
 ```bash
-# Windows (MSVC)
-cmake --preset=MSVC-x64
-cmake --build out/build/MSVC-x64 --config Release
-
-# Linux (GCC)
-cmake --preset=GCC
-cmake --build out/build/GCC --config Release
-
-# macOS (Clang)
-cmake --preset=Clang
-cmake --build out/build/Clang --config Release
-```
-
-**4. Run tests (optional):**
-```bash
-cd out/build/<preset>
+cd build
 ctest --output-on-failure
 ```
 
@@ -136,8 +127,7 @@ usd-bio/
 ├── examples/               # Example programs
 ├── docs/                   # Sphinx + Doxygen documentation
 ├── __design__/             # Permanent design documents (roadmap, architecture)
-├── __reports__/            # Temporary work reports (analysis, implementation)
-└── OpenUSD-setup-vcpkg/    # Template reference (preserved for validation)
+└── __reports__/            # Temporary work reports
 ```
 
 ---
