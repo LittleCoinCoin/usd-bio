@@ -59,9 +59,3 @@ if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
-
-# Examples
-option(BUILD_EXAMPLES "Build example programs" ON)
-if(BUILD_EXAMPLES AND BUILD_USD_BIO)
-    add_subdirectory(examples)
-endif()
