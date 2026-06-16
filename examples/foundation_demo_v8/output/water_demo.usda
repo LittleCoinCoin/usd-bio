@@ -1,0 +1,84 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    subLayers = [
+        @/Users/hacker/Documents/src/LittleCoinCoin/usd-bio/examples/foundation_demo_v8/assets/level2_molecules/water_template.usda@
+    ]
+    upAxis = "Y"
+)
+
+def Xform "World" (
+    variants = {
+        string representation = "balls"
+    }
+    prepend variantSets = "representation"
+)
+{
+    float3[] extent = [(-2, -2, -2), (2, 2, 2)]
+
+    def Xform "Water" (
+        prepend inherits = </_class_/Water>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+    variantSet "representation" = {
+        "balls" {
+            over "Water" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+        }
+        "ballstick" {
+            over "Water" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+        }
+        "points" {
+            over "Water" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+        }
+        "vdw" {
+            over "Water" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+        }
+    }
+}
+

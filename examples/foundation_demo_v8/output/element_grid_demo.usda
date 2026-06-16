@@ -1,0 +1,1074 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    subLayers = [
+        @/Users/hacker/Documents/src/LittleCoinCoin/usd-bio/examples/foundation_demo_v8/assets/level1_elements/element_templates.usda@
+    ]
+    upAxis = "Y"
+)
+
+def Xform "World" (
+    variants = {
+        string representation = "balls"
+    }
+    prepend variantSets = "representation"
+)
+{
+    float3[] extent = [(0, 0, -2), (40, 32, 2)]
+
+    def Xform "H" (
+        prepend inherits = </_class_/H>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "C" (
+        prepend inherits = </_class_/C>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (8, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "N" (
+        prepend inherits = </_class_/N>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (16, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "O" (
+        prepend inherits = </_class_/O>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (24, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "P" (
+        prepend inherits = </_class_/P>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (32, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "S" (
+        prepend inherits = </_class_/S>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (0, 8, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "Fe" (
+        prepend inherits = </_class_/Fe>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (8, 8, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "Zn" (
+        prepend inherits = </_class_/Zn>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (16, 8, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "Cu" (
+        prepend inherits = </_class_/Cu>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (24, 8, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "Mn" (
+        prepend inherits = </_class_/Mn>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (32, 8, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "Co" (
+        prepend inherits = </_class_/Co>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (0, 16, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "Mo" (
+        prepend inherits = </_class_/Mo>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (8, 16, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "Se" (
+        prepend inherits = </_class_/Se>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (16, 16, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "Na" (
+        prepend inherits = </_class_/Na>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (24, 16, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "K" (
+        prepend inherits = </_class_/K>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (32, 16, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "Ca" (
+        prepend inherits = </_class_/Ca>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (0, 24, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "Mg" (
+        prepend inherits = </_class_/Mg>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (8, 24, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "Cl" (
+        prepend inherits = </_class_/Cl>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (16, 24, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "I" (
+        prepend inherits = </_class_/I>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (24, 24, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "points" {
+
+            }
+            "sticks" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+    variantSet "representation" = {
+        "balls" {
+            over "H" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "C" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "N" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "O" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "P" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "S" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "Fe" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "Zn" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "Cu" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "Mn" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "Co" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "Mo" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "Se" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "Na" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "K" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "Ca" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "Mg" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "Cl" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "I" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+        }
+        "points" {
+            over "H" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "C" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "N" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "O" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "P" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "S" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "Fe" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "Zn" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "Cu" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "Mn" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "Co" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "Mo" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "Se" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "Na" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "K" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "Ca" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "Mg" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "Cl" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "I" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+        }
+        "sticks" {
+            over "H" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "C" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "N" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "O" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "P" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "S" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "Fe" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "Zn" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "Cu" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "Mn" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "Co" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "Mo" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "Se" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "Na" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "K" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "Ca" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "Mg" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "Cl" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+            over "I" (
+                variants = {
+                    string representation = "sticks"
+                }
+            )
+            {
+            }
+
+        }
+        "vdw" {
+            over "H" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "C" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "N" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "O" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "P" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "S" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "Fe" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "Zn" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "Cu" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "Mn" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "Co" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "Mo" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "Se" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "Na" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "K" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "Ca" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "Mg" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "Cl" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "I" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+        }
+    }
+}
+

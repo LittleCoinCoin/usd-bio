@@ -1,0 +1,40 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    subLayers = [
+        @../assets/level4_assemblies/abl_kinase_complex.usda@
+    ]
+    upAxis = "Y"
+)
+
+def "World" (
+    variants = {
+        string representation = "balls"
+    }
+    prepend variantSets = "representation"
+)
+{
+    variantSet "representation" = {
+        "balls" {
+
+        }
+        "ballstick" {
+
+        }
+        "points" {
+
+        }
+        "vdw" {
+
+        }
+    }
+}
+
+over "ABLComplex" (
+    variants = {
+        string representation = "ballstick"
+    }
+)
+{
+}
+

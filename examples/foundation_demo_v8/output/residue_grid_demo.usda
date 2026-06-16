@@ -1,0 +1,1127 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    subLayers = [
+        @/Users/hacker/Documents/src/LittleCoinCoin/usd-bio/examples/foundation_demo_v8/assets/level3_residues/residue_templates.usda@
+    ]
+    upAxis = "Y"
+)
+
+def "World" (
+    variants = {
+        string representation = "balls"
+    }
+    prepend variantSets = "representation"
+)
+{
+    def Xform "ALA" (
+        prepend inherits = </_class_/ALA>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (-16, 0, -12)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "ARG" (
+        prepend inherits = </_class_/ARG>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (-8, 0, -12)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "ASN" (
+        prepend inherits = </_class_/ASN>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (0, 0, -12)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "ASP" (
+        prepend inherits = </_class_/ASP>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (8, 0, -12)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "CYS" (
+        prepend inherits = </_class_/CYS>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (16, 0, -12)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "GLN" (
+        prepend inherits = </_class_/GLN>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (-16, 0, -4)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "GLU" (
+        prepend inherits = </_class_/GLU>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (-8, 0, -4)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "GLY" (
+        prepend inherits = </_class_/GLY>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (0, 0, -4)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "HIS" (
+        prepend inherits = </_class_/HIS>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (8, 0, -4)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "ILE" (
+        prepend inherits = </_class_/ILE>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (16, 0, -4)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "LEU" (
+        prepend inherits = </_class_/LEU>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (-16, 0, 4)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "LYS" (
+        prepend inherits = </_class_/LYS>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (-8, 0, 4)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "MET" (
+        prepend inherits = </_class_/MET>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (0, 0, 4)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "PHE" (
+        prepend inherits = </_class_/PHE>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (8, 0, 4)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "PRO" (
+        prepend inherits = </_class_/PRO>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (16, 0, 4)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "SER" (
+        prepend inherits = </_class_/SER>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (-16, 0, 12)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "THR" (
+        prepend inherits = </_class_/THR>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (-8, 0, 12)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "TRP" (
+        prepend inherits = </_class_/TRP>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (0, 0, 12)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "TYR" (
+        prepend inherits = </_class_/TYR>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (8, 0, 12)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+
+    def Xform "VAL" (
+        prepend inherits = </_class_/VAL>
+        prepend variantSets = "representation"
+    )
+    {
+        double3 xformOp:translate = (16, 0, 12)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
+    }
+    variantSet "representation" = {
+        "balls" {
+            over "ALA" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "ARG" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "ASN" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "ASP" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "CYS" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "GLN" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "GLU" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "GLY" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "HIS" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "ILE" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "LEU" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "LYS" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "MET" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "PHE" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "PRO" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "SER" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "THR" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "TRP" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "TYR" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+            over "VAL" (
+                variants = {
+                    string representation = "balls"
+                }
+            )
+            {
+            }
+
+        }
+        "ballstick" {
+            over "ALA" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "ARG" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "ASN" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "ASP" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "CYS" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "GLN" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "GLU" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "GLY" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "HIS" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "ILE" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "LEU" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "LYS" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "MET" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "PHE" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "PRO" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "SER" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "THR" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "TRP" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "TYR" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "VAL" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+        }
+        "points" {
+            over "ALA" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "ARG" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "ASN" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "ASP" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "CYS" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "GLN" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "GLU" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "GLY" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "HIS" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "ILE" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "LEU" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "LYS" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "MET" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "PHE" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "PRO" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "SER" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "THR" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "TRP" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "TYR" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+            over "VAL" (
+                variants = {
+                    string representation = "points"
+                }
+            )
+            {
+            }
+
+        }
+        "vdw" {
+            over "ALA" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "ARG" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "ASN" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "ASP" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "CYS" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "GLN" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "GLU" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "GLY" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "HIS" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "ILE" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "LEU" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "LYS" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "MET" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "PHE" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "PRO" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "SER" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "THR" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "TRP" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "TYR" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+            over "VAL" (
+                variants = {
+                    string representation = "vdw"
+                }
+            )
+            {
+            }
+
+        }
+    }
+}
+
