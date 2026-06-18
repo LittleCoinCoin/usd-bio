@@ -20,7 +20,7 @@ USD-Bio is a C++ extension library for [Pixar's OpenUSD](https://openusd.org/) t
 - **Integration with USD stage manipulation** for 3D visualization workflows
 - **Performance-optimized** operations for large-scale biological datasets
 
-**Status**: v0.1.0 - Foundation setup complete, core features in development (Phase 2+)
+**Status**: v0.1.0 - Manual prototyping phase. Architectural patterns are being validated in Python (see `examples/`) before the C++ schema is committed.
 
 ---
 
@@ -134,9 +134,9 @@ usd-bio/
 
 ## Development Status
 
-**Current Phase**: Phase 1 - Foundation Setup ✅ Complete (v0.1.0)
+**Current Phase**: Manual prototyping in Python (`examples/`), validating USD composition patterns on real biology data before the C++ schema is defined.
 
-**Completed Milestones**:
+**C++ repository scaffolding (v0.1.0)** — the one-time setup that seeded the future schema library, distinct from the Python prototype work that is currently active:
 - ✅ Directory structure and build system
 - ✅ Documentation framework (Doxygen + Sphinx + Breathe)
 - ✅ Testing framework (Google Test + CI/CD)
