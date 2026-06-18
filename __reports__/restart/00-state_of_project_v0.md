@@ -1,5 +1,13 @@
 # usd-bio — State of the Project (v0)
 
+> **⚠️ SUPERSEDED by [01-state_of_project_v1.md](01-state_of_project_v1.md) (2026-06-19).**
+> The PI has since answered Q-001/002/003 and the INBOX directive. The
+> *Proposed Topic Slicing* (T1–T4) and *Contradictions* sections below are
+> superseded by v1: the backlog is now 2 topics (T1+T2 merged into
+> `v8-gap-closure`; then `p53-mdm2-infra-extraction`; T4 dropped), and the
+> contradictions are resolved. The status tables, maturity map, and gap
+> analysis below remain the current evidence base.
+
 Date: 2026-06-17
 
 ---
