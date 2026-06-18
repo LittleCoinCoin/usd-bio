@@ -1,31 +1,15 @@
-# Foundation Demo: Evolutionary Log
+# Foundation Demo
 
-This directory tracks the development of the USD-Bio Foundation Demo, showcasing the transition from simple data conversion to a sophisticated, object-oriented biological data architecture.
+This directory tracks notes for the USD-Bio Foundation Demo, which showcases the
+transition from simple data conversion to an object-oriented biological data
+architecture built on OpenUSD composition.
 
-## Version History
+## Current Version
 
-### Version 5 (Current) - "Biological Object Model"
-*   **Focus**: Hierarchical composition and visualization variants.
-*   **Architecture**: 
-    *   Level 1: Atomic Blueprints (`atomic_templates.usd`).
-    *   Level 2: Residue Blueprints (`residue_templates.usd`).
-    *   Level 3: Data-driven Assembly (`complex_v5.usd`).
-*   **Features**: 
-    *   Atoms as first-class objects inheriting from element classes.
-    *   Residues inheriting from amino-acid classes.
-    *   `representation` VariantSet at every level (Atom, Residue, Molecule).
-    *   Visual modes: `points`, `balls` (ball-and-stick), `vdw` (space-filling).
-    *   Bonds as `UsdGeomBasisCurves` with `thread` and `cylinder` modes.
+The foundation demo lives at `examples/foundation_demo_v8/` and **v8 is the current
+and only version**. Earlier iterations (v0–v7) were exploratory and have been
+removed; their history is not maintained here. Treat v8 as the start point for all
+foundation-demo work.
 
-### Version 4 (Internal Iteration)
-*   **Focus**: Departmental separation.
-*   **Outcome**: Successfully separated Protein, Ligand, and Solvent into individual layers. PointInstancer implemented for solvent.
-
-### Version 1-3 (Legacy)
-*   **Focus**: Basic PDB to USD conversion.
-*   **Outcome**: Proof of concept for reading ASCII PDB data and visualizing in `usdview`.
-
-## Active Implementation
-*   `examples/foundation_demo_v5/create_atomic_templates.py`
-*   `examples/foundation_demo_v5/create_residue_templates.py`
-*   `examples/foundation_demo_v5/pdb_to_usd_v5.py`
+See `examples/foundation_demo_v8/` for the active implementation (templates,
+converters, demos, and docs).
