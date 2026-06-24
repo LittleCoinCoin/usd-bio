@@ -1,10 +1,10 @@
 # v8-gap-closure
 
 ## Context
-This campaign brings `examples/foundation_demo_v8/` to **architecture-doc parity**: every pattern that `__design__/openusd_for_research_architecture.md` specifies, demonstrated in Python with runnable demos + committed `.usda` (or equivalent evidence) + falsification-resistant tests. It executes the in-scope backlog of `__reports__/foundation_demo/perspective/01_v8_to_production_perspective.md` (§3 gaps + §5 experiments), refreshed against current code in cycle-000 (`__reports__/v8-gap-closure/r0-audit-and-roadmap_v1.md`). It depends on nothing outside the repo; it produces the demos/tests/`.usda` that retire each gap. C++/schema authoring and the p53-mdm2 application are explicitly **out of scope**.
+This campaign brings `examples/foundation_demo_v8/` to **architecture-doc parity**: every pattern that `__design__/openusd_for_research_architecture.md` specifies, demonstrated in Python with runnable demos + committed `.usda` (or equivalent evidence) + falsification-resistant tests. It executes the in-scope backlog of `__reports__/foundation_demo/perspective/01_v8_to_production_perspective.md` (§3 gaps + §5 experiments), refreshed against current code in cycle-000 (`__reports__/v8-gap-closure/00-audit_and_roadmap_v0.md`). It depends on nothing outside the repo; it produces the demos/tests/`.usda` that retire each gap. C++/schema authoring and the p53-mdm2 application are explicitly **out of scope**.
 
 ## Reference Documents
-- [R01 cycle-000 audit + roadmap rationale](../../__reports__/v8-gap-closure/r0-audit-and-roadmap_v1.md) — refreshed gap status, sequencing rationale
+- [R01 cycle-000 audit + roadmap rationale](../../__reports__/v8-gap-closure/00-audit_and_roadmap_v0.md) — refreshed gap status, sequencing rationale
 - [R02 v8→production perspective](../../__reports__/foundation_demo/perspective/01_v8_to_production_perspective.md) — authoritative §3 gaps + §5 experiments
 - [R03 architecture vision](../../__design__/openusd_for_research_architecture.md) — the parity target (LIVERPS → research)
 

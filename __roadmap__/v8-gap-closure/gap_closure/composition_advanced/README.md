@@ -4,7 +4,7 @@
 The advanced composition arcs, nested one level below `gap_closure/` because they consume its outputs: `ensemble_payload` needs the clip-template pattern (Exp 2) and a layered stage (Exp 3); `analysis_attributes` needs the Analysis layer from the 5-layer stage (Exp 3). The remaining leaves (`perturbation_variantset`, `parameter_variantset`, `specializes_arc`, `provenance_metadata`) are independent §3.3/§3.4 arcs grouped here as the campaign's final wave. All six are mutually independent and parallel-executable once the prior wave lands.
 
 ## Reference Documents
-- [R01 cycle-000 audit + roadmap](../../../../__reports__/v8-gap-closure/r0-audit-and-roadmap_v1.md) — §3.3/§3.4 arc status
+- [R01 cycle-000 audit + roadmap](../../../../__reports__/v8-gap-closure/00-audit_and_roadmap_v0.md) — §3.3/§3.4 arc status
 - [R03 architecture vision](../../../../__design__/openusd_for_research_architecture.md) — Ensemble/Perturbation/Parameter variant semantics, Specializes
 
 ## Goal

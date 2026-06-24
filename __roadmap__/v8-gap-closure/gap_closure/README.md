@@ -4,7 +4,7 @@
 The gap-closure work proper. Runs **after** the campaign's foundation leaves (`portability_fix`, `test_harness`, `roadmap_status_correction`) because BFS executes a directory's leaf siblings before its subdirectories. The five leaves here are mutually independent §5 experiments executable in parallel; the `composition_advanced/` subdirectory holds arcs that depend on the layering and clip-template outputs produced here, so it is one level deeper. Each leaf produces a runnable demo + committed `.usda` + read-back tests using the harness from the foundation wave.
 
 ## Reference Documents
-- [R01 cycle-000 audit + roadmap](../../../__reports__/v8-gap-closure/r0-audit-and-roadmap_v1.md) — refreshed gap status
+- [R01 cycle-000 audit + roadmap](../../../__reports__/v8-gap-closure/00-audit_and_roadmap_v0.md) — refreshed gap status
 - [R02 v8→production perspective §5](../../../__reports__/foundation_demo/perspective/01_v8_to_production_perspective.md) — experiment deliverables
 
 ## Goal
