@@ -1,6 +1,6 @@
 ---
 topic: restart
-state: needs-pi-review
+state: closed
 priority: normal
 review_cadence: per-cycle
 stall_threshold: 3
