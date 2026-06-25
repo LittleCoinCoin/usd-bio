@@ -3,6 +3,7 @@
     defaultPrim = "World"
     endTimeCode = 19
     framesPerSecond = 10
+    metersPerUnit = 1e-10
     startTimeCode = 0
     subLayers = [
         @../assets/level4_assemblies/abl_kinase_complex.usda@

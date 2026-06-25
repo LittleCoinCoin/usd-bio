@@ -294,6 +294,11 @@ def write_clip_file(output_path: str, prim_paths: list,
         if bond_idx % 500 == 0:
             print(f"    Bonds: {bond_idx}/{len(bond_info)}...")
 
+    # Set defaultPrim to root assembly prim (usdchecker compliance)
+    abl_prim = stage.GetPrimAtPath("/ABLComplex")
+    if abl_prim.IsValid():
+        stage.SetDefaultPrim(abl_prim)
+
     stage.Save()
     print(f"  Created clip: {output_path}")
     print(f"    Frames: {n_frames}, Atoms: {n_atoms}, Bonds: {len(bond_info)}")

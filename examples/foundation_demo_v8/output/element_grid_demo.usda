@@ -1,6 +1,7 @@
 #usda 1.0
 (
     defaultPrim = "World"
+    metersPerUnit = 1e-10
     subLayers = [
         @/Users/hacker/Documents/src/LittleCoinCoin/usd-bio/examples/foundation_demo_v8/assets/level1_elements/element_templates.usda@
     ]
@@ -27,10 +28,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -50,10 +51,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -73,10 +74,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -96,10 +97,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -119,10 +120,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -142,10 +143,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -165,10 +166,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -188,10 +189,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -211,10 +212,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -234,10 +235,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -257,10 +258,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -280,10 +281,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -303,10 +304,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -326,10 +327,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -349,10 +350,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -372,10 +373,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -395,10 +396,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -418,10 +419,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -441,10 +442,10 @@ def Xform "World" (
             "balls" {
 
             }
-            "points" {
+            "ballstick" {
 
             }
-            "sticks" {
+            "points" {
 
             }
             "vdw" {
@@ -607,6 +608,160 @@ def Xform "World" (
             }
 
         }
+        "ballstick" {
+            over "H" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "C" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "N" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "O" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "P" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "S" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "Fe" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "Zn" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "Cu" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "Mn" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "Co" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "Mo" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "Se" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "Na" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "K" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "Ca" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "Mg" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "Cl" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+            over "I" (
+                variants = {
+                    string representation = "ballstick"
+                }
+            )
+            {
+            }
+
+        }
         "points" {
             over "H" (
                 variants = {
@@ -755,160 +910,6 @@ def Xform "World" (
             over "I" (
                 variants = {
                     string representation = "points"
-                }
-            )
-            {
-            }
-
-        }
-        "sticks" {
-            over "H" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "C" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "N" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "O" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "P" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "S" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "Fe" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "Zn" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "Cu" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "Mn" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "Co" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "Mo" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "Se" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "Na" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "K" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "Ca" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "Mg" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "Cl" (
-                variants = {
-                    string representation = "sticks"
-                }
-            )
-            {
-            }
-
-            over "I" (
-                variants = {
-                    string representation = "sticks"
                 }
             )
             {
