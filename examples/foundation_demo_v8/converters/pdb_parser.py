@@ -309,14 +309,13 @@ def verify_pdb_parse(structure: PDBStructure):
 
 
 if __name__ == "__main__":
-    # Default path for ShinobuLab ABL kinase PDB
-    default_pdb = os.path.join(
-        os.path.expanduser("~"),
-        "Documents", "career", "Projects", "USDBio", "ShinobuLab",
-        "files", "atp-complex-solv35.pdb"
-    )
-
     import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from usdbio_env import get_data_dir
+
+    # Default path — root from environment; fails loudly if USDBIO_DATA_DIR is unset
+    default_pdb = os.path.join(get_data_dir(), "files", "atp-complex-solv35.pdb")
+
     pdb_path = sys.argv[1] if len(sys.argv) > 1 else default_pdb
 
     print(f"Parsing: {pdb_path}")
