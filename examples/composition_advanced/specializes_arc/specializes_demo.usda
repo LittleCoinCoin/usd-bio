@@ -1,0 +1,60 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    doc = """specializes_arc demo — LIVERPS contrast between Inherits and Specializes arcs.
+
+    Demonstrates that in a simple single-layer file:
+      - /Atom_Inherits (inherits + local override 9.99): local opinion wins → bio:vdwRadius = 9.99
+      - /Atom_Specializes (specializes + local override 9.99): local opinion wins → bio:vdwRadius = 9.99
+
+    KEY FINDING (verified via context7 /websites/openusd_release + empirical observation):
+      Official USD docs state: "opinions expressed directly on the specialized prim always override
+      those on the base prim, regardless of the referencing context."
+      Both Inherits and Specializes behave identically in a single-file context: local opinion wins.
+      The Specializes vs Inherits contrast is only visible across referencing boundaries.
+
+    metersPerUnit: 1e-10 (Angstroms)
+    upAxis: Y
+    """
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+# Base class template — defines the canonical vdW radius for Carbon
+# Note: the prim is named "_class_" (no leading slash in the definition),
+# but referenced as </_class_/AtomBase> (absolute path from scene root).
+class "_class_"
+{
+    class "AtomBase"
+    {
+        float bio:vdwRadius = 1.70
+        string bio:elementSymbol = "C"
+    }
+}
+
+# World prim (defaultPrim)
+def Xform "World"
+{
+    # /World/Atom_Inherits: uses Inherits arc from base class + local override 9.99.
+    # Under LIVERPS, Local (L) is stronger than Inherits (I), so bio:vdwRadius = 9.99 wins.
+    def Xform "Atom_Inherits" (
+        prepend inherits = </_class_/AtomBase>
+    )
+    {
+        float bio:vdwRadius = 9.99
+        string bio:elementSymbol = "C"
+    }
+
+    # /World/Atom_Specializes: uses Specializes arc (weakest, S in LIVERPS) + local override 9.99.
+    # Official USD docs confirm: "opinions expressed directly on the specialized prim always
+    # override those on the base prim" — so bio:vdwRadius = 9.99 wins here too.
+    # The Specializes arc's distinctive behavior (base updates propagate through references)
+    # only manifests across referencing boundaries — NOT in a simple single-file context.
+    def Xform "Atom_Specializes" (
+        prepend specializes = </_class_/AtomBase>
+    )
+    {
+        float bio:vdwRadius = 9.99
+        string bio:elementSymbol = "C"
+    }
+}
