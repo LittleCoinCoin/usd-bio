@@ -24,7 +24,7 @@ graph TD
     ensemble_payload[Exp 4 — Ensemble VariantSet + Payload Swapping]:::done
     perturbation_variantset[Perturbation VariantSet (Genotype)]:::done
     parameter_variantset[Parameter VariantSet (ForceField)]:::done
-    specializes_arc[Specializes Arc Demonstration]:::planned
+    specializes_arc[Specializes Arc Demonstration]:::inprogress
     analysis_attributes[Analysis Data as USD Attributes (PMF/RMSD/contacts)]:::planned
     provenance_metadata[Structured Provenance Metadata (§3.4)]:::planned
     classDef done       fill:#166534,color:#bbf7d0
@@ -40,7 +40,7 @@ graph TD
 | `ensemble_payload.md` | 📄 Leaf Task | ✅ Done |
 | `perturbation_variantset.md` | 📄 Leaf Task | ✅ Done |
 | `parameter_variantset.md` | 📄 Leaf Task | ✅ Done |
-| `specializes_arc.md` | 📄 Leaf Task | ⬜ Planned |
+| `specializes_arc.md` | 📄 Leaf Task | 🔄 In Progress |
 | `analysis_attributes.md` | 📄 Leaf Task | ⬜ Planned |
 | `provenance_metadata.md` | 📄 Leaf Task | ⬜ Planned |
 
