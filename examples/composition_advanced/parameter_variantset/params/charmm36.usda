@@ -1,0 +1,38 @@
+#usda 1.0
+(
+    # Parameter overlay layer for CHARMM36m force field.
+    # Contains 'over' opinions only — no def prims. Designed to be referenced
+    # or composed onto a stage that already defines /ABLFragment/Chain_A/Res_001.
+    #
+    # [assumption: representative values from CHARMM36m parameter set;
+    #  not extracted from a literal CHARMM parameter file. Source topology:
+    #  ShinobuLab ABL kinase MD dataset, representative partial charges and
+    #  CHARMM LJ radii for backbone N and CA atoms.]
+    #
+    # bio:partialCharge: partial charge in units of elementary charge (e)
+    # bio:ljRadius: Lennard-Jones radius (Angstrom, CHARMM Rmin/2 derived)
+    #
+    # Sentinel values for test assertions:
+    #   Atom_N  bio:partialCharge = -0.47   (CHARMM backbone N)
+    #   Atom_CA bio:partialCharge = -0.02   (CHARMM backbone Cα)
+)
+
+over "ABLFragment"
+{
+    over "Chain_A"
+    {
+        over "Res_001"
+        {
+            over "Atom_N"
+            {
+                custom float bio:partialCharge = -0.47
+                custom float bio:ljRadius = 1.850
+            }
+            over "Atom_CA"
+            {
+                custom float bio:partialCharge = -0.02
+                custom float bio:ljRadius = 2.000
+            }
+        }
+    }
+}
