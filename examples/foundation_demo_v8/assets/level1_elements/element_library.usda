@@ -1,0 +1,1021 @@
+#usda 1.0
+(
+    "Reference-friendly element library. Default prim /_ElementLibrary wraps element class prims for AddReference use."
+    defaultPrim = "_ElementLibrary"
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+def Xform "_ElementLibrary"
+{
+    class "_class_"
+    {
+        class "H" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 1.008
+            custom int bio:atomicNumber = 1
+            custom float bio:covalentRadius = 0.31
+            custom color3f bio:cpkColor = (1, 1, 1)
+            custom float bio:electronegativity = 2.2
+            custom string bio:name = "Hydrogen"
+            custom string bio:notes = "Most abundant, hydrogen bonds, proton transfer"
+            custom token bio:symbol = "H"
+            custom float bio:vdwRadius = 1.2
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.36, -0.36, -0.36), (0.36, 0.36, 0.36)]
+                        color3f[] primvars:displayColor = [(1, 1, 1)]
+                        double radius = 0.36
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.3, -0.3, -0.3), (0.3, 0.3, 0.3)]
+                        color3f[] primvars:displayColor = [(1, 1, 1)]
+                        double radius = 0.3
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.18, -0.18, -0.18), (0.18, 0.18, 0.18)]
+                        color3f[] primvars:displayColor = [(1, 1, 1)]
+                        double radius = 0.18
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-1.2, -1.2, -1.2), (1.2, 1.2, 1.2)]
+                        color3f[] primvars:displayColor = [(1, 1, 1)]
+                        double radius = 1.2
+                    }
+
+                }
+            }
+        }
+
+        class "C" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 12.011
+            custom int bio:atomicNumber = 6
+            custom float bio:covalentRadius = 0.76
+            custom color3f bio:cpkColor = (0.2, 0.2, 0.2)
+            custom float bio:electronegativity = 2.55
+            custom string bio:name = "Carbon"
+            custom string bio:notes = "Backbone of organic molecules"
+            custom token bio:symbol = "C"
+            custom float bio:vdwRadius = 1.7
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.51, -0.51, -0.51), (0.51, 0.51, 0.51)]
+                        color3f[] primvars:displayColor = [(0.2, 0.2, 0.2)]
+                        double radius = 0.51
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.425, -0.425, -0.425), (0.425, 0.425, 0.425)]
+                        color3f[] primvars:displayColor = [(0.2, 0.2, 0.2)]
+                        double radius = 0.425
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.255, -0.255, -0.255), (0.255, 0.255, 0.255)]
+                        color3f[] primvars:displayColor = [(0.2, 0.2, 0.2)]
+                        double radius = 0.255
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-1.7, -1.7, -1.7), (1.7, 1.7, 1.7)]
+                        color3f[] primvars:displayColor = [(0.2, 0.2, 0.2)]
+                        double radius = 1.7
+                    }
+
+                }
+            }
+        }
+
+        class "N" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 14.007
+            custom int bio:atomicNumber = 7
+            custom float bio:covalentRadius = 0.71
+            custom color3f bio:cpkColor = (0.188, 0.314, 0.973)
+            custom float bio:electronegativity = 3.04
+            custom string bio:name = "Nitrogen"
+            custom string bio:notes = "Amino acids, nucleotides, proteins"
+            custom token bio:symbol = "N"
+            custom float bio:vdwRadius = 1.55
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.465, -0.465, -0.465), (0.465, 0.465, 0.465)]
+                        color3f[] primvars:displayColor = [(0.188, 0.314, 0.973)]
+                        double radius = 0.46499999999999997
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.3875, -0.3875, -0.3875), (0.3875, 0.3875, 0.3875)]
+                        color3f[] primvars:displayColor = [(0.188, 0.314, 0.973)]
+                        double radius = 0.3875
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.2325, -0.2325, -0.2325), (0.2325, 0.2325, 0.2325)]
+                        color3f[] primvars:displayColor = [(0.188, 0.314, 0.973)]
+                        double radius = 0.23249999999999998
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-1.55, -1.55, -1.55), (1.55, 1.55, 1.55)]
+                        color3f[] primvars:displayColor = [(0.188, 0.314, 0.973)]
+                        double radius = 1.55
+                    }
+
+                }
+            }
+        }
+
+        class "O" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 15.999
+            custom int bio:atomicNumber = 8
+            custom float bio:covalentRadius = 0.66
+            custom color3f bio:cpkColor = (1, 0.051, 0.051)
+            custom float bio:electronegativity = 3.44
+            custom string bio:name = "Oxygen"
+            custom string bio:notes = "Water, carbohydrates, phosphates"
+            custom token bio:symbol = "O"
+            custom float bio:vdwRadius = 1.52
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.456, -0.456, -0.456), (0.456, 0.456, 0.456)]
+                        color3f[] primvars:displayColor = [(1, 0.051, 0.051)]
+                        double radius = 0.45599999999999996
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.38, -0.38, -0.38), (0.38, 0.38, 0.38)]
+                        color3f[] primvars:displayColor = [(1, 0.051, 0.051)]
+                        double radius = 0.38
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.228, -0.228, -0.228), (0.228, 0.228, 0.228)]
+                        color3f[] primvars:displayColor = [(1, 0.051, 0.051)]
+                        double radius = 0.22799999999999998
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-1.52, -1.52, -1.52), (1.52, 1.52, 1.52)]
+                        color3f[] primvars:displayColor = [(1, 0.051, 0.051)]
+                        double radius = 1.52
+                    }
+
+                }
+            }
+        }
+
+        class "P" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 30.974
+            custom int bio:atomicNumber = 15
+            custom float bio:covalentRadius = 1.07
+            custom color3f bio:cpkColor = (1, 0.502, 0)
+            custom float bio:electronegativity = 2.19
+            custom string bio:name = "Phosphorus"
+            custom string bio:notes = "ATP, DNA/RNA backbone, phospholipids"
+            custom token bio:symbol = "P"
+            custom float bio:vdwRadius = 1.8
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.54, -0.54, -0.54), (0.54, 0.54, 0.54)]
+                        color3f[] primvars:displayColor = [(1, 0.502, 0)]
+                        double radius = 0.54
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.45, -0.45, -0.45), (0.45, 0.45, 0.45)]
+                        color3f[] primvars:displayColor = [(1, 0.502, 0)]
+                        double radius = 0.45
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.27, -0.27, -0.27), (0.27, 0.27, 0.27)]
+                        color3f[] primvars:displayColor = [(1, 0.502, 0)]
+                        double radius = 0.27
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-1.8, -1.8, -1.8), (1.8, 1.8, 1.8)]
+                        color3f[] primvars:displayColor = [(1, 0.502, 0)]
+                        double radius = 1.8
+                    }
+
+                }
+            }
+        }
+
+        class "S" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 32.06
+            custom int bio:atomicNumber = 16
+            custom float bio:covalentRadius = 1.05
+            custom color3f bio:cpkColor = (1, 1, 0.188)
+            custom float bio:electronegativity = 2.58
+            custom string bio:name = "Sulfur"
+            custom string bio:notes = "Cysteine, methionine, disulfide bonds"
+            custom token bio:symbol = "S"
+            custom float bio:vdwRadius = 1.8
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.54, -0.54, -0.54), (0.54, 0.54, 0.54)]
+                        color3f[] primvars:displayColor = [(1, 1, 0.188)]
+                        double radius = 0.54
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.45, -0.45, -0.45), (0.45, 0.45, 0.45)]
+                        color3f[] primvars:displayColor = [(1, 1, 0.188)]
+                        double radius = 0.45
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.27, -0.27, -0.27), (0.27, 0.27, 0.27)]
+                        color3f[] primvars:displayColor = [(1, 1, 0.188)]
+                        double radius = 0.27
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-1.8, -1.8, -1.8), (1.8, 1.8, 1.8)]
+                        color3f[] primvars:displayColor = [(1, 1, 0.188)]
+                        double radius = 1.8
+                    }
+
+                }
+            }
+        }
+
+        class "Fe" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 55.845
+            custom int bio:atomicNumber = 26
+            custom float bio:covalentRadius = 1.32
+            custom color3f bio:cpkColor = (0.878, 0.4, 0.2)
+            custom float bio:electronegativity = 1.83
+            custom string bio:name = "Iron"
+            custom string bio:notes = "Hemoglobin, cytochromes, Fe-S clusters"
+            custom token bio:symbol = "Fe"
+            custom float bio:vdwRadius = 2.05
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.615, -0.615, -0.615), (0.615, 0.615, 0.615)]
+                        color3f[] primvars:displayColor = [(0.878, 0.4, 0.2)]
+                        double radius = 0.6149999999999999
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.5125, -0.5125, -0.5125), (0.5125, 0.5125, 0.5125)]
+                        color3f[] primvars:displayColor = [(0.878, 0.4, 0.2)]
+                        double radius = 0.5125
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.3075, -0.3075, -0.3075), (0.3075, 0.3075, 0.3075)]
+                        color3f[] primvars:displayColor = [(0.878, 0.4, 0.2)]
+                        double radius = 0.30749999999999994
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-2.05, -2.05, -2.05), (2.05, 2.05, 2.05)]
+                        color3f[] primvars:displayColor = [(0.878, 0.4, 0.2)]
+                        double radius = 2.05
+                    }
+
+                }
+            }
+        }
+
+        class "Zn" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 65.38
+            custom int bio:atomicNumber = 30
+            custom float bio:covalentRadius = 1.22
+            custom color3f bio:cpkColor = (0.49, 0.502, 0.69)
+            custom float bio:electronegativity = 1.65
+            custom string bio:name = "Zinc"
+            custom string bio:notes = "Zinc fingers, carbonic anhydrase, structural"
+            custom token bio:symbol = "Zn"
+            custom float bio:vdwRadius = 2.1
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.63, -0.63, -0.63), (0.63, 0.63, 0.63)]
+                        color3f[] primvars:displayColor = [(0.49, 0.502, 0.69)]
+                        double radius = 0.63
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.525, -0.525, -0.525), (0.525, 0.525, 0.525)]
+                        color3f[] primvars:displayColor = [(0.49, 0.502, 0.69)]
+                        double radius = 0.525
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.315, -0.315, -0.315), (0.315, 0.315, 0.315)]
+                        color3f[] primvars:displayColor = [(0.49, 0.502, 0.69)]
+                        double radius = 0.315
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-2.1, -2.1, -2.1), (2.1, 2.1, 2.1)]
+                        color3f[] primvars:displayColor = [(0.49, 0.502, 0.69)]
+                        double radius = 2.1
+                    }
+
+                }
+            }
+        }
+
+        class "Cu" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 63.546
+            custom int bio:atomicNumber = 29
+            custom float bio:covalentRadius = 1.32
+            custom color3f bio:cpkColor = (0.784, 0.502, 0.2)
+            custom float bio:electronegativity = 1.9
+            custom string bio:name = "Copper"
+            custom string bio:notes = "Cytochrome c oxidase, plastocyanin"
+            custom token bio:symbol = "Cu"
+            custom float bio:vdwRadius = 1.96
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.588, -0.588, -0.588), (0.588, 0.588, 0.588)]
+                        color3f[] primvars:displayColor = [(0.784, 0.502, 0.2)]
+                        double radius = 0.588
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.49, -0.49, -0.49), (0.49, 0.49, 0.49)]
+                        color3f[] primvars:displayColor = [(0.784, 0.502, 0.2)]
+                        double radius = 0.49
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.294, -0.294, -0.294), (0.294, 0.294, 0.294)]
+                        color3f[] primvars:displayColor = [(0.784, 0.502, 0.2)]
+                        double radius = 0.294
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-1.96, -1.96, -1.96), (1.96, 1.96, 1.96)]
+                        color3f[] primvars:displayColor = [(0.784, 0.502, 0.2)]
+                        double radius = 1.96
+                    }
+
+                }
+            }
+        }
+
+        class "Mn" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 54.938
+            custom int bio:atomicNumber = 25
+            custom float bio:covalentRadius = 1.39
+            custom color3f bio:cpkColor = (0.612, 0.478, 0.78)
+            custom float bio:electronegativity = 1.55
+            custom string bio:name = "Manganese"
+            custom string bio:notes = "Photosystem II, superoxide dismutase"
+            custom token bio:symbol = "Mn"
+            custom float bio:vdwRadius = 2.05
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.615, -0.615, -0.615), (0.615, 0.615, 0.615)]
+                        color3f[] primvars:displayColor = [(0.612, 0.478, 0.78)]
+                        double radius = 0.6149999999999999
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.5125, -0.5125, -0.5125), (0.5125, 0.5125, 0.5125)]
+                        color3f[] primvars:displayColor = [(0.612, 0.478, 0.78)]
+                        double radius = 0.5125
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.3075, -0.3075, -0.3075), (0.3075, 0.3075, 0.3075)]
+                        color3f[] primvars:displayColor = [(0.612, 0.478, 0.78)]
+                        double radius = 0.30749999999999994
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-2.05, -2.05, -2.05), (2.05, 2.05, 2.05)]
+                        color3f[] primvars:displayColor = [(0.612, 0.478, 0.78)]
+                        double radius = 2.05
+                    }
+
+                }
+            }
+        }
+
+        class "Co" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 58.933
+            custom int bio:atomicNumber = 27
+            custom float bio:covalentRadius = 1.26
+            custom color3f bio:cpkColor = (0.941, 0.565, 0.627)
+            custom float bio:electronegativity = 1.88
+            custom string bio:name = "Cobalt"
+            custom string bio:notes = "Vitamin B12 (cobalamin)"
+            custom token bio:symbol = "Co"
+            custom float bio:vdwRadius = 2
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.6, -0.6, -0.6), (0.6, 0.6, 0.6)]
+                        color3f[] primvars:displayColor = [(0.941, 0.565, 0.627)]
+                        double radius = 0.6
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+                        color3f[] primvars:displayColor = [(0.941, 0.565, 0.627)]
+                        double radius = 0.5
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.3, -0.3, -0.3), (0.3, 0.3, 0.3)]
+                        color3f[] primvars:displayColor = [(0.941, 0.565, 0.627)]
+                        double radius = 0.3
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-2, -2, -2), (2, 2, 2)]
+                        color3f[] primvars:displayColor = [(0.941, 0.565, 0.627)]
+                        double radius = 2
+                    }
+
+                }
+            }
+        }
+
+        class "Mo" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 95.95
+            custom int bio:atomicNumber = 42
+            custom float bio:covalentRadius = 1.54
+            custom color3f bio:cpkColor = (0.329, 0.71, 0.71)
+            custom float bio:electronegativity = 2.16
+            custom string bio:name = "Molybdenum"
+            custom string bio:notes = "Nitrogenase, xanthine oxidase"
+            custom token bio:symbol = "Mo"
+            custom float bio:vdwRadius = 2.17
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.651, -0.651, -0.651), (0.651, 0.651, 0.651)]
+                        color3f[] primvars:displayColor = [(0.329, 0.71, 0.71)]
+                        double radius = 0.6509999999999999
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.5425, -0.5425, -0.5425), (0.5425, 0.5425, 0.5425)]
+                        color3f[] primvars:displayColor = [(0.329, 0.71, 0.71)]
+                        double radius = 0.5425
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.3255, -0.3255, -0.3255), (0.3255, 0.3255, 0.3255)]
+                        color3f[] primvars:displayColor = [(0.329, 0.71, 0.71)]
+                        double radius = 0.32549999999999996
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-2.17, -2.17, -2.17), (2.17, 2.17, 2.17)]
+                        color3f[] primvars:displayColor = [(0.329, 0.71, 0.71)]
+                        double radius = 2.17
+                    }
+
+                }
+            }
+        }
+
+        class "Se" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 78.971
+            custom int bio:atomicNumber = 34
+            custom float bio:covalentRadius = 1.2
+            custom color3f bio:cpkColor = (1, 0.631, 0)
+            custom float bio:electronegativity = 2.55
+            custom string bio:name = "Selenium"
+            custom string bio:notes = "Selenocysteine (21st amino acid)"
+            custom token bio:symbol = "Se"
+            custom float bio:vdwRadius = 1.9
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.57, -0.57, -0.57), (0.57, 0.57, 0.57)]
+                        color3f[] primvars:displayColor = [(1, 0.631, 0)]
+                        double radius = 0.57
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.475, -0.475, -0.475), (0.475, 0.475, 0.475)]
+                        color3f[] primvars:displayColor = [(1, 0.631, 0)]
+                        double radius = 0.475
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.285, -0.285, -0.285), (0.285, 0.285, 0.285)]
+                        color3f[] primvars:displayColor = [(1, 0.631, 0)]
+                        double radius = 0.285
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-1.9, -1.9, -1.9), (1.9, 1.9, 1.9)]
+                        color3f[] primvars:displayColor = [(1, 0.631, 0)]
+                        double radius = 1.9
+                    }
+
+                }
+            }
+        }
+
+        class "Na" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 22.99
+            custom int bio:atomicNumber = 11
+            custom float bio:covalentRadius = 1.66
+            custom color3f bio:cpkColor = (0.671, 0.361, 0.949)
+            custom float bio:electronegativity = 0.93
+            custom string bio:name = "Sodium"
+            custom string bio:notes = "Na+/K+ pump, nerve impulses"
+            custom token bio:symbol = "Na"
+            custom float bio:vdwRadius = 2.27
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.681, -0.681, -0.681), (0.681, 0.681, 0.681)]
+                        color3f[] primvars:displayColor = [(0.671, 0.361, 0.949)]
+                        double radius = 0.6809999999999999
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.5675, -0.5675, -0.5675), (0.5675, 0.5675, 0.5675)]
+                        color3f[] primvars:displayColor = [(0.671, 0.361, 0.949)]
+                        double radius = 0.5675
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.3405, -0.3405, -0.3405), (0.3405, 0.3405, 0.3405)]
+                        color3f[] primvars:displayColor = [(0.671, 0.361, 0.949)]
+                        double radius = 0.34049999999999997
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-2.27, -2.27, -2.27), (2.27, 2.27, 2.27)]
+                        color3f[] primvars:displayColor = [(0.671, 0.361, 0.949)]
+                        double radius = 2.27
+                    }
+
+                }
+            }
+        }
+
+        class "K" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 39.098
+            custom int bio:atomicNumber = 19
+            custom float bio:covalentRadius = 2.03
+            custom color3f bio:cpkColor = (0.561, 0.251, 0.831)
+            custom float bio:electronegativity = 0.82
+            custom string bio:name = "Potassium"
+            custom string bio:notes = "Membrane potential, enzyme cofactor"
+            custom token bio:symbol = "K"
+            custom float bio:vdwRadius = 2.75
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.825, -0.825, -0.825), (0.825, 0.825, 0.825)]
+                        color3f[] primvars:displayColor = [(0.561, 0.251, 0.831)]
+                        double radius = 0.825
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.6875, -0.6875, -0.6875), (0.6875, 0.6875, 0.6875)]
+                        color3f[] primvars:displayColor = [(0.561, 0.251, 0.831)]
+                        double radius = 0.6875
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.4125, -0.4125, -0.4125), (0.4125, 0.4125, 0.4125)]
+                        color3f[] primvars:displayColor = [(0.561, 0.251, 0.831)]
+                        double radius = 0.4125
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-2.75, -2.75, -2.75), (2.75, 2.75, 2.75)]
+                        color3f[] primvars:displayColor = [(0.561, 0.251, 0.831)]
+                        double radius = 2.75
+                    }
+
+                }
+            }
+        }
+
+        class "Ca" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 40.078
+            custom int bio:atomicNumber = 20
+            custom float bio:covalentRadius = 1.76
+            custom color3f bio:cpkColor = (0.239, 1, 0)
+            custom float bio:electronegativity = 1
+            custom string bio:name = "Calcium"
+            custom string bio:notes = "Bone, signaling, muscle contraction"
+            custom token bio:symbol = "Ca"
+            custom float bio:vdwRadius = 2.31
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.693, -0.693, -0.693), (0.693, 0.693, 0.693)]
+                        color3f[] primvars:displayColor = [(0.239, 1, 0)]
+                        double radius = 0.693
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.5775, -0.5775, -0.5775), (0.5775, 0.5775, 0.5775)]
+                        color3f[] primvars:displayColor = [(0.239, 1, 0)]
+                        double radius = 0.5775
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.3465, -0.3465, -0.3465), (0.3465, 0.3465, 0.3465)]
+                        color3f[] primvars:displayColor = [(0.239, 1, 0)]
+                        double radius = 0.3465
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-2.31, -2.31, -2.31), (2.31, 2.31, 2.31)]
+                        color3f[] primvars:displayColor = [(0.239, 1, 0)]
+                        double radius = 2.31
+                    }
+
+                }
+            }
+        }
+
+        class "Mg" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 24.305
+            custom int bio:atomicNumber = 12
+            custom float bio:covalentRadius = 1.41
+            custom color3f bio:cpkColor = (0.541, 1, 0)
+            custom float bio:electronegativity = 1.31
+            custom string bio:name = "Magnesium"
+            custom string bio:notes = "ATP binding, chlorophyll, DNA stabilization"
+            custom token bio:symbol = "Mg"
+            custom float bio:vdwRadius = 1.73
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.519, -0.519, -0.519), (0.519, 0.519, 0.519)]
+                        color3f[] primvars:displayColor = [(0.541, 1, 0)]
+                        double radius = 0.519
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.4325, -0.4325, -0.4325), (0.4325, 0.4325, 0.4325)]
+                        color3f[] primvars:displayColor = [(0.541, 1, 0)]
+                        double radius = 0.4325
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.2595, -0.2595, -0.2595), (0.2595, 0.2595, 0.2595)]
+                        color3f[] primvars:displayColor = [(0.541, 1, 0)]
+                        double radius = 0.2595
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-1.73, -1.73, -1.73), (1.73, 1.73, 1.73)]
+                        color3f[] primvars:displayColor = [(0.541, 1, 0)]
+                        double radius = 1.73
+                    }
+
+                }
+            }
+        }
+
+        class "Cl" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 35.45
+            custom int bio:atomicNumber = 17
+            custom float bio:covalentRadius = 1.02
+            custom color3f bio:cpkColor = (0.122, 0.941, 0.122)
+            custom float bio:electronegativity = 3.16
+            custom string bio:name = "Chlorine"
+            custom string bio:notes = "Major anion, Cl- channels, gastric HCl"
+            custom token bio:symbol = "Cl"
+            custom float bio:vdwRadius = 1.75
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.525, -0.525, -0.525), (0.525, 0.525, 0.525)]
+                        color3f[] primvars:displayColor = [(0.122, 0.941, 0.122)]
+                        double radius = 0.525
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.4375, -0.4375, -0.4375), (0.4375, 0.4375, 0.4375)]
+                        color3f[] primvars:displayColor = [(0.122, 0.941, 0.122)]
+                        double radius = 0.4375
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.2625, -0.2625, -0.2625), (0.2625, 0.2625, 0.2625)]
+                        color3f[] primvars:displayColor = [(0.122, 0.941, 0.122)]
+                        double radius = 0.2625
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-1.75, -1.75, -1.75), (1.75, 1.75, 1.75)]
+                        color3f[] primvars:displayColor = [(0.122, 0.941, 0.122)]
+                        double radius = 1.75
+                    }
+
+                }
+            }
+        }
+
+        class "I" (
+            prepend variantSets = "representation"
+        )
+        {
+            custom float bio:atomicMass = 126.904
+            custom int bio:atomicNumber = 53
+            custom float bio:covalentRadius = 1.39
+            custom color3f bio:cpkColor = (0.58, 0, 0.58)
+            custom float bio:electronegativity = 2.66
+            custom string bio:name = "Iodine"
+            custom string bio:notes = "Thyroid hormones (T3, T4)"
+            custom token bio:symbol = "I"
+            custom float bio:vdwRadius = 1.98
+            variantSet "representation" = {
+                "balls" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.594, -0.594, -0.594), (0.594, 0.594, 0.594)]
+                        color3f[] primvars:displayColor = [(0.58, 0, 0.58)]
+                        double radius = 0.594
+                    }
+
+                }
+                "ballstick" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.495, -0.495, -0.495), (0.495, 0.495, 0.495)]
+                        color3f[] primvars:displayColor = [(0.58, 0, 0.58)]
+                        double radius = 0.495
+                    }
+
+                }
+                "points" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-0.297, -0.297, -0.297), (0.297, 0.297, 0.297)]
+                        color3f[] primvars:displayColor = [(0.58, 0, 0.58)]
+                        double radius = 0.297
+                    }
+
+                }
+                "vdw" {
+                    def Sphere "Sphere"
+                    {
+                        float3[] extent = [(-1.98, -1.98, -1.98), (1.98, 1.98, 1.98)]
+                        color3f[] primvars:displayColor = [(0.58, 0, 0.58)]
+                        double radius = 1.98
+                    }
+
+                }
+            }
+        }
+    }
+}
+
