@@ -26,7 +26,7 @@ graph TD
     departmental_layering[Exp 3 — Departmental Layering (5-layer)]:::done
     basiscurves_bonds[Exp 5 — BasisCurves for Bonds]:::done
     references_vs_sublayers[Exp 6 — References vs SubLayers]:::done
-    composition_advanced[Advanced Composition Arcs (depend on layering + clip templates)]:::planned
+    composition_advanced[Advanced Composition Arcs (depend on layering + clip templates)]:::inprogress
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -42,7 +42,7 @@ graph TD
 | `departmental_layering.md` | 📄 Leaf Task | ✅ Done |
 | `basiscurves_bonds.md` | 📄 Leaf Task | ✅ Done |
 | `references_vs_sublayers.md` | 📄 Leaf Task | ✅ Done |
-| `composition_advanced/` | 📁 Directory | ⬜ Planned |
+| `composition_advanced/` | 📁 Directory | 🔄 In Progress |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |

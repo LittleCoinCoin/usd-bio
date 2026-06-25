@@ -22,7 +22,7 @@ Demonstrate the remaining §3.3 composition arcs and §3.4 provenance, completin
 ```mermaid
 graph TD
     ensemble_payload[Exp 4 — Ensemble VariantSet + Payload Swapping]:::done
-    perturbation_variantset[Perturbation VariantSet (Genotype)]:::planned
+    perturbation_variantset[Perturbation VariantSet (Genotype)]:::inprogress
     parameter_variantset[Parameter VariantSet (ForceField)]:::planned
     specializes_arc[Specializes Arc Demonstration]:::planned
     analysis_attributes[Analysis Data as USD Attributes (PMF/RMSD/contacts)]:::planned
@@ -38,7 +38,7 @@ graph TD
 | Node | Type | Status |
 |:-----|:-----|:-------|
 | `ensemble_payload.md` | 📄 Leaf Task | ✅ Done |
-| `perturbation_variantset.md` | 📄 Leaf Task | ⬜ Planned |
+| `perturbation_variantset.md` | 📄 Leaf Task | 🔄 In Progress |
 | `parameter_variantset.md` | 📄 Leaf Task | ⬜ Planned |
 | `specializes_arc.md` | 📄 Leaf Task | ⬜ Planned |
 | `analysis_attributes.md` | 📄 Leaf Task | ⬜ Planned |
