@@ -24,7 +24,7 @@ graph TD
     binary_clip_templates[Exp 2 — Binary Format + Clip Templates]:::done
     pointinstancer_solvent[Exp 1 — PointInstancer for Solvent]:::done
     departmental_layering[Exp 3 — Departmental Layering (5-layer)]:::done
-    basiscurves_bonds[Exp 5 — BasisCurves for Bonds]:::planned
+    basiscurves_bonds[Exp 5 — BasisCurves for Bonds]:::inprogress
     references_vs_sublayers[Exp 6 — References vs SubLayers]:::planned
     composition_advanced[Advanced Composition Arcs (depend on layering + clip templates)]:::planned
     classDef done       fill:#166534,color:#bbf7d0
@@ -40,7 +40,7 @@ graph TD
 | `binary_clip_templates.md` | 📄 Leaf Task | ✅ Done |
 | `pointinstancer_solvent.md` | 📄 Leaf Task | ✅ Done |
 | `departmental_layering.md` | 📄 Leaf Task | ✅ Done |
-| `basiscurves_bonds.md` | 📄 Leaf Task | ⬜ Planned |
+| `basiscurves_bonds.md` | 📄 Leaf Task | 🔄 In Progress |
 | `references_vs_sublayers.md` | 📄 Leaf Task | ⬜ Planned |
 | `composition_advanced/` | 📁 Directory | ⬜ Planned |
 
