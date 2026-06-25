@@ -22,7 +22,9 @@ M1 is the foundation. M2 and M3 can partially overlap once M1 is complete.
 
 ## Data Source
 
-ABL kinase + ATP from ShinobuLab (`/Users/hacker/Documents/career/Projects/USDBio/ShinobuLab/`):
+> Set `USDBIO_DATA_DIR` to the root of your ShinobuLab data directory before running any script.
+
+ABL kinase + ATP from ShinobuLab (`$USDBIO_DATA_DIR/`):
 - PDB: `files/atp-complex-solv35.pdb` -- 188,609 atoms total; 4,676 protein+ligand
 - Trajectories: `analysis/0_traj/sort_traj_{1..10}.xtc` -- ~1.2 GB each
 
