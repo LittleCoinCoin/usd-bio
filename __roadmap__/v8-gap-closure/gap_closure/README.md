@@ -23,7 +23,7 @@ Close the §5 experiments that have no cross-dependency (Exp 1, 2, 3, 5, 6), est
 graph TD
     binary_clip_templates[Exp 2 — Binary Format + Clip Templates]:::done
     pointinstancer_solvent[Exp 1 — PointInstancer for Solvent]:::done
-    departmental_layering[Exp 3 — Departmental Layering (5-layer)]:::planned
+    departmental_layering[Exp 3 — Departmental Layering (5-layer)]:::done
     basiscurves_bonds[Exp 5 — BasisCurves for Bonds]:::planned
     references_vs_sublayers[Exp 6 — References vs SubLayers]:::planned
     composition_advanced[Advanced Composition Arcs (depend on layering + clip templates)]:::planned
@@ -39,7 +39,7 @@ graph TD
 |:-----|:-----|:-------|
 | `binary_clip_templates.md` | 📄 Leaf Task | ✅ Done |
 | `pointinstancer_solvent.md` | 📄 Leaf Task | ✅ Done |
-| `departmental_layering.md` | 📄 Leaf Task | ⬜ Planned |
+| `departmental_layering.md` | 📄 Leaf Task | ✅ Done |
 | `basiscurves_bonds.md` | 📄 Leaf Task | ⬜ Planned |
 | `references_vs_sublayers.md` | 📄 Leaf Task | ⬜ Planned |
 | `composition_advanced/` | 📁 Directory | ⬜ Planned |
@@ -51,5 +51,6 @@ graph TD
 ## Progress
 | Node | Branch | Commits | Notes |
 |:-----|:-------|:--------|:------|
+| `departmental_layering.md` | topic/v8-gap-closure | 9cdcfe9, 8f7af8c, 172fea0, c774c7b | Exp 3 done (cycle-002): 5 SubLayers (biology/protocol/dynamics/analysis/review) compose into departmental_demo.usda; each layer independently mute-toggles with no composition errors; analysis layer carries time-sampled bio:rmsd (20 samples); read-back 7/7; harness 26/26. API note: USD 0.25.11 uses stage.GetCompositionErrors() (leaf said GetErrors()). |
 | `binary_clip_templates.md` | topic/v8-gap-closure | 0b0ea9c, 1ca31d2, ab90b65, 77360f7 | Exp 2 done (cycle-002, under forOUSD): .usda→.usdc (assembly 95.8% smaller, clip 63% smaller); load 2.6–6.1× faster; clip-template manifest (`./clip_###.usdc`, stride 10) from 2 real XTC files; read-back test 5/5; harness 24/24. Confirms NO interpreter split — XTC reads work under forOUSD venv. |
 | `pointinstancer_solvent.md` | topic/v8-gap-closure | 970d7d5, b12ef63, b7c6df8, a636332 | Exp 1 done: 61,273 waters via UsdGeomPointInstancer composing with per-atom protein in solvent_demo.usda. Two test surfaces: standalone `tests/test_solvent_demo.py` 4/4 PASS (PointInstancer-specific read-back), and the existing `tests/run_tests.py` harness 20/20 PASS (solvent_demo.usda now swept by compliance+domain layers; the 4 solvent read-back tests are NOT part of that 20/20 — they run separately). No mdtraj needed (PDB-only). NOTE (cycle-001 correction): the implementor hit a missing-mdtraj error only because it ran the bare uv python; under the canonical `forOUSD` venv (which has mdtraj) `converters/__init__.py` imports cleanly, so the sys.modules workaround is unnecessary — guarding the import remains a minor robustness nice-to-have, not a blocker. |
