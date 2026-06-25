@@ -1,0 +1,26 @@
+#usda 1.0
+(
+    defaultPrim = "ABLComplex"
+    doc = "Review layer: camera setup and annotation prims for /ABLComplex. Defines ReviewCamera and ATPAnnotation for scientific review workflows."
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+def "ABLComplex"
+{
+    def Camera "ReviewCamera"
+    {
+        float2 clippingRange = (1, 10000)
+        float focalLength = 35
+        float horizontalAperture = 20.955
+        float verticalAperture = 15.2908
+        double3 xformOp:translate = (0, 30, 150)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "ATPAnnotation"
+    {
+        custom string bio:annotationText = "ATP binding site"
+    }
+}
+
