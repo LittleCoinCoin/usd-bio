@@ -1,0 +1,77 @@
+#usda 1.0
+(
+    defaultPrim = "ABLComplex"
+    endTimeCode = 20
+    metersPerUnit = 1e-10
+    startTimeCode = 0
+    upAxis = "Y"
+)
+
+def Xform "ABLComplex"
+{
+    custom float bio:rmsd
+    float bio:rmsd.timeSamples = {
+        0: 1.2,
+        1: 1.4889,
+        2: 1.7778,
+        3: 2.0667,
+        4: 2.3556,
+        5: 2.6444,
+        6: 2.9333,
+        7: 3.2222,
+        8: 3.5111,
+        9: 3.8,
+    }
+
+    def Xform "Analysis"
+    {
+        def Xform "PMFProfile"
+        {
+            custom float bio:pmf
+            float bio:pmf.timeSamples = {
+                0: 8,
+                1: 6.48,
+                2: 5.12,
+                3: 3.92,
+                4: 2.88,
+                5: 2,
+                6: 1.28,
+                7: 0.72,
+                8: 0.32,
+                9: 0.08,
+                10: 0,
+                11: 0.08,
+                12: 0.32,
+                13: 0.72,
+                14: 1.28,
+                15: 2,
+                16: 2.88,
+                17: 3.92,
+                18: 5.12,
+                19: 6.48,
+                20: 8,
+            }
+        }
+    }
+
+    def Xform "Chain_A"
+    {
+        def Xform "Lig_ATP"
+        {
+            custom int bio:contactCount
+            int bio:contactCount.timeSamples = {
+                0: 12,
+                1: 11,
+                2: 13,
+                3: 10,
+                4: 14,
+                5: 11,
+                6: 12,
+                7: 9,
+                8: 13,
+                9: 12,
+            }
+        }
+    }
+}
+

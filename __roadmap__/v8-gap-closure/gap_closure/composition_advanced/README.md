@@ -25,7 +25,7 @@ graph TD
     perturbation_variantset[Perturbation VariantSet (Genotype)]:::done
     parameter_variantset[Parameter VariantSet (ForceField)]:::done
     specializes_arc[Specializes Arc Demonstration]:::done
-    analysis_attributes[Analysis Data as USD Attributes (PMF/RMSD/contacts)]:::planned
+    analysis_attributes[Analysis Data as USD Attributes (PMF/RMSD/contacts)]:::inprogress
     provenance_metadata[Structured Provenance Metadata (§3.4)]:::planned
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
@@ -41,7 +41,7 @@ graph TD
 | `perturbation_variantset.md` | 📄 Leaf Task | ✅ Done |
 | `parameter_variantset.md` | 📄 Leaf Task | ✅ Done |
 | `specializes_arc.md` | 📄 Leaf Task | ✅ Done |
-| `analysis_attributes.md` | 📄 Leaf Task | ⬜ Planned |
+| `analysis_attributes.md` | 📄 Leaf Task | 🔄 In Progress |
 | `provenance_metadata.md` | 📄 Leaf Task | ⬜ Planned |
 
 ## Amendment Log
