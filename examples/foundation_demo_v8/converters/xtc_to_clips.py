@@ -553,6 +553,87 @@ def generate_clip_template_series(
     print(f"  Manifest: {os.path.basename(manifest_path)}")
 
 
+def write_curves_clip(output_path: str, pdb_path: str, xtc_path: str,
+                      n_frames: int = 20):
+    """Write a USD clip file with time-sampled BasisCurves bond-endpoint points.
+
+    For each trajectory frame, recomputes bond-endpoint positions from per-atom
+    positions and writes time-sampled `points` on a single /ABLComplex/Bonds
+    UsdGeomBasisCurves prim. curveVertexCounts is topology-static (not animated).
+
+    WHY time-sample points (not per-atom translate): consolidates all bond motion
+    into one attribute write per frame (one Vec3fArray) vs 4,856 translate writes
+    for the cylinder approach.
+
+    Args:
+        output_path: Path for the output .usda clip file.
+        pdb_path: Path to PDB topology file.
+        xtc_path: Path to XTC trajectory file.
+        n_frames: Number of frames to extract (default 20).
+    """
+    print(f"  Parsing PDB for bond info: {os.path.basename(pdb_path)}")
+    structure = parse_pdb(pdb_path)
+    prim_paths = build_prim_paths(structure)
+    bond_info = build_bond_info(structure, prim_paths)
+    n_bonds = len(bond_info)
+    print(f"  {len(prim_paths)} atoms, {n_bonds} bonds")
+
+    print("  Extracting trajectory frames...")
+    positions, actual_frames = extract_frames(pdb_path, xtc_path, num_frames=n_frames)
+    print(f"  Got {actual_frames} frames")
+
+    if os.path.exists(output_path):
+        os.remove(output_path)
+
+    stage = Usd.Stage.CreateNew(output_path)
+    UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)
+    stage.SetStartTimeCode(0)
+    stage.SetEndTimeCode(actual_frames - 1)
+    stage.SetFramesPerSecond(10)
+    stage.SetMetadata("comment",
+        f"BasisCurves trajectory clip: {actual_frames} frames, {n_bonds} bonds. "
+        "Points attribute time-sampled; curveVertexCounts topology-static.")
+
+    # Define /ABLComplex root Xform
+    complex_xform = UsdGeom.Xform.Define(stage, "/ABLComplex")
+    stage.SetDefaultPrim(complex_xform.GetPrim())
+
+    # Define /ABLComplex/Bonds BasisCurves (topology only — points time-sampled below)
+    bc = UsdGeom.BasisCurves.Define(stage, "/ABLComplex/Bonds")
+    bc.CreateTypeAttr("linear")
+    bc.CreateWrapAttr("nonperiodic")
+
+    # Static topology: curveVertexCounts (2 per bond, never changes)
+    from pxr import Vt
+    bc.CreateCurveVertexCountsAttr(Vt.IntArray([2] * n_bonds))
+
+    # Time-sampled points: for each frame, build flat Vec3f array of bond endpoints
+    points_attr = bc.CreatePointsAttr()
+    print(f"  Writing {actual_frames} frames of time-sampled points...")
+    for frame_idx in range(actual_frames):
+        frame_pos = positions[frame_idx]  # shape (n_atoms, 3), Angstroms
+
+        frame_points = []
+        for bond in bond_info:
+            a1 = bond["atom1_idx"]
+            a2 = bond["atom2_idx"]
+            p1 = frame_pos[a1]
+            p2 = frame_pos[a2]
+            frame_points.append(Gf.Vec3f(float(p1[0]), float(p1[1]), float(p1[2])))
+            frame_points.append(Gf.Vec3f(float(p2[0]), float(p2[1]), float(p2[2])))
+
+        points_attr.Set(Vt.Vec3fArray(frame_points), Usd.TimeCode(frame_idx))
+
+        if frame_idx % 5 == 0:
+            print(f"    Frame {frame_idx}/{actual_frames}...")
+
+    stage.Save()
+    print(f"  Created BasisCurves clip: {output_path}")
+    print(f"    Frames: {actual_frames}, Bonds: {n_bonds}, Points/frame: {n_bonds*2}")
+    return actual_frames
+
+
 if __name__ == "__main__":
     pdb_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDB
     xtc_path = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_XTC
