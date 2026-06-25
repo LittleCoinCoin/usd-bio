@@ -53,19 +53,24 @@ def _find_usdchecker() -> str:
 
 
 def _check_one(path: str, usdchecker: str) -> ComplianceResult:
-    """Run usdchecker on a single file and return a ComplianceResult."""
+    """Run usdchecker on a single file and return a ComplianceResult.
+
+    Uses --skipVariants so that large stages (assembly_demo, trajectory_demo)
+    with thousands of atoms × 4 variants do not cause combinatorial explosion
+    and timeout. Variant correctness is validated separately in layer2/layer3.
+    """
     try:
         result = subprocess.run(
-            [usdchecker, path],
+            [usdchecker, "--skipVariants", path],
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=120,
         )
     except subprocess.TimeoutExpired:
         return ComplianceResult(
             path=path,
             passed=False,
-            errors=["usdchecker timed out after 60s"],
+            errors=["usdchecker timed out after 120s (even with --skipVariants)"],
         )
     except FileNotFoundError as exc:
         return ComplianceResult(

@@ -1,0 +1,21 @@
+#usda 1.0
+(
+    "Golden fixture: prim with representation VariantSet (points, balls, vdw, ballstick)"
+    upAxis = "Y"
+)
+
+def Xform "TestPrim" (
+    prepend variantSets = "representation"
+)
+{
+    variantSet "representation" = {
+        "balls" {
+        }
+        "ballstick" {
+        }
+        "points" {
+        }
+        "vdw" {
+        }
+    }
+}

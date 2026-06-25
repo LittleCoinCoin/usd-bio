@@ -1,0 +1,28 @@
+#usda 1.0
+(
+    "Golden fixture: atom prim inheriting from /_class_/C with bio:element = C"
+    upAxis = "Y"
+)
+
+class "_class_"
+{
+    class "C"
+    {
+        custom token bio:symbol = "C"
+        custom float bio:vdwRadius = 1.7
+    }
+}
+
+def Xform "TestResidue"
+{
+    def Xform "C_alpha" (
+        prepend inherits = </_class_/C>
+    )
+    {
+        custom token bio:atomName = "CA"
+        custom token bio:element = "C"
+        custom int bio:serial = 42
+        double3 xformOp:translate = (1.5, 2.3, 0.8)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+}
