@@ -107,7 +107,7 @@ def test_helper_functions():
     print("Testing helper functions...")
 
     # Test get_scaled_radius
-    for mode in ["points", "balls", "vdw", "sticks"]:
+    for mode in ["points", "balls", "vdw", "ballstick"]:
         radius = get_scaled_radius("C", mode)
         assert radius > 0, f"Invalid radius for C in {mode} mode"
 

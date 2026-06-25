@@ -18,7 +18,7 @@ sys.path.insert(0, root_dir)
 from pxr import Usd, UsdGeom, Sdf, Gf
 from data import ELEMENTS
 
-REPRESENTATIONS = ["points", "balls", "vdw", "sticks"]
+REPRESENTATIONS = ["points", "balls", "vdw", "ballstick"]
 
 
 def create_element_grid_demo(output_path: str, template_path: str):
