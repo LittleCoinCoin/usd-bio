@@ -8,8 +8,12 @@ Reports for the `v8-gap-closure` topic, grouped by round (chronological).
 
 ## Round 01 — 2026-06-25 (cycle-001, foundation execution)
 
-- [`01-knowledge_transfer_v0.md`](01-knowledge_transfer_v0.md) — **latest** — post-cycle retrospective: foundation wave + Amendment A01 + Exp 1 shipped; harness 20/20; mdtraj/pxr interpreter-split steering question (Q-001).
+- [`01-knowledge_transfer_v0.md`](01-knowledge_transfer_v0.md) — post-cycle retrospective: foundation wave + Amendment A01 + Exp 1 shipped; harness 20/20. (Top-of-file CORRECTION: the mdtraj/pxr "interpreter split" / Q-001 was a false premise — the forOUSD venv has both; retracted.)
+
+## Round 02 — 2026-06-25 (cycle-002, full roadmap completion)
+
+- [`02-knowledge_transfer_v0.md`](02-knowledge_transfer_v0.md) — **latest** — entire remaining roadmap executed: gap_closure Exp 2/3/5/6 + all 6 composition_advanced arcs. 15/15 leaves done; harness 30/30; verifier aligned. Topic → proposed-resolution. Records the major finding that the architecture doc's Specializes claim is backwards.
 
 ## Status
 
-Cycle-001 executed the **foundation wave** (portability_fix, roadmap_status_correction, test_harness), self-drove **Amendment A01** (baseline_artifact_fixes — fixed 4 real artifact defects the harness caught), and closed **gap_closure Exp 1** (pointinstancer_solvent, 61k waters). Baseline is green and trustworthy (`run_tests.py` 20/20 PASS). Remaining gap_closure (Exp 2/3/5/6) + composition_advanced (6 arcs) are planned for next cycles; Exp 2's clip-template step is gated on steering question Q-001 (mdtraj/pxr interpreter split).
+**Roadmap complete (15/15 ✅).** Cycle-002 closed the remaining gap_closure experiments and all composition_advanced arcs under the corrected `forOUSD` interpreter, each with runnable demo + committed artifact + falsification-resistant read-back tests (harness 30/30; 11 standalone suites green). Architecture-doc parity achieved for the in-scope §3 gaps + §5 experiments. Topic finishes **proposed-resolution** for PI confirm-and-close. Out of scope (future topics): C++/schema authoring, p53-mdm2 application. Flagged for PI: correct architecture doc R03 §2.1/§7 Specializes claim (it is backwards).

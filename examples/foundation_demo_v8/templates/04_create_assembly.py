@@ -25,6 +25,7 @@ Hierarchy:
         ...
 """
 
+import json
 import os
 import sys
 import math
@@ -33,6 +34,13 @@ import math
 script_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(script_dir)
 sys.path.insert(0, root_dir)
+
+# Structured provenance helper — lives in examples/composition_advanced/provenance_metadata/
+_provenance_dir = os.path.join(
+    os.path.dirname(root_dir), "composition_advanced", "provenance_metadata"
+)
+sys.path.insert(0, _provenance_dir)
+from provenance_schema import apply_provenance_metadata  # noqa: E402
 
 from usdbio_env import get_data_dir
 from pxr import Usd, UsdGeom, Sdf, Gf
@@ -164,8 +172,19 @@ def create_assembly(output_path: str, element_template_path: str, pdb_path: str)
     # Bio metadata on complex root
     complex_prim.CreateAttribute("bio:systemName", Sdf.ValueTypeNames.String).Set(
         "ABL kinase + ATP complex")
-    complex_prim.CreateAttribute("bio:source", Sdf.ValueTypeNames.String).Set(
-        "ShinobuLab MD simulation")
+    # Structured provenance replaces the legacy flat bio:source string.
+    # Six lineage fields authored via the shared provenance_schema helper.
+    # [source: examples/composition_advanced/provenance_metadata/provenance_schema.py]
+    apply_provenance_metadata(complex_prim, {
+        "sourcePdb":       "2HYY.pdb",
+        "forceField":      "AMBER99SB-ILDN",
+        "softwareName":    "GENESIS",
+        "softwareVersion": "2.1.0",
+        "simSettings":     json.dumps(
+            {"timestep_fs": 2.0, "temp_K": 310, "pressure_bar": 1.0}
+        ),
+        "timestamp":       "2024-03-15T09:00:00+09:00",
+    })
     complex_prim.CreateAttribute("bio:atomCount", Sdf.ValueTypeNames.Int).Set(
         structure.atom_count)
     complex_prim.CreateAttribute("bio:chainCount", Sdf.ValueTypeNames.Int).Set(

@@ -1,0 +1,38 @@
+#usda 1.0
+(
+    # Parameter overlay layer for AMBER99SB-ILDN force field.
+    # Contains 'over' opinions only — no def prims. Designed to be referenced
+    # or composed onto a stage that already defines /ABLFragment/Chain_A/Res_001.
+    #
+    # [assumption: representative values from AMBER99SB-ILDN parameter set;
+    #  not extracted from a literal AMBER parameter file. Source topology:
+    #  ShinobuLab ABL kinase MD dataset, representative partial charges and
+    #  Bondi-derived LJ radii for backbone N and CA atoms.]
+    #
+    # bio:partialCharge: partial charge in units of elementary charge (e)
+    # bio:ljRadius: Lennard-Jones radius (Angstrom, Bondi-derived)
+    #
+    # Sentinel values for test assertions:
+    #   Atom_N  bio:partialCharge = -0.4157  (AMBER backbone N)
+    #   Atom_CA bio:partialCharge = -0.0518  (AMBER backbone Cα)
+)
+
+over "ABLFragment"
+{
+    over "Chain_A"
+    {
+        over "Res_001"
+        {
+            over "Atom_N"
+            {
+                custom float bio:partialCharge = -0.4157
+                custom float bio:ljRadius = 1.824
+            }
+            over "Atom_CA"
+            {
+                custom float bio:partialCharge = -0.0518
+                custom float bio:ljRadius = 1.908
+            }
+        }
+    }
+}

@@ -1,0 +1,39 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    doc = """asset_specializes.usda — inner/referenced asset layer for specializes_arc demo.
+Base class + Atom_Specializes + Atom_Inherits (both with local bio:vdwRadius=9.99).
+[source: build_specializes_demo.py]"""
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+class "_class_"
+{
+    class "AtomBase"
+    {
+        custom float bio:charge = 0
+        custom string bio:elementSymbol = "C"
+        custom float bio:vdwRadius = 1.7
+    }
+}
+
+def Xform "World"
+{
+    def Xform "Atom_Specializes" (
+        prepend specializes = </_class_/AtomBase>
+    )
+    {
+        custom string bio:elementSymbol = "C"
+        custom float bio:vdwRadius = 9.99
+    }
+
+    def Xform "Atom_Inherits" (
+        prepend inherits = </_class_/AtomBase>
+    )
+    {
+        custom string bio:elementSymbol = "C"
+        custom float bio:vdwRadius = 9.99
+    }
+}
+

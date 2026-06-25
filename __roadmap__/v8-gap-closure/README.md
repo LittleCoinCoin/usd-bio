@@ -27,7 +27,7 @@ graph TD
     portability_fix[Portability Fix — De-hardcode ShinobuLab Paths]:::done
     test_harness[Falsification-Resistant Test Harness]:::done
     roadmap_status_correction[Correct Stale v8 ROADMAP Statuses]:::done
-    gap_closure[Gap Closure — §5 Experiments + §3 Arcs]:::planned
+    gap_closure[Gap Closure — §5 Experiments + §3 Arcs]:::done
     baseline_artifact_fixes[Baseline Artifact Fixes — Make Harness Green (Amendment A01)]:::done
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
@@ -42,7 +42,7 @@ graph TD
 | `portability_fix.md` | 📄 Leaf Task | ✅ Done |
 | `test_harness.md` | 📄 Leaf Task | ✅ Done |
 | `roadmap_status_correction.md` | 📄 Leaf Task | ✅ Done |
-| `gap_closure/` | 📁 Directory | ⬜ Planned |
+| `gap_closure/` | 📁 Directory | ✅ Done |
 | `baseline_artifact_fixes.md` | 📄 Leaf Task | ✅ Done |
 
 ## Amendment Log

@@ -1,0 +1,11 @@
+#usda 1.0
+(
+    defaultPrim = "ABLComplex"
+    doc = "Biology layer: ABL kinase topology sublayer. SubLayers the level4 assembly (chain/residue/atom hierarchy, bio: metadata, element class inheritance, representation VariantSet)."
+    metersPerUnit = 1e-10
+    subLayers = [
+        @../level4_assemblies/abl_kinase_complex.usda@
+    ]
+    upAxis = "Y"
+)
+

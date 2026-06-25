@@ -1,0 +1,25 @@
+#usda 1.0
+(
+    "Clip template manifest: 2 clips, templateAssetPath=./clip.###.usdc, stride=1, startTime=1. USD requires dot-separated ### in template path."
+    defaultPrim = "ABLComplex"
+    endTimeCode = 2
+    framesPerSecond = 10
+    metersPerUnit = 1e-10
+    startTimeCode = 1
+    upAxis = "Y"
+)
+
+def Xform "ABLComplex" (
+    clips = {
+        dictionary default = {
+            string primPath = "/ABLComplex"
+            string templateAssetPath = "./clip.###.usdc"
+            double templateEndTime = 2
+            double templateStartTime = 1
+            double templateStride = 1
+        }
+    }
+)
+{
+}
+

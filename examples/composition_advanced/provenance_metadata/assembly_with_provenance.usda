@@ -1,0 +1,19 @@
+#usda 1.0
+(
+    "ABL kinase + ATP assembly — structured provenance metadata demo"
+    defaultPrim = "ABLComplex"
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+def Xform "ABLComplex"
+{
+    custom string bio:forceField = "AMBER99SB-ILDN"
+    custom string bio:simSettings = '{"timestep_fs": 2.0, "temp_K": 310, "pressure_bar": 1.0}'
+    custom string bio:softwareName = "GENESIS"
+    custom string bio:softwareVersion = "2.1.0"
+    custom string bio:sourcePdb = "2HYY.pdb"
+    custom string bio:systemName = "ABL kinase + ATP complex"
+    custom string bio:timestamp = "2024-03-15T09:00:00+09:00"
+}
+

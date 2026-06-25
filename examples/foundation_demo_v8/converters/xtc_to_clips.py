@@ -398,6 +398,257 @@ def verify_clips(clip_path: str, n_expected_atoms: int = 4676):
     print("\n  ALL VERIFICATIONS PASSED")
 
 
+def write_clip_template_manifest(
+    manifest_path: str,
+    clip_dir: str,
+    template_pattern: str,
+    frames_per_clip: int,
+    n_clips: int,
+) -> None:
+    """Write a USD clip template manifest stage.
+
+    Creates a USD stage that defines /ABLComplex as an Xform with UsdClipsAPI
+    metadata set to use the clip template pattern. The resolver uses the pattern
+    (e.g. './clip_###.usdc') to generate clip paths automatically, eliminating
+    the need to enumerate each clip path explicitly.
+
+    WHY clip template over SetClipAssetPaths: templates map to directory-per-replica
+    layouts (one XTC per simulation run), enabling the USD resolver to generate paths
+    from a pattern rather than requiring explicit enumeration.
+
+    API confirmed:
+      UsdClipsAPI.SetClipTemplateAssetPath(str)  — template string with ### markers
+      UsdClipsAPI.SetClipTemplateStride(double)  — time increment per clip file
+      UsdClipsAPI.SetClipTemplateStartTime(double) — start time (maps to first clip)
+
+    Args:
+        manifest_path: Absolute path for the output manifest .usda file.
+        clip_dir: Directory containing the clip files (for usdchecker path resolution).
+        template_pattern: Template string, e.g. './clip_###.usdc' (### = zero-padded int).
+        frames_per_clip: Number of frames per clip file (stride between clips).
+        n_clips: Number of clip files referenced by the template.
+    """
+    os.makedirs(os.path.dirname(os.path.abspath(manifest_path)), exist_ok=True)
+
+    if os.path.exists(manifest_path):
+        os.remove(manifest_path)
+
+    stage = Usd.Stage.CreateNew(manifest_path)
+    UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)
+    stage.SetStartTimeCode(1)
+    # endTimeCode: last stage time unit (startTime + (n_clips-1)*stride with stride=1)
+    stage.SetEndTimeCode(float(n_clips))
+    stage.SetFramesPerSecond(10)
+    stage.SetMetadata("comment",
+        f"Clip template manifest: {n_clips} clips, "
+        f"{frames_per_clip} frames/clip, template={template_pattern}")
+
+    # Define the /ABLComplex prim
+    abl_prim = UsdGeom.Xform.Define(stage, "/ABLComplex")
+    stage.SetDefaultPrim(abl_prim.GetPrim())
+
+    # Apply UsdClipsAPI and set template metadata
+    clips_api = Usd.ClipsAPI(abl_prim.GetPrim())
+
+    # SetClipTemplateAssetPath: template string with ### for zero-padded integer.
+    # IMPORTANT: USD requires the format "basename.###.ext" (dot-separated hash group).
+    # "clip_###.usdc" is INVALID (underscore before ###); use "clip.###.usdc" instead.
+    # The integer substituted for ### equals: startTime + N * stride (N=0,1,...).
+    # With stride=1, startTime=1: clip.001, clip.002, ... (sequential numbering).
+    clips_api.SetClipTemplateAssetPath(template_pattern)
+
+    # SetClipTemplateStride: stride=1 — one clip per integer time code.
+    # File naming: clip.{startTime + N}; stage-time [startTime+N, startTime+N+1) maps
+    # to clip N, with local clip time = stage_time - (startTime + N * stride).
+    # Each clip file's frame 0 is sampled when stage_time == startTime + N.
+    clips_api.SetClipTemplateStride(1.0)
+
+    # SetClipTemplateEndTime: last valid clip start time (inclusive).
+    # With n_clips=2, startTime=1, stride=1: last clip is at startTime+(n_clips-1)*1 = 2.
+    clips_api.SetClipTemplateEndTime(float(1 + n_clips - 1))
+
+    # SetClipTemplateStartTime: first clip maps to time=1 (clip.001)
+    clips_api.SetClipTemplateStartTime(1.0)
+
+    # primPath tells USD which prim within each clip to use for time samples
+    clips_api.SetClipPrimPath("/ABLComplex")
+
+    stage.Save()
+    print(f"  Created clip template manifest: {manifest_path}")
+    print(f"    Template: {template_pattern}")
+    print(f"    Stride: {frames_per_clip}, Start: 1, Clips: {n_clips}")
+
+
+def generate_clip_template_series(
+    pdb_path: str,
+    xtc_paths: list,
+    output_dir: str,
+    num_frames: int = 10,
+) -> None:
+    """Convert multiple XTC files to clip .usdc files and write a template manifest.
+
+    For each XTC file in xtc_paths, extracts num_frames frames and writes a
+    .usdc clip file named clip.001.usdc, clip.002.usdc, ... (dot-separated hash group,
+    required by the USD clipTemplateAssetPath spec). The template manifest
+    clips/clip_template_manifest.usda is written using clipTemplateAssetPath so the
+    USD resolver can generate clip paths from the pattern without explicit enumeration.
+
+    Args:
+        pdb_path: Path to PDB topology file.
+        xtc_paths: List of XTC trajectory file paths (2-3 recommended).
+        output_dir: Directory for output clip files.
+        num_frames: Number of frames to extract per XTC file.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Parse PDB once for prim paths and bond info
+    print("Parsing PDB for prim paths and bond info...")
+    structure = parse_pdb(pdb_path)
+    prim_paths = build_prim_paths(structure)
+    bond_info = build_bond_info(structure, prim_paths)
+    print(f"  {len(prim_paths)} atom prim paths, {len(bond_info)} bonds")
+
+    n_clips = len(xtc_paths)
+    clip_usdc_paths = []
+
+    for clip_idx, xtc_path in enumerate(xtc_paths, start=1):
+        # USD template naming: "clip.###.usdc" requires dot-separated hash group.
+        # The integer is startTime + (clip_idx-1)*stride = 1 + (clip_idx-1)*1 = clip_idx.
+        clip_name = f"clip.{clip_idx:03d}"
+        clip_usda_path = os.path.join(output_dir, f"{clip_name}.usda")
+        clip_usdc_path = os.path.join(output_dir, f"{clip_name}.usdc")
+        clip_usdc_paths.append(clip_usdc_path)
+
+        print(f"\n[{clip_idx}/{n_clips}] Processing: {os.path.basename(xtc_path)}")
+
+        # Extract frames from this XTC file
+        print("  Extracting frames...")
+        positions, n_frames = extract_frames(pdb_path, xtc_path,
+                                             num_frames=num_frames)
+        print(f"  Got {n_frames} frames.")
+
+        # Write as .usda first (write_clip_file creates a stage)
+        print(f"  Writing {clip_name}.usda...")
+        write_clip_file(clip_usda_path, prim_paths, positions, bond_info)
+
+        # Convert to .usdc binary
+        print(f"  Converting to {clip_name}.usdc...")
+        from pxr import Sdf as _Sdf
+        layer = _Sdf.Layer.FindOrOpen(clip_usda_path)
+        if layer is None:
+            raise RuntimeError(f"Failed to open layer: {clip_usda_path}")
+        ok = layer.Export(clip_usdc_path)
+        if not ok:
+            raise RuntimeError(f"Layer.Export failed: {clip_usda_path} -> {clip_usdc_path}")
+
+        usda_bytes = os.path.getsize(clip_usda_path)
+        usdc_bytes = os.path.getsize(clip_usdc_path)
+        ratio = usdc_bytes / usda_bytes if usda_bytes > 0 else float("inf")
+        print(f"  {clip_name}: {usda_bytes:,} -> {usdc_bytes:,} bytes (ratio={ratio:.3f})")
+
+        # Clean up intermediate .usda (keep only .usdc)
+        os.remove(clip_usda_path)
+
+    # Write the clip template manifest
+    manifest_path = os.path.join(output_dir, "clip_template_manifest.usda")
+    # IMPORTANT: USD requires dot-separated hash group: "clip.###.usdc" not "clip_###.usdc"
+    template_pattern = "./clip.###.usdc"
+    print(f"\nWriting clip template manifest...")
+    write_clip_template_manifest(
+        manifest_path=manifest_path,
+        clip_dir=output_dir,
+        template_pattern=template_pattern,
+        frames_per_clip=num_frames,
+        n_clips=n_clips,
+    )
+
+    print(f"\nClip template series complete.")
+    print(f"  Clips: {[os.path.basename(p) for p in clip_usdc_paths]}")
+    print(f"  Manifest: {os.path.basename(manifest_path)}")
+
+
+def write_curves_clip(output_path: str, pdb_path: str, xtc_path: str,
+                      n_frames: int = 20):
+    """Write a USD clip file with time-sampled BasisCurves bond-endpoint points.
+
+    For each trajectory frame, recomputes bond-endpoint positions from per-atom
+    positions and writes time-sampled `points` on a single /ABLComplex/Bonds
+    UsdGeomBasisCurves prim. curveVertexCounts is topology-static (not animated).
+
+    WHY time-sample points (not per-atom translate): consolidates all bond motion
+    into one attribute write per frame (one Vec3fArray) vs 4,856 translate writes
+    for the cylinder approach.
+
+    Args:
+        output_path: Path for the output .usda clip file.
+        pdb_path: Path to PDB topology file.
+        xtc_path: Path to XTC trajectory file.
+        n_frames: Number of frames to extract (default 20).
+    """
+    print(f"  Parsing PDB for bond info: {os.path.basename(pdb_path)}")
+    structure = parse_pdb(pdb_path)
+    prim_paths = build_prim_paths(structure)
+    bond_info = build_bond_info(structure, prim_paths)
+    n_bonds = len(bond_info)
+    print(f"  {len(prim_paths)} atoms, {n_bonds} bonds")
+
+    print("  Extracting trajectory frames...")
+    positions, actual_frames = extract_frames(pdb_path, xtc_path, num_frames=n_frames)
+    print(f"  Got {actual_frames} frames")
+
+    if os.path.exists(output_path):
+        os.remove(output_path)
+
+    stage = Usd.Stage.CreateNew(output_path)
+    UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)
+    stage.SetStartTimeCode(0)
+    stage.SetEndTimeCode(actual_frames - 1)
+    stage.SetFramesPerSecond(10)
+    stage.SetMetadata("comment",
+        f"BasisCurves trajectory clip: {actual_frames} frames, {n_bonds} bonds. "
+        "Points attribute time-sampled; curveVertexCounts topology-static.")
+
+    # Define /ABLComplex root Xform
+    complex_xform = UsdGeom.Xform.Define(stage, "/ABLComplex")
+    stage.SetDefaultPrim(complex_xform.GetPrim())
+
+    # Define /ABLComplex/Bonds BasisCurves (topology only — points time-sampled below)
+    bc = UsdGeom.BasisCurves.Define(stage, "/ABLComplex/Bonds")
+    bc.CreateTypeAttr("linear")
+    bc.CreateWrapAttr("nonperiodic")
+
+    # Static topology: curveVertexCounts (2 per bond, never changes)
+    from pxr import Vt
+    bc.CreateCurveVertexCountsAttr(Vt.IntArray([2] * n_bonds))
+
+    # Time-sampled points: for each frame, build flat Vec3f array of bond endpoints
+    points_attr = bc.CreatePointsAttr()
+    print(f"  Writing {actual_frames} frames of time-sampled points...")
+    for frame_idx in range(actual_frames):
+        frame_pos = positions[frame_idx]  # shape (n_atoms, 3), Angstroms
+
+        frame_points = []
+        for bond in bond_info:
+            a1 = bond["atom1_idx"]
+            a2 = bond["atom2_idx"]
+            p1 = frame_pos[a1]
+            p2 = frame_pos[a2]
+            frame_points.append(Gf.Vec3f(float(p1[0]), float(p1[1]), float(p1[2])))
+            frame_points.append(Gf.Vec3f(float(p2[0]), float(p2[1]), float(p2[2])))
+
+        points_attr.Set(Vt.Vec3fArray(frame_points), Usd.TimeCode(frame_idx))
+
+        if frame_idx % 5 == 0:
+            print(f"    Frame {frame_idx}/{actual_frames}...")
+
+    stage.Save()
+    print(f"  Created BasisCurves clip: {output_path}")
+    print(f"    Frames: {actual_frames}, Bonds: {n_bonds}, Points/frame: {n_bonds*2}")
+    return actual_frames
+
+
 if __name__ == "__main__":
     pdb_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDB
     xtc_path = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_XTC

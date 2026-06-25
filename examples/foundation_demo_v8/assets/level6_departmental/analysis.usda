@@ -1,0 +1,37 @@
+#usda 1.0
+(
+    defaultPrim = "ABLComplex"
+    doc = "Analysis layer: derived analysis results for /ABLComplex. Contributes time-sampled bio:rmsd (Å) with 20 synthetic samples. [assumption: synthetic values 1.0-3.0 Å; real values from MDAnalysis pipeline substituted when available]"
+    endTimeCode = 19
+    metersPerUnit = 1e-10
+    startTimeCode = 0
+    upAxis = "Y"
+)
+
+over "ABLComplex"
+{
+    custom float bio:rmsd
+    float bio:rmsd.timeSamples = {
+        0: 1.02,
+        1: 1.18,
+        2: 1.35,
+        3: 1.51,
+        4: 1.67,
+        5: 1.82,
+        6: 1.95,
+        7: 2.08,
+        8: 2.21,
+        9: 2.33,
+        10: 2.44,
+        11: 2.54,
+        12: 2.62,
+        13: 2.68,
+        14: 2.72,
+        15: 2.74,
+        16: 2.74,
+        17: 2.73,
+        18: 2.71,
+        19: 2.69,
+    }
+}
+

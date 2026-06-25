@@ -1,0 +1,18 @@
+#usda 1.0
+(
+    "Binary format demo: ABL kinase assembly + trajectory using .usdc SubLayers"
+    defaultPrim = "ABLComplex"
+    endTimeCode = 19
+    framesPerSecond = 10
+    metersPerUnit = 1e-10
+    startTimeCode = 0
+    subLayers = [
+        @clips/trajectory_clip.usdc@,
+        @../assets/level4_assemblies/abl_kinase_complex.usdc@
+    ]
+    upAxis = "Y"
+)
+
+over "ABLComplex"
+{
+}

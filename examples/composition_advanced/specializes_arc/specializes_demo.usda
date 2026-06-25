@@ -1,0 +1,25 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    doc = """specializes_demo.usda — outer/root layer for specializes_arc demo.
+References asset_specializes.usda and overrides /_class_/AtomBase.
+[source: build_specializes_demo.py]"""
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+def Xform "World" (
+    prepend references = @/Users/hacker/Documents/src/LittleCoinCoin/usd-bio/examples/composition_advanced/specializes_arc/asset_specializes.usda@</World>
+)
+{
+}
+
+over "_class_"
+{
+    over "AtomBase"
+    {
+        custom float bio:charge = -1
+        custom float bio:vdwRadius = 2
+    }
+}
+
