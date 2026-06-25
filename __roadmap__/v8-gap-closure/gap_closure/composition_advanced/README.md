@@ -22,7 +22,7 @@ Demonstrate the remaining §3.3 composition arcs and §3.4 provenance, completin
 ```mermaid
 graph TD
     ensemble_payload[Exp 4 — Ensemble VariantSet + Payload Swapping]:::done
-    perturbation_variantset[Perturbation VariantSet (Genotype)]:::inprogress
+    perturbation_variantset[Perturbation VariantSet (Genotype)]:::done
     parameter_variantset[Parameter VariantSet (ForceField)]:::planned
     specializes_arc[Specializes Arc Demonstration]:::planned
     analysis_attributes[Analysis Data as USD Attributes (PMF/RMSD/contacts)]:::planned
@@ -38,7 +38,7 @@ graph TD
 | Node | Type | Status |
 |:-----|:-----|:-------|
 | `ensemble_payload.md` | 📄 Leaf Task | ✅ Done |
-| `perturbation_variantset.md` | 📄 Leaf Task | 🔄 In Progress |
+| `perturbation_variantset.md` | 📄 Leaf Task | ✅ Done |
 | `parameter_variantset.md` | 📄 Leaf Task | ⬜ Planned |
 | `specializes_arc.md` | 📄 Leaf Task | ⬜ Planned |
 | `analysis_attributes.md` | 📄 Leaf Task | ⬜ Planned |
@@ -51,4 +51,5 @@ graph TD
 ## Progress
 | Node | Branch | Commits | Notes |
 |:-----|:-------|:--------|:------|
+| `perturbation_variantset.md` | topic/v8-gap-closure | 5f5dc22, 636f023, 2fbfcf4 | Done (cycle-002): `/ABLKinase` with `Genotype` VariantSet (WildType/T315I), each variant Referencing a distinct mutation-site geometry stub (THR Oγ1 vs ILE Cγ1). Read-back proves composed `bio:residueName` swaps THR↔ILE and sentinel atom positions change per variant; 9/9 tests; harness 30/30. |
 | `ensemble_payload.md` | topic/v8-gap-closure | 1e22238, bc21e85, 082cf2c | Exp 4 done (cycle-002): `/ABLEnsemble` with `ReplicaID` VariantSet (rep_01/02/03), each variant authoring a Payload to a distinct clip stub. Read-back proves payload swap resolves at composition level: sentinel points (1,0,0)/(2,0,0)/(3,0,0) per variant; 6/6 tests; harness 30/30. DEVIATION: self-contained base rather than sublayering departmental_demo (avoids /ABLComplex root ambiguity in sentinel assertions); payload-swap mechanics fully demonstrated. |
