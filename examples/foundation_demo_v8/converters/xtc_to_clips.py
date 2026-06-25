@@ -19,6 +19,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(script_dir)
 sys.path.insert(0, root_dir)
 
+from usdbio_env import get_data_dir
+
 import mdtraj as md
 import numpy as np
 from pxr import Usd, UsdGeom, Sdf, Gf
@@ -56,17 +58,9 @@ def _get_bond_pairs(residue_name: str) -> list:
     return []
 
 
-# Default paths
-DEFAULT_PDB = os.path.join(
-    os.path.expanduser("~"),
-    "Documents", "career", "Projects", "USDBio", "ShinobuLab",
-    "files", "atp-complex-solv35.pdb"
-)
-DEFAULT_XTC = os.path.join(
-    os.path.expanduser("~"),
-    "Documents", "career", "Projects", "USDBio", "ShinobuLab",
-    "analysis", "0_traj", "sort_traj_1.xtc"
-)
+# Default paths — root from environment; fails loudly if USDBIO_DATA_DIR is unset
+DEFAULT_PDB = os.path.join(get_data_dir(), "files", "atp-complex-solv35.pdb")
+DEFAULT_XTC = os.path.join(get_data_dir(), "analysis", "0_traj", "sort_traj_1.xtc")
 
 
 def sanitize_name(name: str) -> str:
