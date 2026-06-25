@@ -437,7 +437,8 @@ def write_clip_template_manifest(
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
     UsdGeom.SetStageMetersPerUnit(stage, 1e-10)
     stage.SetStartTimeCode(1)
-    stage.SetEndTimeCode(n_clips)
+    # endTimeCode: last stage time unit (startTime + (n_clips-1)*stride with stride=1)
+    stage.SetEndTimeCode(float(n_clips))
     stage.SetFramesPerSecond(10)
     stage.SetMetadata("comment",
         f"Clip template manifest: {n_clips} clips, "
@@ -450,14 +451,24 @@ def write_clip_template_manifest(
     # Apply UsdClipsAPI and set template metadata
     clips_api = Usd.ClipsAPI(abl_prim.GetPrim())
 
-    # SetClipTemplateAssetPath: template string with ### for zero-padded integer
+    # SetClipTemplateAssetPath: template string with ### for zero-padded integer.
+    # IMPORTANT: USD requires the format "basename.###.ext" (dot-separated hash group).
+    # "clip_###.usdc" is INVALID (underscore before ###); use "clip.###.usdc" instead.
+    # The integer substituted for ### equals: startTime + N * stride (N=0,1,...).
+    # With stride=1, startTime=1: clip.001, clip.002, ... (sequential numbering).
     clips_api.SetClipTemplateAssetPath(template_pattern)
 
-    # SetClipTemplateStride: stride of 1 — one clip per integer time code
-    # (clip_001 at time=1, clip_002 at time=2, ...)
-    clips_api.SetClipTemplateStride(float(frames_per_clip))
+    # SetClipTemplateStride: stride=1 — one clip per integer time code.
+    # File naming: clip.{startTime + N}; stage-time [startTime+N, startTime+N+1) maps
+    # to clip N, with local clip time = stage_time - (startTime + N * stride).
+    # Each clip file's frame 0 is sampled when stage_time == startTime + N.
+    clips_api.SetClipTemplateStride(1.0)
 
-    # SetClipTemplateStartTime: first clip maps to time=1 (clip_001)
+    # SetClipTemplateEndTime: last valid clip start time (inclusive).
+    # With n_clips=2, startTime=1, stride=1: last clip is at startTime+(n_clips-1)*1 = 2.
+    clips_api.SetClipTemplateEndTime(float(1 + n_clips - 1))
+
+    # SetClipTemplateStartTime: first clip maps to time=1 (clip.001)
     clips_api.SetClipTemplateStartTime(1.0)
 
     # primPath tells USD which prim within each clip to use for time samples
@@ -478,7 +489,8 @@ def generate_clip_template_series(
     """Convert multiple XTC files to clip .usdc files and write a template manifest.
 
     For each XTC file in xtc_paths, extracts num_frames frames and writes a
-    .usdc clip file named clip_001.usdc, clip_002.usdc, ... The template manifest
+    .usdc clip file named clip.001.usdc, clip.002.usdc, ... (dot-separated hash group,
+    required by the USD clipTemplateAssetPath spec). The template manifest
     clips/clip_template_manifest.usda is written using clipTemplateAssetPath so the
     USD resolver can generate clip paths from the pattern without explicit enumeration.
 
@@ -501,7 +513,9 @@ def generate_clip_template_series(
     clip_usdc_paths = []
 
     for clip_idx, xtc_path in enumerate(xtc_paths, start=1):
-        clip_name = f"clip_{clip_idx:03d}"
+        # USD template naming: "clip.###.usdc" requires dot-separated hash group.
+        # The integer is startTime + (clip_idx-1)*stride = 1 + (clip_idx-1)*1 = clip_idx.
+        clip_name = f"clip.{clip_idx:03d}"
         clip_usda_path = os.path.join(output_dir, f"{clip_name}.usda")
         clip_usdc_path = os.path.join(output_dir, f"{clip_name}.usdc")
         clip_usdc_paths.append(clip_usdc_path)
@@ -538,7 +552,8 @@ def generate_clip_template_series(
 
     # Write the clip template manifest
     manifest_path = os.path.join(output_dir, "clip_template_manifest.usda")
-    template_pattern = "./clip_###.usdc"
+    # IMPORTANT: USD requires dot-separated hash group: "clip.###.usdc" not "clip_###.usdc"
+    template_pattern = "./clip.###.usdc"
     print(f"\nWriting clip template manifest...")
     write_clip_template_manifest(
         manifest_path=manifest_path,

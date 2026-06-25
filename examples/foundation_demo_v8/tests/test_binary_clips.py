@@ -40,6 +40,9 @@ _CLIP_USDA = os.path.join(_DEMO_ROOT, "output", "clips", "trajectory_clip.usda")
 _CLIP_USDC = os.path.join(_DEMO_ROOT, "output", "clips", "trajectory_clip.usdc")
 _CLIP_MANIFEST = os.path.join(_DEMO_ROOT, "output", "clips", "clip_template_manifest.usda")
 _BINARY_DEMO = os.path.join(_DEMO_ROOT, "output", "binary_demo.usda")
+# Template clip files — dot-separated naming required by USD clipTemplateAssetPath spec
+_CLIP_TEMPLATE_001 = os.path.join(_DEMO_ROOT, "output", "clips", "clip.001.usdc")
+_CLIP_TEMPLATE_002 = os.path.join(_DEMO_ROOT, "output", "clips", "clip.002.usdc")
 
 # Representative atom prim used across tests
 _SAMPLE_ATOM_PATH = "/ABLComplex/Chain_A/ACE_1/HH31"
@@ -173,6 +176,231 @@ def test_clip_template_manifest() -> TestResult:
 
 
 # ---------------------------------------------------------------------------
+# Test 3b: clip.001.usdc and clip.002.usdc contain populated time-sampled data
+# ---------------------------------------------------------------------------
+
+def test_template_clip_files_have_time_samples() -> TestResult:
+    """Assert clip.001.usdc and clip.002.usdc each contain real time-sampled positions.
+
+    Opens each .usdc clip file FRESH via Usd.Stage.Open (independent reads) and
+    asserts:
+      - Stage opens successfully
+      - Sample atom /ABLComplex/Chain_A/ACE_1/HH31 is present
+      - xformOp:translate has a non-empty GetTimeSamples() list (real data, not manifest)
+      - The first and last frame positions DIFFER (animation is not a constant value)
+
+    These clip files were previously unread by any test. This closes the gap.
+    """
+    errors = []
+    notes = []
+
+    for clip_path, label in [(_CLIP_TEMPLATE_001, "clip.001.usdc"),
+                              (_CLIP_TEMPLATE_002, "clip.002.usdc")]:
+        if not os.path.isfile(clip_path):
+            errors.append(f"Missing template clip file: {clip_path}")
+            continue
+
+        stage = Usd.Stage.Open(clip_path)
+        if stage is None:
+            errors.append(f"Failed to open: {clip_path}")
+            continue
+
+        prim = stage.GetPrimAtPath(_SAMPLE_ATOM_PATH)
+        if not prim.IsValid():
+            errors.append(f"{label}: sample atom not found: {_SAMPLE_ATOM_PATH}")
+            continue
+
+        xf = UsdGeom.Xformable(prim)
+        ops = xf.GetOrderedXformOps()
+        if not ops:
+            errors.append(f"{label}: no xform ops on sample atom")
+            continue
+
+        translate_op = ops[0]
+        time_samples = translate_op.GetTimeSamples()
+        notes.append(f"{label}: time samples count = {len(time_samples)}")
+
+        if len(time_samples) < 2:
+            errors.append(
+                f"{label}: expected >= 2 time samples, got {len(time_samples)}"
+            )
+            continue
+
+        # First and last frame positions must differ (data is live, not constant)
+        pos_first = translate_op.Get(Usd.TimeCode(time_samples[0]))
+        pos_last = translate_op.Get(Usd.TimeCode(time_samples[-1]))
+        notes.append(f"{label}: pos[first] = {pos_first}")
+        notes.append(f"{label}: pos[last]  = {pos_last}")
+
+        displacement = (Gf.Vec3d(pos_first) - Gf.Vec3d(pos_last)).GetLength()
+        notes.append(f"{label}: first-to-last displacement = {displacement:.4f} Å")
+
+        if displacement < 0.01:
+            errors.append(
+                f"{label}: first and last frame positions are too similar "
+                f"(displacement={displacement:.4f} Å); data may be constant"
+            )
+        else:
+            notes.append(f"PASS: {label} has live time-sampled data (disp={displacement:.4f} Å)")
+
+    return TestResult("template_clip_files_have_time_samples",
+                      len(errors) == 0, errors, notes)
+
+
+# ---------------------------------------------------------------------------
+# Test 3c: clip-template manifest resolves LIVE, DIFFERING values via clips
+# ---------------------------------------------------------------------------
+
+def test_clip_template_resolves_live_data() -> TestResult:
+    """Assert the clip-template manifest delivers live clip values via UsdClipsAPI.
+
+    This test constructs a minimal composed stage that sublayers:
+      1. clip_template_manifest.usda  (provides clipTemplateAssetPath metadata on /ABLComplex)
+      2. abl_kinase_complex.usda      (provides the atom prim hierarchy)
+
+    It then samples xformOp:translate on the sample atom at two stage timecodes
+    derived from GetTimeSamples() on the composed attribute (the USD clip system
+    exposes the underlying clip frame times translated to stage time) and asserts:
+      - GetTimeSamples() returns >= 2 timecodes (clip system is active)
+      - ResolveInfoSource is ValueClips (not Default, not TimeSamples)
+      - Values at both timecodes are populated (non-None)
+      - Values at the two timecodes DIFFER (proves template drives live clip data,
+        not a constant fallback)
+
+    WHY in-test composition instead of opening the manifest directly: the manifest
+    only carries the template metadata on /ABLComplex; it does not define the atom
+    prim hierarchy. A consumer stage must supply the topology (via subLayer of the
+    assembly) for the clip values to bind to attributes. This mirrors the real usage
+    pattern and is documented here for clarity.
+    """
+    errors = []
+    notes = []
+
+    _ASSEMBLY_USDA_PATH = os.path.join(
+        _DEMO_ROOT, "assets", "level4_assemblies", "abl_kinase_complex.usda"
+    )
+
+    if not os.path.isfile(_CLIP_MANIFEST):
+        return TestResult("clip_template_resolves_live_data", False,
+                          [f"Missing manifest: {_CLIP_MANIFEST}"])
+    if not os.path.isfile(_ASSEMBLY_USDA_PATH):
+        return TestResult("clip_template_resolves_live_data", False,
+                          [f"Missing assembly: {_ASSEMBLY_USDA_PATH}"])
+
+    # Build the composed consumer stage in memory.
+    # subLayerPaths order: manifest is stronger (overrides assembly defaults).
+    composed = Usd.Stage.CreateInMemory()
+    composed.GetRootLayer().subLayerPaths = [_CLIP_MANIFEST, _ASSEMBLY_USDA_PATH]
+
+    comp_errors = composed.GetCompositionErrors()
+    if comp_errors:
+        errors.append(f"Composition errors: {comp_errors}")
+        return TestResult("clip_template_resolves_live_data", False, errors, notes)
+
+    # Verify template metadata is present on /ABLComplex
+    abl_prim = composed.GetPrimAtPath("/ABLComplex")
+    if not abl_prim.IsValid():
+        return TestResult("clip_template_resolves_live_data", False,
+                          ["/ABLComplex not found in composed stage"])
+
+    clips_api = Usd.ClipsAPI(abl_prim)
+    template_path = clips_api.GetClipTemplateAssetPath()
+    notes.append(f"templateAssetPath on composed /ABLComplex: {template_path!r}")
+    computed_paths = clips_api.ComputeClipAssetPaths()
+    notes.append(
+        f"ComputeClipAssetPaths: {[os.path.basename(p.resolvedPath) for p in computed_paths]}"
+    )
+
+    if len(computed_paths) < 2:
+        errors.append(
+            f"Template resolved {len(computed_paths)} clip(s), expected >= 2. "
+            f"ComputeClipAssetPaths returned: {computed_paths}"
+        )
+        return TestResult("clip_template_resolves_live_data", False, errors, notes)
+
+    # Sample the atom at t=1 (clip.001) and t=2 (clip.002)
+    prim = composed.GetPrimAtPath(_SAMPLE_ATOM_PATH)
+    if not prim.IsValid():
+        return TestResult("clip_template_resolves_live_data", False,
+                          [f"Sample atom not found: {_SAMPLE_ATOM_PATH}"])
+
+    xf = UsdGeom.Xformable(prim)
+    ops = xf.GetOrderedXformOps()
+    if not ops:
+        return TestResult("clip_template_resolves_live_data", False,
+                          ["No xform ops on sample atom in composed stage"])
+
+    translate_op = ops[0]
+
+    # Verify value source is ValueClips (not Default fallback) at the first
+    # reported clip time sample.
+    # Implementation note: USD clip template time mapping is "stage_time = local_clip_time"
+    # (absolute, not relative to startTime) within each clip's active window.
+    # The clip system reports the underlying clip time samples translated to stage time;
+    # these are the timecodes at which the clip data is directly sampled (no hold).
+    clip_time_samples = translate_op.GetTimeSamples()
+    notes.append(f"GetTimeSamples on composed attr: {clip_time_samples}")
+
+    if len(clip_time_samples) < 2:
+        errors.append(
+            f"Expected >= 2 time samples from the clip system on the composed stage, "
+            f"got {len(clip_time_samples)}. "
+            f"The clip template may not be resolving correctly."
+        )
+        return TestResult("clip_template_resolves_live_data",
+                          len(errors) == 0, errors, notes)
+
+    tc_a = clip_time_samples[0]
+    tc_b = clip_time_samples[-1]
+
+    # Confirm both timecodes resolve via ValueClips (not Default)
+    for tc_val in [tc_a, tc_b]:
+        ri = translate_op.GetAttr().GetResolveInfo(Usd.TimeCode(tc_val))
+        source = ri.GetSource()
+        notes.append(f"ResolveInfoSource @ t={tc_val}: {source}")
+        if source != Usd.ResolveInfoSourceValueClips:
+            errors.append(
+                f"Expected ResolveInfoSourceValueClips at t={tc_val}, got {source}. "
+                f"The clip template is not resolving — check templateAssetPath format "
+                f"(must be 'basename.###.ext', dot-separated hash group)."
+            )
+
+    # Sample at the two clip time-sample boundaries and assert values differ.
+    # These two timecodes map to time samples from clip.001 and clip.002 respectively
+    # (the template stride places clip.001 at lower stage times, clip.002 at higher).
+    pos_a = translate_op.Get(Usd.TimeCode(tc_a))
+    pos_b = translate_op.Get(Usd.TimeCode(tc_b))
+    notes.append(f"pos @ t={tc_a} (early clip): {pos_a}")
+    notes.append(f"pos @ t={tc_b} (late clip):  {pos_b}")
+
+    if pos_a is None:
+        errors.append(f"Resolved value is None at t={tc_a}")
+    if pos_b is None:
+        errors.append(f"Resolved value is None at t={tc_b}")
+
+    if pos_a is not None and pos_b is not None:
+        displacement = (Gf.Vec3d(pos_a) - Gf.Vec3d(pos_b)).GetLength()
+        notes.append(f"Displacement t={tc_a} vs t={tc_b}: {displacement:.4f} Å")
+
+        # Values must differ: the two timecodes address different frames from the clips.
+        # If the template were falling back to a constant default, both would be identical.
+        if displacement < 0.01:
+            errors.append(
+                f"Positions at t={tc_a} and t={tc_b} are too similar "
+                f"(disp={displacement:.4f} Å). "
+                f"The template may be resolving a constant fallback."
+            )
+        else:
+            notes.append(
+                f"PASS: values differ by {displacement:.4f} Å between clip time samples "
+                f"(t={tc_a} vs t={tc_b}) — template drives live clip data"
+            )
+
+    return TestResult("clip_template_resolves_live_data",
+                      len(errors) == 0, errors, notes)
+
+
+# ---------------------------------------------------------------------------
 # Test 4: binary_demo trajectory — frame 0 vs frame 9 positions differ
 # ---------------------------------------------------------------------------
 
@@ -293,6 +521,8 @@ def _run_all() -> bool:
         test_usdc_assembly_prim_count,
         test_usdc_class_prims,
         test_clip_template_manifest,
+        test_template_clip_files_have_time_samples,
+        test_clip_template_resolves_live_data,
         test_binary_demo_trajectory,
         test_file_sizes,
     ]
