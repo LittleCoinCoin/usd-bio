@@ -1,45 +1,25 @@
 #usda 1.0
 (
     defaultPrim = "World"
-    doc = """specializes_arc demo — LIVERPS contrast between Inherits and Specializes arcs.
-
-Programmatically authored by build_specializes_demo.py.
-
-KEY FINDING (verified via context7 /websites/openusd_release + empirical observation):
-  Official USD docs: 'opinions expressed directly on the specialized prim always override
-  those on the base prim, regardless of the referencing context.'
-  In a single-file context BOTH Inherits and Specializes resolve to the local opinion (9.99).
-  The Specializes arc's base-wins behaviour only manifests across referencing boundaries.
-[source: context7 /websites/openusd_release — Specializes glossary entry]"""
+    doc = """specializes_demo.usda — outer/root layer for specializes_arc demo.
+References asset_specializes.usda and overrides /_class_/AtomBase.
+[source: build_specializes_demo.py]"""
     metersPerUnit = 1e-10
     upAxis = "Y"
 )
 
-class "_class_"
+def Xform "World" (
+    prepend references = @/Users/hacker/Documents/src/LittleCoinCoin/usd-bio/examples/composition_advanced/specializes_arc/asset_specializes.usda@</World>
+)
 {
-    class "AtomBase"
-    {
-        custom string bio:elementSymbol = "C"
-        custom float bio:vdwRadius = 1.7
-    }
 }
 
-def Xform "World"
+over "_class_"
 {
-    def Xform "Atom_Inherits" (
-        prepend inherits = </_class_/AtomBase>
-    )
+    over "AtomBase"
     {
-        custom string bio:elementSymbol = "C"
-        custom float bio:vdwRadius = 9.99
-    }
-
-    def Xform "Atom_Specializes" (
-        prepend specializes = </_class_/AtomBase>
-    )
-    {
-        custom string bio:elementSymbol = "C"
-        custom float bio:vdwRadius = 9.99
+        custom float bio:charge = -1
+        custom float bio:vdwRadius = 2
     }
 }
 

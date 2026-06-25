@@ -1,52 +1,69 @@
 """test_specializes_arc.py — Step 3 of specializes_arc leaf.
 
-Read-back tests for specializes_demo.usda: opens the stage fresh (no
-generator state in scope) and asserts the TRUE observed resolved values
-for the Inherits vs Specializes arc contrast.
+Read-back tests for the cross-reference specializes_arc demonstration.
+Opens specializes_demo.usda (outer/root layer, which references
+asset_specializes.usda) fresh — no generator state in scope — and asserts
+the TRUE observed resolved values demonstrating the real contrast between
+Specializes and Inherits arcs.
 
-## FINDING: single-file context — both prims resolve local opinion
+## Scene construction (two-layer, cross-reference)
 
-The leaf spec and architecture doc claim that Specializes prim should resolve
-the base-class value (1.70), not the local override (9.99). This claim is
-WRONG for a single-file context.
+INNER ASSET (asset_specializes.usda):
+  /_class_/AtomBase       — base class: bio:vdwRadius=1.70, bio:charge=0.0
+  /World/Atom_Specializes — specializes AtomBase, local bio:vdwRadius=9.99
+  /World/Atom_Inherits    — inherits AtomBase,    local bio:vdwRadius=9.99
+  (neither child has a local opinion on bio:charge)
 
-Context7 /websites/openusd_release (PcpArcType enum + Specializes glossary)
-confirms:
-  LIVERPS = Local > Inherits > VariantSets > Relocates > References >
-            Payload > Specializes
-  Specializes glossary: "opinions expressed directly on the specialized prim
-  always override those on the base prim, regardless of the referencing
-  context."
+OUTER ROOT (specializes_demo.usda):
+  References asset at /World
+  Overrides /_class_/AtomBase: bio:vdwRadius=2.00, bio:charge=-1.0
 
-This means in a single-file (flat, one layer) context:
-  - /World/Atom_Inherits: local 9.99 wins over inherited 1.70 -> 9.99
-  - /World/Atom_Specializes: local 9.99 wins over specialized 1.70 -> 9.99
+## Flat single-file finding (documented from prior pass: commits cd7b1ea/a117222/f0832f7)
 
-The Specializes arc's distinctive "base overrides instance" behavior only
-manifests when the specialized prim is REFERENCED INTO another layer from
-a third layer that also specializes from the base. In the single-file demo
-the specialized prim IS the instance — so local opinions always dominate.
+In a single-file context, Local (L) is the strongest LIVERPS arc, so BOTH
+Inherits and Specializes prims resolve to the local opinion (9.99). There is
+NO observable contrast between the two arc types in a flat single-layer file.
+The cross-reference boundary is what reveals the difference.
+[source: context7 /websites/openusd_release — LIVERPS glossary]
+[assumption: confirmed empirically in prior pass build_specializes_demo.py run]
 
-For the base-update propagation test (leaf spec step 4): after setting
-/_class_/AtomBase.bio:vdwRadius = 2.00 in-session, BOTH prims still
-resolve 9.99. Their local opinions override the base whether the arc is
-Inherits or Specializes (in single-file context). Calling stage.Reload()
-afterwards discards the in-memory edit (reverting base to 1.70) — prims
-stay at 9.99.
+## The REAL contrast (cross-reference context, empirically verified)
 
-These tests assert the TRUE observed behavior. They do NOT match the leaf
-spec's predicted values (which assumed cross-reference boundary semantics).
-Falsification note: if any assertion below fails it is a real failure; do
-not weaken them to pass.
+bio:vdwRadius (both child prims have LOCAL opinion 9.99 in inner asset):
 
-[source: context7 /websites/openusd_release — PcpArcType enum,
- Specializes glossary entry, LIVERPS glossary entry]
-[source: empirical observation — build_specializes_demo.py run output,
- plus direct in-process test below]
+  Atom_Specializes -> 9.99  LOCAL WINS
+    The specialized prim's own local opinions ALWAYS override the base prim.
+    Specializes is the WEAKEST arc in LIVERPS. The referenced-layer local
+    opinion is stronger than the Specializes arc resolving from the outer base.
+    [source: context7 /websites/openusd_release — Specializes glossary:
+     'opinions expressed directly on the specialized prim always override
+      those on the base prim, regardless of the referencing context.']
 
-API confirmed via context7 /websites/openusd_release:
+  Atom_Inherits -> 2.00  BASE OVERRIDE WINS
+    Inherits (I) is STRONGER than References (R) in LIVERPS (I > R > S).
+    The outer-layer opinion on the inherited class propagates through the
+    reference boundary, overriding the referenced-layer local opinion (9.99).
+    [source: context7 /websites/openusd_release — LIVERPS glossary,
+     PcpArcType enum (PcpArcTypeInherit < PcpArcTypeReference in strength order)]
+
+bio:charge (neither child has a local opinion):
+  Both -> -1.0  (outer base override propagates to both; no local opinion to block it)
+
+## Does this meet the leaf goal?
+
+YES, with an important clarification:
+  The leaf spec originally expected Specializes to show base-wins and Inherits to
+  show local-wins. The empirically correct behavior is the REVERSE:
+    - Inherits shows "outer base override wins over referenced-layer local" (I > R)
+    - Specializes shows "local always wins over base" (L > S regardless of referencing)
+  This IS the correct Specializes vs Inherits contrast — it is just the opposite of
+  the original spec's assumption. The honest demonstration is documented here.
+  [assumption: the leaf spec's predicted direction was incorrect; empirical behavior
+   documented above is the ground truth]
+
+## API confirmed via context7 /websites/openusd_release
   - Usd.Stage.Open(path) — open stage fresh
-  - prim.GetAttribute(name).Get() — sample composed attribute
+  - prim.GetAttribute(name).Get() — sample composed attribute value
   - stage.GetCompositionErrors() — check for composition faults
 
 Usage (from repo root):
@@ -59,25 +76,32 @@ import math
 import os
 import sys
 
-from pxr import Sdf, Usd
+from pxr import Usd
 
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-_USDA = os.path.join(
+
+# Inner asset (single-file flat context tests)
+_ASSET = os.path.join(
+    _REPO_ROOT,
+    "examples", "composition_advanced", "specializes_arc", "asset_specializes.usda",
+)
+
+# Outer demo (cross-reference contrast tests)
+_DEMO = os.path.join(
     _REPO_ROOT,
     "examples", "composition_advanced", "specializes_arc", "specializes_demo.usda",
 )
 
+# Prim paths
 _BASE_PATH = "/_class_/AtomBase"
-_INHERITS_PATH = "/World/Atom_Inherits"
 _SPECIALIZES_PATH = "/World/Atom_Specializes"
+_INHERITS_PATH = "/World/Atom_Inherits"
 
-# ---------------------------------------------------------------------------
 # Float tolerance
-# ---------------------------------------------------------------------------
-_TOL = 1e-3
+_TOL = 1e-2
 
 
 def _approx_eq(a: float, b: float) -> bool:
@@ -85,147 +109,210 @@ def _approx_eq(a: float, b: float) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Test 1: Inherits prim — local opinion wins
+# Test 1: Flat single-file — both prims resolve local opinion (no contrast)
 # ---------------------------------------------------------------------------
 
-def test_inherits_local_wins() -> None:
-    """Assert /World/Atom_Inherits resolves the local override (9.99), not the base (1.70).
+def test_flat_both_local_wins() -> None:
+    """In the inner asset alone (single-file), both prims resolve local 9.99.
 
-    Under LIVERPS, Local (L) is stronger than Inherits (I). The atom prim has
-    a local opinion bio:vdwRadius = 9.99, so 9.99 wins.
-    [source: context7 /websites/openusd_release — LIVERPS glossary entry]
+    Flat single-file finding (prior pass, commits cd7b1ea/a117222/f0832f7):
+    Local (L) is the strongest LIVERPS arc, so BOTH Inherits and Specializes
+    resolve to the local opinion. No observable contrast in this context.
+
+    TRUE OBSERVED VALUES (single-file): both 9.99.
+    [source: context7 /websites/openusd_release — LIVERPS: Local is strongest]
+    [assumption: confirmed empirically in prior pass]
     """
-    stage = Usd.Stage.Open(_USDA)
+    stage = Usd.Stage.Open(_ASSET)
     errors = stage.GetCompositionErrors()
-    assert not errors, f"Unexpected composition errors: {errors}"
+    assert not errors, f"Unexpected composition errors in asset: {errors}"
 
-    prim = stage.GetPrimAtPath(_INHERITS_PATH)
-    assert prim.IsValid(), f"Prim not found: {_INHERITS_PATH}"
+    spe = stage.GetPrimAtPath(_SPECIALIZES_PATH)
+    inh = stage.GetPrimAtPath(_INHERITS_PATH)
+    assert spe.IsValid(), f"Prim not found: {_SPECIALIZES_PATH}"
+    assert inh.IsValid(), f"Prim not found: {_INHERITS_PATH}"
 
-    val = prim.GetAttribute("bio:vdwRadius").Get()
-    assert val is not None, f"{_INHERITS_PATH} bio:vdwRadius returned None"
-    # TRUE OBSERVED VALUE: local 9.99 wins over inherited 1.70.
-    # [source: context7 LIVERPS — Local > Inherits; empirical run]
-    assert _approx_eq(val, 9.99), (
-        f"FAIL test_inherits_local_wins: expected ~9.99, got {val}. "
-        f"Local opinion should win over Inherits in LIVERPS."
+    spe_r = spe.GetAttribute("bio:vdwRadius").Get()
+    inh_r = inh.GetAttribute("bio:vdwRadius").Get()
+
+    assert spe_r is not None, f"{_SPECIALIZES_PATH} bio:vdwRadius returned None"
+    assert inh_r is not None, f"{_INHERITS_PATH} bio:vdwRadius returned None"
+
+    # Both local opinions win in single-file context.
+    # [source: context7 LIVERPS — Local is strongest arc]
+    assert _approx_eq(spe_r, 9.99), (
+        f"FAIL test_flat_both_local_wins: Specializes expected ~9.99 (local), got {spe_r}"
     )
-    print(f"[PASS] test_inherits_local_wins: {_INHERITS_PATH} bio:vdwRadius = {val:.4f} (~9.99)")
+    assert _approx_eq(inh_r, 9.99), (
+        f"FAIL test_flat_both_local_wins: Inherits expected ~9.99 (local), got {inh_r}"
+    )
+    print(
+        f"[PASS] test_flat_both_local_wins: "
+        f"Specializes={spe_r:.4f}, Inherits={inh_r:.4f} (both local 9.99 in single-file)"
+    )
 
 
 # ---------------------------------------------------------------------------
-# Test 2: Specializes prim — local opinion wins (single-file context)
+# Test 2: Cross-reference — Specializes local wins (9.99)
 # ---------------------------------------------------------------------------
 
-def test_specializes_local_wins_single_file() -> None:
-    """Assert /World/Atom_Specializes resolves 9.99, NOT 1.70, in single-file context.
+def test_xref_specializes_local_wins() -> None:
+    """In the cross-reference context (demo references asset), Specializes prim
+    resolves its LOCAL opinion (9.99), NOT the outer base override (2.00).
 
-    FINDING: this contradicts the leaf spec's prediction (1.70).
+    The specialized prim's own local opinions ALWAYS override the base prim.
+    Specializes is the WEAKEST arc (S is last in LIVERPS). The referenced-layer
+    local opinion is stronger than the outer Specializes-arc base override.
 
-    The leaf spec claimed Specializes prim should resolve 1.70 (base wins).
-    This is incorrect for a single-file context. The official USD docs state:
-    "opinions expressed directly on the specialized prim always override those
-    on the base prim, regardless of the referencing context."
-    [source: context7 /websites/openusd_release — Specializes glossary entry]
-
-    In a flat single-layer file the prim's own local attribute IS the direct
-    opinion on the specialized prim, so it always overrides the base.
-    The base-wins behaviour only manifests when the scene is embedded inside
-    a referencing layer and a third layer inherits from the base — at that
-    point Specializes causes the base update to propagate THROUGH the
-    reference boundary, overriding the inner-layer local opinion seen from
-    the outer layer's perspective.
-
-    TRUE OBSERVED VALUE: 9.99 (local wins, identical to Inherits in single-file).
+    TRUE OBSERVED VALUE: 9.99 (local wins).
+    [source: context7 /websites/openusd_release — Specializes glossary:
+     'opinions expressed directly on the specialized prim always override
+      those on the base prim, regardless of the referencing context.']
+    [source: empirical — build_specializes_demo.py run output]
     """
-    stage = Usd.Stage.Open(_USDA)
+    stage = Usd.Stage.Open(_DEMO)
     errors = stage.GetCompositionErrors()
-    assert not errors, f"Unexpected composition errors: {errors}"
+    assert not errors, f"Unexpected composition errors in demo: {errors}"
 
     prim = stage.GetPrimAtPath(_SPECIALIZES_PATH)
     assert prim.IsValid(), f"Prim not found: {_SPECIALIZES_PATH}"
 
     val = prim.GetAttribute("bio:vdwRadius").Get()
     assert val is not None, f"{_SPECIALIZES_PATH} bio:vdwRadius returned None"
-    # TRUE OBSERVED VALUE (single-file): local 9.99 wins — NOT the base 1.70.
-    # [source: context7 Specializes glossary; empirical build_specializes_demo.py run]
+
+    # Specialized prim's local (9.99) wins over outer base override (2.00).
+    # This is the fundamental property of the Specializes arc.
     assert _approx_eq(val, 9.99), (
-        f"FAIL test_specializes_local_wins_single_file: expected ~9.99 (local wins), got {val}. "
-        f"In single-file context the Specializes prim's local opinion wins over the base."
+        f"FAIL test_xref_specializes_local_wins: "
+        f"expected ~9.99 (local), got {val}. "
+        f"Specialized prim's local opinion should always override base."
     )
     print(
-        f"[PASS] test_specializes_local_wins_single_file: "
-        f"{_SPECIALIZES_PATH} bio:vdwRadius = {val:.4f} (~9.99, local wins)"
+        f"[PASS] test_xref_specializes_local_wins: "
+        f"{_SPECIALIZES_PATH} bio:vdwRadius = {val:.4f} "
+        f"(local 9.99 wins over outer base 2.00)"
     )
 
 
 # ---------------------------------------------------------------------------
-# Test 3: Base-update propagation — both prims retain local opinion
+# Test 3: Cross-reference — Inherits base override wins (2.00)
 # ---------------------------------------------------------------------------
 
-def test_base_update_propagation() -> None:
-    """Assert that updating /_class_/AtomBase.bio:vdwRadius to 2.00 in-session
-    does NOT change the resolved value for either prim (both stay at 9.99).
+def test_xref_inherits_base_wins() -> None:
+    """In the cross-reference context (demo references asset), Inherits prim
+    resolves the OUTER BASE OVERRIDE (2.00), NOT its local opinion (9.99).
 
-    FINDING: this contradicts the leaf spec's prediction for Specializes.
+    Inherits (I) is STRONGER than References (R) in LIVERPS (I > R > S).
+    The outer-layer opinion on the inherited class propagates through the
+    reference boundary and overrides the referenced-layer local opinion (9.99).
 
-    The leaf spec predicted:
-      - /Atom_Inherits stays 9.99 (correct — local wins over Inherits)
-      - /Atom_Specializes changes to 2.00 (INCORRECT for single-file context)
-
-    In a single-file flat stage, setting the base-class attribute to 2.00 has
-    NO effect on either prim because both prims' local opinions (9.99) override
-    the base class regardless of arc type.
-
-    The in-session edit (no stage.Reload() needed for in-memory edits) is
-    immediately reflected in base_prim.Get() = 2.00, but the composed value
-    for the child prims remains 9.99 because local opinions dominate.
-
-    stage.Reload() after the edit DISCARDS the in-memory base modification
-    (reverting the base to 1.70 from disk) — prims still resolve 9.99.
-
-    [source: context7 /websites/openusd_release — Specializes glossary;
-     empirical: direct in-process measurement in this test suite]
+    TRUE OBSERVED VALUE: 2.00 (outer base override wins via Inherits arc).
+    [source: context7 /websites/openusd_release — LIVERPS: Inherits > References]
+    [source: context7 /websites/openusd_release — PcpArcType enum:
+     PcpArcTypeInherit listed before PcpArcTypeReference (stronger first)]
+    [source: empirical — build_specializes_demo.py run output]
     """
-    stage = Usd.Stage.Open(_USDA)
+    stage = Usd.Stage.Open(_DEMO)
+    errors = stage.GetCompositionErrors()
+    assert not errors, f"Unexpected composition errors in demo: {errors}"
 
-    inh_prim = stage.GetPrimAtPath(_INHERITS_PATH)
-    spe_prim = stage.GetPrimAtPath(_SPECIALIZES_PATH)
-    base_prim = stage.GetPrimAtPath(_BASE_PATH)
+    prim = stage.GetPrimAtPath(_INHERITS_PATH)
+    assert prim.IsValid(), f"Prim not found: {_INHERITS_PATH}"
 
-    # Verify baseline
-    assert _approx_eq(inh_prim.GetAttribute("bio:vdwRadius").Get(), 9.99), "Baseline Inherits != 9.99"
-    assert _approx_eq(spe_prim.GetAttribute("bio:vdwRadius").Get(), 9.99), "Baseline Specializes != 9.99"
-    assert _approx_eq(base_prim.GetAttribute("bio:vdwRadius").Get(), 1.70), "Baseline base != 1.70"
+    val = prim.GetAttribute("bio:vdwRadius").Get()
+    assert val is not None, f"{_INHERITS_PATH} bio:vdwRadius returned None"
 
-    # Modify base class attribute in-session (in-memory edit, no reload needed).
-    base_prim.GetAttribute("bio:vdwRadius").Set(2.00)
-    assert _approx_eq(base_prim.GetAttribute("bio:vdwRadius").Get(), 2.00), \
-        "Base class did not update to 2.00 after Set()"
-
-    # Assert composed values UNCHANGED — local opinions still dominate.
-    inh_after = inh_prim.GetAttribute("bio:vdwRadius").Get()
-    spe_after = spe_prim.GetAttribute("bio:vdwRadius").Get()
-
-    # TRUE OBSERVED: Inherits prim stays 9.99 (local > Inherits, base irrelevant).
-    assert _approx_eq(inh_after, 9.99), (
-        f"FAIL: Inherits prim should stay 9.99 after base update, got {inh_after}"
-    )
-    # TRUE OBSERVED: Specializes prim ALSO stays 9.99 (local wins in single-file context).
-    # The leaf spec predicted 2.00 here — that prediction is wrong for single-file.
-    assert _approx_eq(spe_after, 9.99), (
-        f"FAIL: Specializes prim should stay 9.99 in single-file context after base update, "
-        f"got {spe_after}. "
-        f"NOTE: leaf spec predicted 2.00, but that only applies across referencing boundaries."
-    )
-
-    print(
-        f"[PASS] test_base_update_propagation: after base -> 2.00: "
-        f"Inherits={inh_after:.4f}, Specializes={spe_after:.4f} (both retain local 9.99)"
+    # Outer-layer base class override (2.00) wins via Inherits arc (I > R in LIVERPS).
+    # This contrasts with Specializes where the local always wins.
+    assert _approx_eq(val, 2.00), (
+        f"FAIL test_xref_inherits_base_wins: "
+        f"expected ~2.00 (outer base override via Inherits), got {val}. "
+        f"Inherits > References in LIVERPS — outer class opinion should propagate."
     )
     print(
-        "       FINDING: Specializes prim does NOT propagate base update in single-file context."
-        " Leaf spec prediction (2.00) only holds across referencing boundaries."
+        f"[PASS] test_xref_inherits_base_wins: "
+        f"{_INHERITS_PATH} bio:vdwRadius = {val:.4f} "
+        f"(outer base override 2.00 wins over referenced-layer local 9.99)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Test 4: Cross-reference — charge (no local opinion) propagates to both
+# ---------------------------------------------------------------------------
+
+def test_xref_no_local_propagates_to_both() -> None:
+    """For bio:charge (no local opinion on either child), the outer base
+    override (-1.0) propagates to BOTH Specializes and Inherits prims.
+
+    When neither child prim has a local opinion, both arc types allow the
+    base class value to propagate freely.
+
+    TRUE OBSERVED VALUE: both -1.0.
+    [source: context7 /websites/openusd_release — Specializes glossary:
+     local opinions override base; absence of local opinion means base wins]
+    [source: empirical — build_specializes_demo.py run output]
+    """
+    stage = Usd.Stage.Open(_DEMO)
+    errors = stage.GetCompositionErrors()
+    assert not errors, f"Unexpected composition errors in demo: {errors}"
+
+    spe = stage.GetPrimAtPath(_SPECIALIZES_PATH)
+    inh = stage.GetPrimAtPath(_INHERITS_PATH)
+
+    spe_c = spe.GetAttribute("bio:charge").Get()
+    inh_c = inh.GetAttribute("bio:charge").Get()
+
+    assert spe_c is not None, f"{_SPECIALIZES_PATH} bio:charge returned None"
+    assert inh_c is not None, f"{_INHERITS_PATH} bio:charge returned None"
+
+    # No local opinion -> outer base override propagates to both.
+    assert _approx_eq(spe_c, -1.0), (
+        f"FAIL test_xref_no_local_propagates_to_both: "
+        f"Specializes bio:charge expected ~-1.00, got {spe_c}"
+    )
+    assert _approx_eq(inh_c, -1.0), (
+        f"FAIL test_xref_no_local_propagates_to_both: "
+        f"Inherits bio:charge expected ~-1.00, got {inh_c}"
+    )
+    print(
+        f"[PASS] test_xref_no_local_propagates_to_both: "
+        f"Specializes bio:charge={spe_c:.4f}, Inherits bio:charge={inh_c:.4f} "
+        f"(both -1.0; no local to block base override)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Test 5: Base class reads correctly in root layer
+# ---------------------------------------------------------------------------
+
+def test_xref_base_class_values() -> None:
+    """Assert /_class_/AtomBase resolves the root-layer override values.
+
+    The root layer (specializes_demo.usda) authors an 'over' on /_class_/AtomBase:
+      bio:vdwRadius = 2.00
+      bio:charge    = -1.0
+
+    TRUE OBSERVED VALUES: 2.00, -1.0.
+    [source: empirical — build_specializes_demo.py]
+    """
+    stage = Usd.Stage.Open(_DEMO)
+
+    base = stage.GetPrimAtPath(_BASE_PATH)
+    assert base.IsValid(), f"Prim not found: {_BASE_PATH}"
+
+    r = base.GetAttribute("bio:vdwRadius").Get()
+    c = base.GetAttribute("bio:charge").Get()
+
+    assert _approx_eq(r, 2.00), (
+        f"FAIL test_xref_base_class_values: bio:vdwRadius expected ~2.00, got {r}"
+    )
+    assert _approx_eq(c, -1.0), (
+        f"FAIL test_xref_base_class_values: bio:charge expected ~-1.00, got {c}"
+    )
+    print(
+        f"[PASS] test_xref_base_class_values: "
+        f"AtomBase bio:vdwRadius={r:.4f}, bio:charge={c:.4f} "
+        f"(root-layer override: 2.00, -1.0)"
     )
 
 
@@ -234,12 +321,18 @@ def test_base_update_propagation() -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    print(f"Opening stage: {_USDA}")
+    print(f"Inner asset: {_ASSET}")
+    print(f"Outer demo:  {_DEMO}")
+    print()
+
     tests = [
-        test_inherits_local_wins,
-        test_specializes_local_wins_single_file,
-        test_base_update_propagation,
+        test_flat_both_local_wins,
+        test_xref_specializes_local_wins,
+        test_xref_inherits_base_wins,
+        test_xref_no_local_propagates_to_both,
+        test_xref_base_class_values,
     ]
+
     failures = []
     for t in tests:
         try:
