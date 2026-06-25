@@ -1,0 +1,30 @@
+#usda 1.0
+(
+    "Solvated ABL kinase complex — protein per-atom Xforms + solvent PointInstancer"
+    defaultPrim = "SolvatedComplex"
+    metersPerUnit = 1e-10
+    subLayers = [
+        @/Users/hacker/Documents/src/LittleCoinCoin/usd-bio/examples/foundation_demo_v8/assets/level4_assemblies/abl_kinase_complex.usda@,
+        @/Users/hacker/Documents/src/LittleCoinCoin/usd-bio/examples/foundation_demo_v8/assets/level5_solvent/solvent_instancer.usda@
+    ]
+    upAxis = "Y"
+)
+
+def Xform "SolvatedComplex"
+{
+    custom string bio:source = "ShinobuLab ABL MD simulation — atp-complex-solv35.pdb"
+    custom string bio:systemName = "ABL kinase + ATP + explicit solvent"
+
+    over "Protein" (
+        prepend references = </ABLComplex>
+    )
+    {
+    }
+
+    over "Solvent" (
+        prepend references = </Solvent>
+    )
+    {
+    }
+}
+
