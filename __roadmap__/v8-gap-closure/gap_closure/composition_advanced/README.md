@@ -21,7 +21,7 @@ Demonstrate the remaining §3.3 composition arcs and §3.4 provenance, completin
 ## Status
 ```mermaid
 graph TD
-    ensemble_payload[Exp 4 — Ensemble VariantSet + Payload Swapping]:::planned
+    ensemble_payload[Exp 4 — Ensemble VariantSet + Payload Swapping]:::done
     perturbation_variantset[Perturbation VariantSet (Genotype)]:::planned
     parameter_variantset[Parameter VariantSet (ForceField)]:::planned
     specializes_arc[Specializes Arc Demonstration]:::planned
@@ -37,7 +37,7 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `ensemble_payload.md` | 📄 Leaf Task | ⬜ Planned |
+| `ensemble_payload.md` | 📄 Leaf Task | ✅ Done |
 | `perturbation_variantset.md` | 📄 Leaf Task | ⬜ Planned |
 | `parameter_variantset.md` | 📄 Leaf Task | ⬜ Planned |
 | `specializes_arc.md` | 📄 Leaf Task | ⬜ Planned |
@@ -51,3 +51,4 @@ graph TD
 ## Progress
 | Node | Branch | Commits | Notes |
 |:-----|:-------|:--------|:------|
+| `ensemble_payload.md` | topic/v8-gap-closure | 1e22238, bc21e85, 082cf2c | Exp 4 done (cycle-002): `/ABLEnsemble` with `ReplicaID` VariantSet (rep_01/02/03), each variant authoring a Payload to a distinct clip stub. Read-back proves payload swap resolves at composition level: sentinel points (1,0,0)/(2,0,0)/(3,0,0) per variant; 6/6 tests; harness 30/30. DEVIATION: self-contained base rather than sublayering departmental_demo (avoids /ABLComplex root ambiguity in sentinel assertions); payload-swap mechanics fully demonstrated. |
