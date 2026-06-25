@@ -1,0 +1,39 @@
+#usda 1.0
+(
+    defaultPrim = "ABLKinase"
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+def Xform "ABLKinase" (
+    variants = {
+        string Genotype = "WildType"
+    }
+    prepend variantSets = "Genotype"
+)
+{
+    custom string bio:mutationSite = "T315"
+
+    def Xform "Res315"
+    {
+    }
+    variantSet "Genotype" = {
+        "T315I" {
+            over "Res315" (
+                prepend references = @geometries/res315_t315i.usda@
+            )
+            {
+            }
+
+        }
+        "WildType" {
+            over "Res315" (
+                prepend references = @geometries/res315_wt.usda@
+            )
+            {
+            }
+
+        }
+    }
+}
+
