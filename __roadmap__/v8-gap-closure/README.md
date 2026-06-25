@@ -53,7 +53,7 @@ graph TD
 ## Progress
 | Node | Branch | Commits | Notes |
 |:-----|:-------|:--------|:------|
-| `portability_fix.md` | topic/v8-gap-closure | 71f2b3a, 416b444, 21985b2, a11cb02 | USDBIO_DATA_DIR via usdbio_env.get_data_dir(); all gates pass. Gate 4 (functional parity) BLOCKED: mdtraj (py3.12) and pxr (uv py3.11) have no common interpreter. |
+| `portability_fix.md` | topic/v8-gap-closure | 71f2b3a, 416b444, 21985b2, a11cb02 | USDBIO_DATA_DIR via usdbio_env.get_data_dir(); all gates pass. NOTE (cycle-001 correction): Gate 4 was initially marked BLOCKED on a false "interpreter split" — the canonical `forOUSD` venv (/Users/hacker/Documents/src/AOUSD/forOUSD/bin/python3) + PYTHONPATH has BOTH pxr and mdtraj, so functional parity IS achievable; re-confirm next cycle. |
 | `roadmap_status_correction.md` | topic/v8-gap-closure | 603142f | M1/M2/M3 marked Complete with evidence links; zero In Progress/Blocked remain. |
 | `test_harness.md` | topic/v8-gap-closure | e0b93c7, 4698806, c27f7a8, 000feae | 4-layer harness built; readback+golden pass; compliance+domain surfaced real artifact defects → Amendment A01 remediated them; harness now 18/18 PASS. |
 | `baseline_artifact_fixes.md` | topic/v8-gap-closure | 5e90cf1, a6a4fce, b47b75c | Amendment A01 done: metersPerUnit+upAxis in all generators; ballstick token + H cpkColor; regenerated 4 artifacts + patched 2 trajectory artifacts (+ fixed a 4th defect: trajectory_clip missing defaultPrim). Harness 18/18 PASS, exit 0. |
