@@ -1,0 +1,46 @@
+#usda 1.0
+(
+    "Mutation-site residue: Threonine-315 (Wild-Type). Sentinel Oγ1 at (5.0, 0.0, 0.0)."
+    defaultPrim = "Res315"
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+# Wild-type gatekeeper residue Thr-315. bio:residueName drives Genotype falsification test.
+# DEVIATION: element properties inlined; avoids hard path to generated element_library.usda.
+def Xform "Res315"
+{
+    custom string bio:residueName = "THR"
+    custom int bio:residueSeq = 315
+    custom string bio:chainID = "A"
+
+    # Cβ -- backbone anchor, common to Thr and Ile
+    def Xform "Atom_CB"
+    {
+        custom token bio:atomName = "CB"
+        custom token bio:element = "C"
+        custom float bio:vdwRadius = 1.7
+        double3 xformOp:translate = (4.0, 0.0, 0.0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    # Oγ1 -- hydroxyl oxygen unique to Threonine; sentinel position (5.0, 0.0, 0.0)
+    def Xform "Atom_OG1"
+    {
+        custom token bio:atomName = "OG1"
+        custom token bio:element = "O"
+        custom float bio:vdwRadius = 1.52
+        double3 xformOp:translate = (5.0, 0.0, 0.0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    # Cγ2 -- methyl carbon present in Thr; position differs from Ile Cγ2
+    def Xform "Atom_CG2"
+    {
+        custom token bio:atomName = "CG2"
+        custom token bio:element = "C"
+        custom float bio:vdwRadius = 1.7
+        double3 xformOp:translate = (4.0, 1.0, 0.0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+}

@@ -1,0 +1,56 @@
+#usda 1.0
+(
+    "Mutation-site residue: Isoleucine-315 (T315I mutant). Sentinel Cγ1 at (6.0, 0.0, 0.0)."
+    defaultPrim = "Res315"
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+# T315I imatinib-resistance mutation. bio:residueName = ILE drives Genotype falsification test.
+# DEVIATION: element properties inlined; avoids hard path to generated element_library.usda.
+def Xform "Res315"
+{
+    custom string bio:residueName = "ILE"
+    custom int bio:residueSeq = 315
+    custom string bio:chainID = "A"
+
+    # Cβ -- backbone anchor; same position as WT (backbone geometry is conserved)
+    def Xform "Atom_CB"
+    {
+        custom token bio:atomName = "CB"
+        custom token bio:element = "C"
+        custom float bio:vdwRadius = 1.7
+        double3 xformOp:translate = (4.0, 0.0, 0.0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    # Cγ1 -- methylene carbon unique to Ile; sentinel position (6.0, 0.0, 0.0)
+    def Xform "Atom_CG1"
+    {
+        custom token bio:atomName = "CG1"
+        custom token bio:element = "C"
+        custom float bio:vdwRadius = 1.7
+        double3 xformOp:translate = (6.0, 0.0, 0.0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    # Cγ2 -- methyl carbon; different position from WT Thr Cγ2
+    def Xform "Atom_CG2"
+    {
+        custom token bio:atomName = "CG2"
+        custom token bio:element = "C"
+        custom float bio:vdwRadius = 1.7
+        double3 xformOp:translate = (4.0, -1.0, 0.0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    # Cδ1 -- terminal carbon unique to Ile; absent in Thr
+    def Xform "Atom_CD1"
+    {
+        custom token bio:atomName = "CD1"
+        custom token bio:element = "C"
+        custom float bio:vdwRadius = 1.7
+        double3 xformOp:translate = (7.0, 0.0, 0.0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+}
