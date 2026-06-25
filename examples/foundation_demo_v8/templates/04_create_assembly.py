@@ -144,6 +144,7 @@ def create_assembly(output_path: str, element_template_path: str, pdb_path: str)
 
     stage = Usd.Stage.CreateNew(output_path)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)  # coordinates in Ångström (1 Å = 1e-10 m)
     stage.SetMetadata("comment",
         "ABL kinase + ATP assembly from ShinobuLab MD simulation PDB")
 

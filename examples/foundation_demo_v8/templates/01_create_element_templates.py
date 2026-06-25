@@ -32,6 +32,7 @@ def create_element_templates(output_path: str):
 
     stage = Usd.Stage.CreateNew(output_path)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)  # coordinates in Ångström (1 Å = 1e-10 m)
     stage.SetMetadata("comment", "Element templates with scientific metadata")
 
     # Create class scope

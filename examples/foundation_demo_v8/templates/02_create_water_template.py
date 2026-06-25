@@ -71,6 +71,7 @@ def create_water_template(output_path: str, element_template_path: str):
 
     stage = Usd.Stage.CreateNew(output_path)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)  # coordinates in Ångström (1 Å = 1e-10 m)
 
     # Reference element templates (brings in /_class_/H, /_class_/O, etc.)
     stage.GetRootLayer().subLayerPaths.append(element_template_path)

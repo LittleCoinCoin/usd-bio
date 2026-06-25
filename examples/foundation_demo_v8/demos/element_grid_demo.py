@@ -29,6 +29,7 @@ def create_element_grid_demo(output_path: str, template_path: str):
 
     stage = Usd.Stage.CreateNew(output_path)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)  # coordinates in Ångström (1 Å = 1e-10 m)
 
     # Reference the element templates
     # This brings in /_class_/* prims

@@ -250,6 +250,7 @@ def write_clip_file(output_path: str, prim_paths: list,
 
     stage = Usd.Stage.CreateNew(output_path)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)  # coordinates in Ångström (1 Å = 1e-10 m)
     stage.SetMetadata("comment",
         f"Trajectory clip: {n_frames} frames, {n_atoms} atoms, "
         f"{len(bond_info)} bonds")
