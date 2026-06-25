@@ -247,6 +247,46 @@ def parse_pdb(pdb_path: str, exclude_solvent: bool = True) -> PDBStructure:
     return structure
 
 
+def parse_solvent(pdb_path: str) -> list:
+    """Parse solvent residue oxygen-atom coordinates from a PDB file.
+
+    Reads ATOM/HETATM records for residues named WAT, HOH, TIP3P, or SOL and
+    returns the (x, y, z) coordinate of each oxygen atom — one point per water
+    molecule.  Returns a plain list of (float, float, float) tuples with no USD
+    types, keeping the parser USD-agnostic.
+
+    This is a separate entry point from parse_pdb() so callers can choose
+    protein-only vs. protein+solvent independently without breaking existing callers
+    that expect only protein/ligand records.
+
+    Args:
+        pdb_path: Path to the PDB file.
+
+    Returns:
+        List of (x, y, z) float tuples, one per solvent oxygen atom (Ångstroms).
+    """
+    if not os.path.exists(pdb_path):
+        raise FileNotFoundError(f"PDB file not found: {pdb_path}")
+
+    SOLVENT_RESIDUES = {"WAT", "HOH", "TIP3P", "SOL"}
+    coords: list = []
+
+    with open(pdb_path, "r") as f:
+        for line in f:
+            if not line.startswith(("ATOM", "HETATM")):
+                continue
+            parsed = _parse_atom_line(line)
+            if parsed is None:
+                continue
+            if parsed["residue_name"] not in SOLVENT_RESIDUES:
+                continue
+            # Collect only the oxygen atom — one position per water molecule
+            if parsed["atom_name"] == "O":
+                coords.append((parsed["x"], parsed["y"], parsed["z"]))
+
+    return coords
+
+
 def verify_pdb_parse(structure: PDBStructure):
     """Verify the parsed PDB structure meets expected criteria.
 
@@ -309,14 +349,13 @@ def verify_pdb_parse(structure: PDBStructure):
 
 
 if __name__ == "__main__":
-    # Default path for ShinobuLab ABL kinase PDB
-    default_pdb = os.path.join(
-        os.path.expanduser("~"),
-        "Documents", "career", "Projects", "USDBio", "ShinobuLab",
-        "files", "atp-complex-solv35.pdb"
-    )
-
     import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from usdbio_env import get_data_dir
+
+    # Default path — root from environment; fails loudly if USDBIO_DATA_DIR is unset
+    default_pdb = os.path.join(get_data_dir(), "files", "atp-complex-solv35.pdb")
+
     pdb_path = sys.argv[1] if len(sys.argv) > 1 else default_pdb
 
     print(f"Parsing: {pdb_path}")

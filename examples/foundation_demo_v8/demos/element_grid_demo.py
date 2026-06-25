@@ -18,7 +18,7 @@ sys.path.insert(0, root_dir)
 from pxr import Usd, UsdGeom, Sdf, Gf
 from data import ELEMENTS
 
-REPRESENTATIONS = ["points", "balls", "vdw", "sticks"]
+REPRESENTATIONS = ["points", "balls", "vdw", "ballstick"]
 
 
 def create_element_grid_demo(output_path: str, template_path: str):
@@ -29,6 +29,7 @@ def create_element_grid_demo(output_path: str, template_path: str):
 
     stage = Usd.Stage.CreateNew(output_path)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)  # coordinates in Ångström (1 Å = 1e-10 m)
 
     # Reference the element templates
     # This brings in /_class_/* prims

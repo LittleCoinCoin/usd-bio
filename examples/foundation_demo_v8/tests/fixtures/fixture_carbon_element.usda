@@ -1,0 +1,60 @@
+#usda 1.0
+(
+    "Golden fixture: /_class_/C element template -- values from element_templates.usda"
+    upAxis = "Y"
+)
+
+class "_class_"
+{
+    class "C" (
+        prepend variantSets = "representation"
+    )
+    {
+        custom float bio:atomicMass = 12.011
+        custom int bio:atomicNumber = 6
+        custom float bio:covalentRadius = 0.76
+        custom float bio:electronegativity = 2.55
+        custom string bio:name = "Carbon"
+        custom string bio:notes = "Backbone of organic molecules"
+        custom token bio:symbol = "C"
+        custom float bio:vdwRadius = 1.7
+        variantSet "representation" = {
+            "balls" {
+                def Sphere "Sphere"
+                {
+                    float3[] extent = [(-0.51, -0.51, -0.51), (0.51, 0.51, 0.51)]
+                    color3f[] primvars:displayColor = [(0.2, 0.2, 0.2)]
+                    double radius = 0.51
+                }
+
+            }
+            "ballstick" {
+                def Sphere "Sphere"
+                {
+                    float3[] extent = [(-0.425, -0.425, -0.425), (0.425, 0.425, 0.425)]
+                    color3f[] primvars:displayColor = [(0.2, 0.2, 0.2)]
+                    double radius = 0.425
+                }
+
+            }
+            "points" {
+                def Sphere "Sphere"
+                {
+                    float3[] extent = [(-0.255, -0.255, -0.255), (0.255, 0.255, 0.255)]
+                    color3f[] primvars:displayColor = [(0.2, 0.2, 0.2)]
+                    double radius = 0.255
+                }
+
+            }
+            "vdw" {
+                def Sphere "Sphere"
+                {
+                    float3[] extent = [(-1.7, -1.7, -1.7), (1.7, 1.7, 1.7)]
+                    color3f[] primvars:displayColor = [(0.2, 0.2, 0.2)]
+                    double radius = 1.7
+                }
+
+            }
+        }
+    }
+}

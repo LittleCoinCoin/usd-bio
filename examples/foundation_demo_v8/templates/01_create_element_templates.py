@@ -32,6 +32,7 @@ def create_element_templates(output_path: str):
 
     stage = Usd.Stage.CreateNew(output_path)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)  # coordinates in Ångström (1 Å = 1e-10 m)
     stage.SetMetadata("comment", "Element templates with scientific metadata")
 
     # Create class scope
@@ -54,6 +55,10 @@ def create_element_templates(output_path: str):
         class_prim.CreateAttribute("bio:covalentRadius", Sdf.ValueTypeNames.Float).Set(data["covalent_radius"])
         class_prim.CreateAttribute("bio:electronegativity", Sdf.ValueTypeNames.Float).Set(data["electronegativity"])
         class_prim.CreateAttribute("bio:notes", Sdf.ValueTypeNames.String).Set(data["bio_notes"])
+        # CPK color as canonical bio: attribute on the class prim itself
+        # (CPK white for H = (1,1,1); standard Jmol/CPK colours for all elements)
+        cpk = Gf.Vec3f(*data["cpk_color"])
+        class_prim.CreateAttribute("bio:cpkColor", Sdf.ValueTypeNames.Color3f).Set(cpk)
 
         # =====================================================================
         # VARIANT SET: representation

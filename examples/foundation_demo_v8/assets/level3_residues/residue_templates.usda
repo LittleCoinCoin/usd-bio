@@ -1,6 +1,7 @@
 #usda 1.0
 (
     "Amino acid residue templates"
+    metersPerUnit = 1e-10
     subLayers = [
         @/Users/hacker/Documents/src/LittleCoinCoin/usd-bio/examples/foundation_demo_v8/assets/level1_elements/element_templates.usda@
     ]

@@ -34,6 +34,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(script_dir)
 sys.path.insert(0, root_dir)
 
+from usdbio_env import get_data_dir
 from pxr import Usd, UsdGeom, Sdf, Gf
 from converters.pdb_parser import parse_pdb
 from data import RESIDUES
@@ -41,12 +42,8 @@ from data import RESIDUES
 
 REPRESENTATIONS = ["points", "balls", "vdw", "ballstick"]
 
-# Default PDB path
-DEFAULT_PDB = os.path.join(
-    os.path.expanduser("~"),
-    "Documents", "career", "Projects", "USDBio", "ShinobuLab",
-    "files", "atp-complex-solv35.pdb"
-)
+# Default PDB path — root from environment; fails loudly if USDBIO_DATA_DIR is unset
+DEFAULT_PDB = os.path.join(get_data_dir(), "files", "atp-complex-solv35.pdb")
 
 
 def sanitize_name(name: str) -> str:
@@ -147,6 +144,7 @@ def create_assembly(output_path: str, element_template_path: str, pdb_path: str)
 
     stage = Usd.Stage.CreateNew(output_path)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)  # coordinates in Ångström (1 Å = 1e-10 m)
     stage.SetMetadata("comment",
         "ABL kinase + ATP assembly from ShinobuLab MD simulation PDB")
 

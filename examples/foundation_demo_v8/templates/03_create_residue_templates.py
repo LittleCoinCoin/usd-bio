@@ -139,6 +139,7 @@ def create_residue_templates(output_path: str, element_template_path: str):
 
     stage = Usd.Stage.CreateNew(output_path)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)  # coordinates in Ångström (1 Å = 1e-10 m)
     stage.SetMetadata("comment", "Amino acid residue templates")
     stage.GetRootLayer().subLayerPaths.append(element_template_path)
 

@@ -117,7 +117,7 @@ ION_RADIUS_SCALES = {
     "points": 0.20,
     "balls": 0.40,
     "vdw": 1.00,     # Uses ionic radius
-    "sticks": 0.25,
+    "ballstick": 0.25,
 }
 
 
