@@ -1,0 +1,47 @@
+#usda 1.0
+(
+    defaultPrim = "ABLFragment"
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+def Xform "ABLFragment" (
+    variants = {
+        string ForceField = "Amber99"
+    }
+    prepend variantSets = "ForceField"
+)
+{
+    def Xform "Chain_A"
+    {
+        def Xform "Res_001"
+        {
+            def Xform "Atom_N"
+            {
+                custom token bio:atomName = "N"
+                custom token bio:element = "N"
+            }
+
+            def Xform "Atom_CA"
+            {
+                custom token bio:atomName = "CA"
+                custom token bio:element = "C"
+            }
+        }
+    }
+    variantSet "ForceField" = {
+        "Amber99" (
+            prepend references = @params/amber99.usda@</ABLFragment>
+        ) {
+            custom string bio:forceFieldName = "AMBER99SB-ILDN"
+
+        }
+        "Charmm36" (
+            prepend references = @params/charmm36.usda@</ABLFragment>
+        ) {
+            custom string bio:forceFieldName = "CHARMM36m"
+
+        }
+    }
+}
+
