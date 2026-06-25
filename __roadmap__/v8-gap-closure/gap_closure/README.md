@@ -25,7 +25,7 @@ graph TD
     pointinstancer_solvent[Exp 1 — PointInstancer for Solvent]:::done
     departmental_layering[Exp 3 — Departmental Layering (5-layer)]:::done
     basiscurves_bonds[Exp 5 — BasisCurves for Bonds]:::done
-    references_vs_sublayers[Exp 6 — References vs SubLayers]:::planned
+    references_vs_sublayers[Exp 6 — References vs SubLayers]:::done
     composition_advanced[Advanced Composition Arcs (depend on layering + clip templates)]:::planned
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
@@ -41,7 +41,7 @@ graph TD
 | `pointinstancer_solvent.md` | 📄 Leaf Task | ✅ Done |
 | `departmental_layering.md` | 📄 Leaf Task | ✅ Done |
 | `basiscurves_bonds.md` | 📄 Leaf Task | ✅ Done |
-| `references_vs_sublayers.md` | 📄 Leaf Task | ⬜ Planned |
+| `references_vs_sublayers.md` | 📄 Leaf Task | ✅ Done |
 | `composition_advanced/` | 📁 Directory | ⬜ Planned |
 
 ## Amendment Log
@@ -51,6 +51,7 @@ graph TD
 ## Progress
 | Node | Branch | Commits | Notes |
 |:-----|:-------|:--------|:------|
+| `references_vs_sublayers.md` | topic/v8-gap-closure | e2ff37e, 9bc1bbc, a71e480, 972c4d4 | Exp 6 done (cycle-002): reference-friendly element_library.usda (default prim `/_ElementLibrary`) + refstyle assembly via AddReference on `/ElementLib`; atom-count parity (4676==4676), inherited vdwRadius parity, encapsulation difference proven (`/_class_/C` root-visible in SubLayer style, namespaced under `/ElementLib` in Reference style); 5 FINDING lines; read-back 6/6; harness 30/30. |
 | `basiscurves_bonds.md` | topic/v8-gap-closure | e054e18, d11b867, 5a09445, a2a8011 | Exp 5 done (cycle-002): all 2,428 bonds as a single UsdGeomBasisCurves (linear) prim vs 2,428 Cylinders; assembly 38% smaller (13.0→8.1 MB), trajectory clip 85% smaller (19.0→2.8 MB); time-sampled bond points (20 frames); read-back 5/5; harness 30/30. |
 | `departmental_layering.md` | topic/v8-gap-closure | 9cdcfe9, 8f7af8c, 172fea0, c774c7b | Exp 3 done (cycle-002): 5 SubLayers (biology/protocol/dynamics/analysis/review) compose into departmental_demo.usda; each layer independently mute-toggles with no composition errors; analysis layer carries time-sampled bio:rmsd (20 samples); read-back 7/7; harness 26/26. API note: USD 0.25.11 uses stage.GetCompositionErrors() (leaf said GetErrors()). |
 | `binary_clip_templates.md` | topic/v8-gap-closure | 0b0ea9c, 1ca31d2, ab90b65, 77360f7 | Exp 2 done (cycle-002, under forOUSD): .usda→.usdc (assembly 95.8% smaller, clip 63% smaller); load 2.6–6.1× faster; clip-template manifest (`./clip_###.usdc`, stride 10) from 2 real XTC files; read-back test 5/5; harness 24/24. Confirms NO interpreter split — XTC reads work under forOUSD venv. |
