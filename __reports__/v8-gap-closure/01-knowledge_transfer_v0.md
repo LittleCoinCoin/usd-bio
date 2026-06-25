@@ -2,6 +2,24 @@
 
 Date: 2026-06-25
 
+> **CORRECTION (2026-06-25, post-cycle, after PI challenge):** The "interpreter split"
+> framed below as the dominant pain point and as steering question Q-001 was a **false
+> premise**. There IS a single interpreter with both `pxr` and `mdtraj`: the project's
+> canonical **`forOUSD` venv** — `/Users/hacker/Documents/src/AOUSD/forOUSD/bin/python3`
+> (Python 3.11.14) — with `PYTHONPATH=…/OpenUSD/lib/python` set. Verified:
+> `pxr` 0.25.11 + `mdtraj` 1.11.1 import together and the ShinobuLab XTC files are readable.
+> `__reports__/project_setup/02-checkpoint_phase1_complete_v0.md` already documents `forOUSD`
+> as "the correct Python interpreter required for OpenUSD compatibility" — I should have read
+> it before concluding a split. **Root cause of the error:** I used the bare uv CPython 3.11.14
+> (which `pxr` links against but which has no `mdtraj` in its site-packages) instead of the
+> `forOUSD` venv built on top of it. **Consequences:** (1) **Q-001 is retracted/moot** — no PI
+> decision needed; (2) `portability_fix` Gate 4 (functional parity) is **not** blocked; (3)
+> Exp 2 `binary_clip_templates` and all trajectory work are **unblocked** for the next cycle;
+> (4) the `converters/__init__.py` mdtraj-import "finding" only manifested under the wrong
+> interpreter — guarding it is a minor nice-to-have, not a blocker (follow-up task dismissed).
+> All cycle-001 work was re-verified under `forOUSD` (harness 20/20, solvent test 4/4). The
+> sections below are left as-written for the audit trail; read them through this correction.
+
 ## Executive Summary
 
 - **What shipped / changed:** The entire **foundation wave** of the roadmap plus the first
