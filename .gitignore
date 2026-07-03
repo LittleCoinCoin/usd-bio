@@ -431,6 +431,6 @@ AGENTS.md
 # Stray npm lockfile (no package.json in this repo)
 package-lock.json
 
-# >>> wkas-managed (do not edit between these markers) >>>
-.wkas/
-# <<< wkas-managed <<<
+# >>> umbod-managed (do not edit between these markers) >>>
+.umbod/
+# <<< umbod-managed <<<
