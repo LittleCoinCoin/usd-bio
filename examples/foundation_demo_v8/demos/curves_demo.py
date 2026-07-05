@@ -90,8 +90,62 @@ def create_curves_demo(output_path: str, curves_assembly_path: str,
     # defaultPrim comes from the SubLayered assembly (/ABLComplex)
     stage.SetDefaultPrim(stage.GetPrimAtPath("/ABLComplex"))
 
-    # Wire UsdClipsAPI on /ABLComplex to animate bond-endpoint positions
+    # =========================================================================
+    # DEFAULT REPRESENTATION SELECTION
+    # =========================================================================
+    # /ABLComplex's own topology sublayer never authors a default
+    # `representation` selection (by design — see
+    # templates/06_create_assembly_curves.py, which calls
+    # ClearVariantSelection() after building the cascade, same as
+    # templates/04_create_assembly.py for the cylinder assembly). Without a
+    # default authored somewhere in THIS demo's composition, fresh-open in
+    # usdview resolves representation to "" (no variant selected) on every
+    # descendant, so atoms have zero children (no Sphere/Cylinder selected)
+    # while /ABLComplex/Bonds falls through to its unguarded base-layer
+    # visibility of "inherited" — curves render alone, atoms render nothing
+    # (diagnosis Item 3, cause a).
+    #
+    # WHY NOT a /World-wrapper cascade (the pattern demos/trajectory_demo.py
+    # uses): tested directly (Sdf.Layer inspection of both
+    # output/trajectory_demo.usda and an earlier draft of this file, plus an
+    # isolated Usd.Stage.CreateInMemory() repro) and confirmed
+    # `with some_other_prims_vset.GetVariantEditContext(): target.Set(...)`
+    # does NOT author a variant-scoped opinion when `target` lives outside
+    # the variant-owning prim's own namespace (e.g. /World's variant cannot
+    # scope an opinion on sibling prim /ABLComplex, which arrives via
+    # SubLayer, not as a child of /World) — each loop iteration instead
+    # writes an unconditional opinion at target's own path, and only the
+    # LAST iteration's value survives composition. /trajectory_demo.usda's
+    # /World selection is therefore decorative today: changing it in usdview
+    # has zero effect on /ABLComplex, invisible there only because
+    # Sphere+Cylinder are BOTH visible in every mode so the pinned
+    # "ballstick" default happens to look correct. That defect is out of
+    # scope here (not flagged by the diagnosis, not part of this fix
+    # cycle's mandate) — flagging it as a documented pre-existing gap
+    # rather than silently inheriting it into curves_demo.py, since here it
+    # WOULD be gate-3-visible: Bonds is genuinely visibility-gated per mode
+    # (templates/06_create_assembly_curves.py's bonds_vset loop), so a
+    # /World proxy would leave Bonds pinned visible under every selection —
+    # a real double-display regression.
+    #
+    # Correct fix, verified directly against
+    # assets/level4_assemblies/abl_kinase_complex_curves.usda: setting
+    # /ABLComplex's OWN `representation` selection (the variant set that
+    # 06_create_assembly_curves.py's complex-level cascade loop already
+    # wires correctly, in the SAME layer/namespace as every descendant it
+    # cascades to) DOES correctly gate Bonds visibility and every atom's own
+    # selection, because that cascade's GetVariantEditContext() calls are
+    # scoped within /ABLComplex's own subtree the whole time. One
+    # unconditional SetVariantSelection call on /ABLComplex is sufficient;
+    # no loop, no proxy prim needed.
+    DEFAULT_MODE = "ballstick"  # shows atoms AND bond curves together —
+    # this demo's whole point is BasisCurves bonds, so a default that hides
+    # Bonds (points/balls/vdw) would silently defeat opening curves_demo.usda.
     complex_prim = stage.GetPrimAtPath("/ABLComplex")
+    complex_prim.GetVariantSets().GetVariantSet(
+        "representation").SetVariantSelection(DEFAULT_MODE)
+
+    # Wire UsdClipsAPI on /ABLComplex to animate bond-endpoint positions
     clips_api = Usd.ClipsAPI(complex_prim)
 
     clip_rel_path = os.path.relpath(curves_clip_path, output_dir)
@@ -110,6 +164,7 @@ def create_curves_demo(output_path: str, curves_assembly_path: str,
     print(f"  Timeline: 0-{n_frames - 1} ({n_frames} frames at 10 fps)")
     print(f"  SubLayer: {os.path.basename(curves_assembly_path)}")
     print(f"  Clip: {os.path.basename(curves_clip_path)}")
+    print(f"  Default representation: {DEFAULT_MODE} (defaultPrim=/ABLComplex)")
 
     # Structural assertions
     reopen = Usd.Stage.Open(output_path)
@@ -127,6 +182,45 @@ def create_curves_demo(output_path: str, curves_assembly_path: str,
     asset_paths = clips_check.GetClipAssetPaths()
     assert len(asset_paths) > 0, "UsdClipsAPI clip not wired on /ABLComplex"
     print(f"  PASS: UsdClipsAPI clip wired ({len(asset_paths)} asset path(s))")
+
+    default_prim = reopen.GetDefaultPrim()
+    assert default_prim.IsValid() and default_prim.GetPath() == Sdf.Path("/ABLComplex"), (
+        f"Expected defaultPrim=/ABLComplex, got {default_prim.GetPath() if default_prim else None}"
+    )
+    default_sel = default_prim.GetVariantSets().GetVariantSet(
+        "representation").GetVariantSelection()
+    assert default_sel == DEFAULT_MODE, (
+        f"Expected default representation selection {DEFAULT_MODE!r}, got {default_sel!r}"
+    )
+    print(f"  PASS: fresh-open default representation resolves to {default_sel!r}")
+
+    # A fresh-open atom should have exactly one child gprim selected by the
+    # cascade (no double-display, no zero-children).
+    sample_atom = reopen.GetPrimAtPath("/ABLComplex/Chain_A/ACE_1/HH31")
+    assert sample_atom.IsValid(), "sample atom prim missing"
+    atom_children = sample_atom.GetChildren()
+    assert len(atom_children) == 1, (
+        f"Expected exactly 1 gprim child on fresh-open atom ({DEFAULT_MODE} default), "
+        f"got {len(atom_children)}: {[c.GetName() for c in atom_children]}"
+    )
+    print(f"  PASS: fresh-open sample atom has exactly 1 child gprim "
+          f"({atom_children[0].GetTypeName()})")
+
+    # Bonds must be visible-gated EXCLUSIVELY: visible now (ballstick
+    # default), and this must actually correspond to the resolved
+    # variant selection, not a pinned/unconditional opinion (diagnosis
+    # Item 3, cause a — see the WHY-NOT-/World comment above).
+    bonds_vis = UsdGeom.Imageable(bonds_prim).ComputeVisibility()
+    expected_bonds_vis = (
+        UsdGeom.Tokens.inherited if DEFAULT_MODE == "ballstick"
+        else UsdGeom.Tokens.invisible
+    )
+    assert bonds_vis == expected_bonds_vis, (
+        f"Expected Bonds visibility={expected_bonds_vis!r} at default mode "
+        f"{DEFAULT_MODE!r}, got {bonds_vis!r}"
+    )
+    print(f"  PASS: /ABLComplex/Bonds visibility={bonds_vis!r} matches "
+          f"default mode {DEFAULT_MODE!r}")
 
     return output_path
 
