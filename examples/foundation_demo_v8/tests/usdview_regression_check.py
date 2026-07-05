@@ -108,8 +108,14 @@ MANIFEST: list[ManifestEntry] = [
                   "Cylinder bonds + per-atom Xform, clip-driven MD trajectory."),
     ManifestEntry("curves_demo.usda", ROLE_ANIMATED,
                   "BasisCurves bond encoding + clip-driven MD trajectory. "
-                  "KNOWN BROKEN per diagnosis: no default variant selection, "
-                  "curves clip does not drive atom positions."),
+                  "FIXED (v8-gap-closure, curves_demo fix cycle): "
+                  "demos/curves_demo.py now authors a default 'representation' "
+                  "selection on /ABLComplex, and "
+                  "converters/xtc_to_clips.py's write_curves_clip() now emits "
+                  "per-atom xformOp:translate time samples (parity with "
+                  "write_clip_file()) alongside Bonds.points, from the same "
+                  "per-frame positions array, so atoms and bonds cannot "
+                  "drift apart. See diagnosis Item 3 for the original defect."),
     ManifestEntry("binary_demo.usda", ROLE_ANIMATED,
                   ".usdc SubLayers (binary) + clip-driven MD trajectory."),
     ManifestEntry("departmental_demo.usda", ROLE_ANIMATED,
@@ -167,9 +173,11 @@ MANIFEST: list[ManifestEntry] = [
                   "Metadata-only: clipTemplateAssetPath dictionary on an "
                   "empty Xform. Opening directly renders nothing."),
     ManifestEntry("clips/trajectory_clip_curves.usda", ROLE_PAYLOAD,
-                  "Curves-mode clip payload: Bonds.points time samples only, "
-                  "no per-atom translate data (root cause of curves_demo's "
-                  "atom/bond desync — see diagnosis Item 3)."),
+                  "Curves-mode clip payload: Bonds.points AND per-atom "
+                  "xformOp:translate time samples, both read from the same "
+                  "per-frame positions array (FIXED, v8-gap-closure — "
+                  "previously Bonds.points only, which was the root cause "
+                  "of curves_demo's atom/bond desync; see diagnosis Item 3)."),
 ]
 
 
