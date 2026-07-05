@@ -570,15 +570,29 @@ def generate_clip_template_series(
 
 def write_curves_clip(output_path: str, pdb_path: str, xtc_path: str,
                       n_frames: int = 20):
-    """Write a USD clip file with time-sampled BasisCurves bond-endpoint points.
+    """Write a USD clip file with time-sampled BasisCurves bond-endpoint points
+    AND time-sampled per-atom xformOp:translate.
 
     For each trajectory frame, recomputes bond-endpoint positions from per-atom
     positions and writes time-sampled `points` on a single /ABLComplex/Bonds
-    UsdGeomBasisCurves prim. curveVertexCounts is topology-static (not animated).
+    UsdGeomBasisCurves prim, AND writes time-sampled xformOp:translate on every
+    atom Xform prim under /ABLComplex/Chain_*/... — the same per-atom positions
+    array that fed the bond endpoints above.
 
-    WHY time-sample points (not per-atom translate): consolidates all bond motion
-    into one attribute write per frame (one Vec3fArray) vs 4,856 translate writes
-    for the cylinder approach.
+    WHY both, from the SAME positions array (single source of truth): the
+    cylinder-based clip (write_clip_file) drives per-atom xformOp:translate;
+    the original curves clip drove only Bonds.points. That asymmetry let
+    Bonds jump into MD-trajectory-frame coordinates every frame while every
+    atom prim stayed pinned at the static PDB-frame coordinates supplied by
+    the topology sublayer (ResolveInfoSourceDefault, never
+    ResolveInfoSourceValueClips) — producing two coherent-but-spatially-
+    disjoint renderings of the same molecule (see diagnosis Item 3, cause b,
+    at examples/foundation_demo_v8/tests/usdview_regression_check.py). Because
+    `positions[frame_idx, atom_idx]` (indexed via the same `prim_paths` /
+    `build_prim_paths` ordering used by `write_clip_file`) is the one array
+    both the atom translates AND the bond endpoints below are read from,
+    atoms and bonds cannot drift apart — there is exactly one position source
+    of truth per frame, matching write_clip_file's per-atom parity.
 
     Args:
         output_path: Path for the output .usda clip file.
@@ -586,12 +600,15 @@ def write_curves_clip(output_path: str, pdb_path: str, xtc_path: str,
         xtc_path: Path to XTC trajectory file.
         n_frames: Number of frames to extract (default 20).
     """
+    from pxr import Vt
+
     print(f"  Parsing PDB for bond info: {os.path.basename(pdb_path)}")
     structure = parse_pdb(pdb_path)
     prim_paths = build_prim_paths(structure)
     bond_info = build_bond_info(structure, prim_paths)
     n_bonds = len(bond_info)
-    print(f"  {len(prim_paths)} atoms, {n_bonds} bonds")
+    n_atoms = len(prim_paths)
+    print(f"  {n_atoms} atoms, {n_bonds} bonds")
 
     print("  Extracting trajectory frames...")
     positions, actual_frames = extract_frames(pdb_path, xtc_path, num_frames=n_frames)
@@ -607,8 +624,10 @@ def write_curves_clip(output_path: str, pdb_path: str, xtc_path: str,
     stage.SetEndTimeCode(actual_frames - 1)
     stage.SetFramesPerSecond(10)
     stage.SetMetadata("comment",
-        f"BasisCurves trajectory clip: {actual_frames} frames, {n_bonds} bonds. "
-        "Points attribute time-sampled; curveVertexCounts topology-static.")
+        f"BasisCurves trajectory clip: {actual_frames} frames, {n_bonds} bonds, "
+        f"{n_atoms} atoms. Points attribute and per-atom xformOp:translate are "
+        "both time-sampled from the same per-frame positions array; "
+        "curveVertexCounts is topology-static.")
 
     # Define /ABLComplex root Xform
     complex_xform = UsdGeom.Xform.Define(stage, "/ABLComplex")
@@ -620,14 +639,31 @@ def write_curves_clip(output_path: str, pdb_path: str, xtc_path: str,
     bc.CreateWrapAttr("nonperiodic")
 
     # Static topology: curveVertexCounts (2 per bond, never changes)
-    from pxr import Vt
     bc.CreateCurveVertexCountsAttr(Vt.IntArray([2] * n_bonds))
 
-    # Time-sampled points: for each frame, build flat Vec3f array of bond endpoints
+    # Per-atom Xforms: time-sampled xformOp:translate (parity with write_clip_file)
+    print(f"  Writing per-atom xformOp:translate for {n_atoms} atoms...")
+    translate_ops = []
+    for atom_idx, prim_path in enumerate(prim_paths):
+        xform = UsdGeom.Xform.Define(stage, prim_path)
+        translate_ops.append(xform.AddTranslateOp())
+        if atom_idx % 500 == 0:
+            print(f"    Atoms: {atom_idx}/{n_atoms}...")
+
+    # Time-sampled points: for each frame, build flat Vec3f array of bond
+    # endpoints AND set every atom's translate — both read from the same
+    # frame_pos array so atoms and bond endpoints never diverge.
     points_attr = bc.CreatePointsAttr()
-    print(f"  Writing {actual_frames} frames of time-sampled points...")
+    print(f"  Writing {actual_frames} frames of time-sampled points + translates...")
     for frame_idx in range(actual_frames):
         frame_pos = positions[frame_idx]  # shape (n_atoms, 3), Angstroms
+        tc = Usd.TimeCode(frame_idx)
+
+        for atom_idx in range(n_atoms):
+            p = frame_pos[atom_idx]
+            translate_ops[atom_idx].Set(
+                Gf.Vec3d(float(p[0]), float(p[1]), float(p[2])), tc
+            )
 
         frame_points = []
         for bond in bond_info:
@@ -638,20 +674,29 @@ def write_curves_clip(output_path: str, pdb_path: str, xtc_path: str,
             frame_points.append(Gf.Vec3f(float(p1[0]), float(p1[1]), float(p1[2])))
             frame_points.append(Gf.Vec3f(float(p2[0]), float(p2[1]), float(p2[2])))
 
-        points_attr.Set(Vt.Vec3fArray(frame_points), Usd.TimeCode(frame_idx))
+        points_attr.Set(Vt.Vec3fArray(frame_points), tc)
 
         if frame_idx % 5 == 0:
             print(f"    Frame {frame_idx}/{actual_frames}...")
 
     stage.Save()
     print(f"  Created BasisCurves clip: {output_path}")
-    print(f"    Frames: {actual_frames}, Bonds: {n_bonds}, Points/frame: {n_bonds*2}")
+    print(f"    Frames: {actual_frames}, Atoms: {n_atoms}, Bonds: {n_bonds}, "
+          f"Points/frame: {n_bonds*2}")
     return actual_frames
 
 
 if __name__ == "__main__":
-    pdb_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDB
-    xtc_path = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_XTC
+    # Usage: xtc_to_clips.py [pdb_path] [xtc_path] [--curves]
+    # --curves (may appear anywhere in argv) regenerates the BasisCurves
+    # trajectory clip (write_curves_clip) instead of the default
+    # cylinder-clip pipeline (generate_clips).
+    argv = sys.argv[1:]
+    curves_mode = "--curves" in argv
+    positional = [a for a in argv if a != "--curves"]
+
+    pdb_path = positional[0] if len(positional) > 0 else DEFAULT_PDB
+    xtc_path = positional[1] if len(positional) > 1 else DEFAULT_XTC
 
     output_dir = os.path.join(root_dir, "output", "clips")
 
@@ -659,5 +704,11 @@ if __name__ == "__main__":
     print(f"XTC: {xtc_path}")
     print(f"Output: {output_dir}")
 
-    clip_info = generate_clips(pdb_path, xtc_path, output_dir, num_frames=20)
-    verify_clips(clip_info["clip_path"])
+    if curves_mode:
+        os.makedirs(output_dir, exist_ok=True)
+        curves_clip_path = os.path.join(output_dir, "trajectory_clip_curves.usda")
+        print(f"Mode: curves -> {curves_clip_path}")
+        write_curves_clip(curves_clip_path, pdb_path, xtc_path, n_frames=20)
+    else:
+        clip_info = generate_clips(pdb_path, xtc_path, output_dir, num_frames=20)
+        verify_clips(clip_info["clip_path"])
