@@ -22,6 +22,8 @@ trajectory_demo.usda          # Scene file: timeline + UsdClipsAPI config
 
 The topology file defines the prim hierarchy with all metadata, class inheritance, and variant definitions. The clip file contains *only* time-sampled `xformOp:translate` values at matching prim paths. USD's composition engine merges them: the clip's translate values override the topology's static positions at each time code.
 
+> **Do not open clip payload files directly in usdview.** `trajectory_clip.usda`/`.usdc`, `clip.001.usdc`/`clip.002.usdc`, and `clip_template_manifest.usda` under `output/clips/` are intermediate artifacts, not viewer entry points. Opened standalone: the per-atom `xformOp:translate` clip files show grey bond cylinders only (no atoms, no color, no variants) with a dead Play button (no authored `startTimeCode`/`endTimeCode`); `clip_template_manifest.usda` shows an empty viewport (it is pure `clipTemplateAssetPath` metadata on an otherwise-empty `Xform`, zero geometry). Both are expected -- always open the consuming `*_demo.usda` file (`trajectory_demo.usda`, `curves_demo.usda`, `binary_demo.usda`) instead. See `examples/foundation_demo_v8/README.md` for the full entry-point-vs-payload file table, and `tests/usdview_regression_check.py` for a headless check that catches this class of "wrong file opened" mistake mechanically.
+
 ### Clip File Structure
 
 Each atom prim in the clip has time-sampled translate ops:
@@ -83,6 +85,59 @@ traj = md.load(xtc_path, top=pdb_path,
 # mdtraj uses nanometers; USD/PDB uses Angstroms
 positions = traj.xyz * 10.0  # shape: (n_frames, n_atoms, 3)
 ```
+
+## Clip Template Pattern
+
+The single-file mode above (`SetClipAssetPaths` + explicit `SetClipTimes`)
+requires enumerating every clip file up front. For multi-file trajectories
+(one clip per XTC replica/segment) `xtc_to_clips.py` also implements the
+**clip template** pattern, where USD's resolver generates clip paths from a
+`###`-hash pattern instead of an explicit list.
+
+### Files
+
+```
+output/clips/
+  clip_template_manifest.usda   # /ABLComplex Xform + clipTemplateAssetPath metadata only
+  clip.001.usdc                  # frames for the first XTC segment
+  clip.002.usdc                  # frames for the second XTC segment
+```
+
+`clip_template_manifest.usda` carries no geometry -- it is a single `Xform
+"ABLComplex"` with `UsdClipsAPI` template metadata set on it. Consuming
+stages sublayer the real topology on top of it, exactly as with the
+single-file clip pattern.
+
+### Generator functions (`converters/xtc_to_clips.py`)
+
+- `write_clip_template_manifest(...)` writes the manifest stage: it calls
+  `SetClipTemplateAssetPath("./clip.###.usdc")`, `SetClipTemplateStride(1.0)`,
+  `SetClipTemplateStartTime(1.0)`, `SetClipTemplateEndTime(float(n_clips))`,
+  and `SetClipPrimPath("/ABLComplex")`.
+- `generate_clip_template_series(pdb_path, xtc_paths, output_dir, num_frames)`
+  drives the full pipeline: for each XTC path it extracts `num_frames`
+  frames, writes an intermediate `.usda`, converts it to `.usdc` via
+  `Sdf.Layer.Export`, deletes the intermediate `.usda`, and finally calls
+  `write_clip_template_manifest` once all shards are written.
+- **Neither function is currently wired to a CLI entrypoint.** `xtc_to_clips.py`'s
+  `__main__` block only calls `generate_clips()` (the single-file path). To
+  regenerate `clip.001.usdc`/`clip.002.usdc`/`clip_template_manifest.usda`,
+  call `generate_clip_template_series(...)` directly from a Python session.
+
+### Naming gotcha specific to templates
+
+USD's `clipTemplateAssetPath` requires a **dot-separated** hash group:
+`clip.###.usdc` is valid, `clip_###.usdc` is not. The integer substituted
+for `###` is `startTime + N * stride` (here: `1, 2, ...`), which is why the
+shards are named `clip.001.usdc`, `clip.002.usdc` rather than starting from
+0.
+
+### Verification
+
+`tests/test_binary_clips.py` treats this as a first-class, tested pattern
+(`test_clip_template_manifest`, `test_template_clip_files_have_time_samples`,
+`test_clip_template_resolves_live_data`) -- all three pass against the
+committed artifacts.
 
 ## The Gotchas
 
