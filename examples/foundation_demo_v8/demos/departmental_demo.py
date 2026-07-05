@@ -16,6 +16,8 @@ import sys
 
 from pxr import Usd, UsdGeom, Sdf
 
+REPRESENTATIONS = ["points", "balls", "vdw", "ballstick"]
+
 
 def create_departmental_stage(output_path: str, layer_dir: str) -> Usd.Stage:
     """
@@ -55,6 +57,25 @@ def create_departmental_stage(output_path: str, layer_dir: str) -> Usd.Stage:
     # Set default prim to /ABLComplex
     abl = stage.DefinePrim("/ABLComplex")
     stage.SetDefaultPrim(abl)
+
+    # =========================================================================
+    # DEFAULT REPRESENTATION SELECTION
+    # =========================================================================
+    # The biology.usda topology sublayer never authors a default
+    # `representation` selection (same convention as
+    # templates/04_create_assembly.py, which builds the variant cascade then
+    # calls ClearVariantSelection()). Without a default authored somewhere
+    # in this demo's composition, fresh-open resolves every descendant's
+    # selection to "" (no selection -> atoms show 0 children). Setting
+    # /ABLComplex's own `representation` selection directly (same prim the
+    # biology.usda internal cascade already wires descendants from) is
+    # sufficient and verified to cascade correctly -- see the curves_demo
+    # fix commit for why a separate /World proxy prim's variant does NOT
+    # reliably cascade to a sibling prim brought in via SubLayer.
+    complex_vset = abl.GetVariantSets().AddVariantSet("representation")
+    for mode in REPRESENTATIONS:
+        complex_vset.AddVariant(mode)
+    complex_vset.SetVariantSelection("ballstick")
 
     stage.Save()
     return stage
