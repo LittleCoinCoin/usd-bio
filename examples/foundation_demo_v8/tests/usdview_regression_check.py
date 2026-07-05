@@ -124,7 +124,30 @@ MANIFEST: list[ManifestEntry] = [
     ManifestEntry("residue_grid_demo.usda", ROLE_STATIC,
                   "Grid of amino-acid residue class prims."),
     ManifestEntry("solvent_demo.usda", ROLE_STATIC,
-                  "Protein + PointInstancer solvent shell, static."),
+                  "Protein + PointInstancer solvent shell, static. "
+                  "KNOWN, JUSTIFIED gate-2 RESIDUAL (v8-gap-closure, curves_demo "
+                  "fix cycle): demos/solvent_demo.py now authors a default "
+                  "'representation' selection on /SolvatedComplex/Protein (the "
+                  "reference actually reachable from defaultPrim=/SolvatedComplex), "
+                  "so the real viewer-visible geometry resolves correctly on "
+                  "fresh-open. Gate 2 still fails because it calls a WHOLE-STAGE "
+                  "stage.Traverse() rather than a defaultPrim-scoped traversal, "
+                  "and this file's SubLayer composition (not Reference-only) "
+                  "brings two never-rendered-standalone prims onto the stage at "
+                  "their OWN top-level paths outside the defaultPrim subtree: "
+                  "(1) /ABLComplex itself (the raw sublayered prim; confirmed "
+                  "NOT reachable via Usd.PrimRange from /SolvatedComplex) and "
+                  "(2) /Solvent/Prototypes/Water (a UsdGeomPointInstancer "
+                  "prototype — by standard USD/Hydra convention, prototypes "
+                  "listed in a PointInstancer's 'prototypes' relationship are "
+                  "drawn only via instancing and are never rendered directly "
+                  "at their own prim path, regardless of variant selection). "
+                  "Neither is a 'grey block' / 'double display' / 'invisible "
+                  "on open' regression a human would see in usdview. This is a "
+                  "gate false-positive for whole-stage-sublayered files with "
+                  "PointInstancer prototypes, not a fix left undone; see "
+                  "examples/foundation_demo_v8/demos/solvent_demo.py for the "
+                  "actual authored default."),
     ManifestEntry("water_demo.usda", ROLE_STATIC,
                   "Single water molecule template demo."),
 

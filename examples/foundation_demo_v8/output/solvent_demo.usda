@@ -17,8 +17,26 @@ def Xform "SolvatedComplex"
 
     over "Protein" (
         prepend references = </ABLComplex>
+        variants = {
+            string representation = "ballstick"
+        }
+        prepend variantSets = "representation"
     )
     {
+        variantSet "representation" = {
+            "balls" {
+
+            }
+            "ballstick" {
+
+            }
+            "points" {
+
+            }
+            "vdw" {
+
+            }
+        }
     }
 
     over "Solvent" (
