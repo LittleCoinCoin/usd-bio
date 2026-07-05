@@ -32,7 +32,7 @@ When USD composes a scene, it resolves conflicting opinions (e.g., two different
 | 4 | **E** | r**E**locates | **Path Reorganization** -- moving prims to different locations in the hierarchy without breaking references. Rarely used directly. | Confirmed. Added to PcpArcType enum; NVIDIA docs note LIVRPS -> LIVERPS transition. |
 | 5 | **R** | **References** | **The Literature** -- importing standard assets. A canonical amino acid library, a validated water model, a published crystal structure. | Confirmed. Standard arc per Pixar Glossary. |
 | 6 | **P** | **Payloads** | **The Raw Data** -- massive datasets (trajectories, volumetric data) loaded only on demand. Identical to References but deferred. | Confirmed. Standard arc per Pixar Glossary. |
-| 7 (Weakest) | **S** | **Specializes** | **Specialized Refinements** -- like Inherits but weaker: source-class updates override instance-level opinions. Useful when base-class corrections must propagate forcefully. | Confirmed as weakest arc. Note: Specializes differs from Inherits in that the source class gets full LIVERPS recursion, meaning base-class updates are *stronger* than local opinions on the specialized prim. |
+| 7 (Weakest) | **S** | **Specializes** | **Specialized Refinements** -- a derived prim is continuously refined from a base prim: the derived (specialized) prim's own opinions always override the base's, and the base stays weaker than References too. Useful for base-class *defaults* that any specialization -- or a reference on the specialized prim -- can override. | Confirmed as weakest arc. **Correction (2026-07-06, verified via context7 OpenUSD glossary + PcpArcType enum):** the specialized/derived prim's opinions override the *base* source; the base is the *weakest* fallback -- it does **not** override instance/local opinions. The distinction from Inherits is that a specializes base stays weaker than *referenced* opinions on the specialized prim regardless of referencing context. Empirically demonstrated + tested in `examples/composition_advanced/specializes_arc/` (`tests/composition_advanced/test_specializes_arc.py`). |
 
 ### 2.2 Research Mapping Detail
 
@@ -268,7 +268,7 @@ Each analysis step can be modeled as a layer or as custom attributes on analysis
 | VariantSets can author any composition arc (including Payloads) | Standard API behavior |
 | Value Clips decompose time-sampled data across files | Pixar Value Clips docs, UsdClipsAPI |
 | Class prims + Inherits = taxonomy | Pixar Glossary `_class_Tree` example |
-| Specializes = weakest arc, source overrides instance | PcpArcType enum, Pixar Glossary |
+| Specializes = weakest arc; the specialized (derived) prim's opinions override the base source (the base is the weakest fallback, not stronger than instance/local opinions) | PcpArcType enum, Pixar Glossary (context7-verified 2026-07-06) |
 | Topology + Clips = standard crowd/animation pattern | Pixar docs, UsdClipsAPI docs |
 | SubLayer-based departmental separation | Pixar layer stack examples |
 

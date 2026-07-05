@@ -1,7 +1,7 @@
 #usda 1.0
 (
     "Binary format demo: ABL kinase assembly + trajectory using .usdc SubLayers"
-    defaultPrim = "ABLComplex"
+    defaultPrim = "World"
     endTimeCode = 19
     framesPerSecond = 10
     metersPerUnit = 1e-10
@@ -13,6 +13,43 @@
     upAxis = "Y"
 )
 
-over "ABLComplex"
+# /World: default-representation dispatcher, same pattern as
+# output/trajectory_demo.usda (demos/trajectory_demo.py's /World cascade).
+# The .usdc-sublayered abl_kinase_complex.usdc topology never authors a
+# default `representation` selection itself (see
+# templates/04_create_assembly.py, which ends with ClearVariantSelection()),
+# so without this wrapper fresh-open resolves representation to "" on every
+# atom -- zero children, invisible complex -- exactly the gate-2 regression
+# this file previously had (binary_demo.usda is a hand-authored stub with no
+# generator script; binary_benchmark.py only reads it back, see
+# demos/binary_benchmark.py verify_binary_demo()).
+def "World" (
+    variants = {
+        string representation = "ballstick"
+    }
+    prepend variantSets = "representation"
+)
+{
+    variantSet "representation" = {
+        "balls" {
+
+        }
+        "ballstick" {
+
+        }
+        "points" {
+
+        }
+        "vdw" {
+
+        }
+    }
+}
+
+over "ABLComplex" (
+    variants = {
+        string representation = "ballstick"
+    }
+)
 {
 }

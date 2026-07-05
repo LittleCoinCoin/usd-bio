@@ -74,6 +74,8 @@ output/
 
 The trajectory demo file is small (a few KB of clip configuration). The clip file contains all 20 x 4,676 position values. The assembly topology is sublayered from `assets/level4_assemblies/`.
 
+> **Do not open `output/clips/trajectory_clip.usda` (or its `.usdc`/`clip.NNN.usdc` siblings) directly in usdview.** They carry only bond `Cylinder` geometry and time-sampled `xformOp:translate` values -- no topology hierarchy, no `displayColor`, no `representation` variants, and no authored stage time range. Opened standalone you will see a static mass of grey bond cylinders and a Play button that does nothing (there is no `startTimeCode`/`endTimeCode` to scrub). This is expected: always open `output/trajectory_demo.usda`, which sublayers the topology and wires the clip via `UsdClipsAPI`. See `docs/13_value_clips_for_trajectories.md` for the full topology/clip separation this implements, and `examples/foundation_demo_v8/README.md` for a complete entry-point-vs-payload file table.
+
 ## Why It Matters
 
 ### MD Trajectories Are Animation Clips

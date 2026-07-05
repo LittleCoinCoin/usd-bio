@@ -15,3 +15,26 @@
     upAxis = "Y"
 )
 
+over "ABLComplex" (
+    variants = {
+        string representation = "ballstick"
+    }
+    prepend variantSets = "representation"
+)
+{
+    variantSet "representation" = {
+        "balls" {
+
+        }
+        "ballstick" {
+
+        }
+        "points" {
+
+        }
+        "vdw" {
+
+        }
+    }
+}
+

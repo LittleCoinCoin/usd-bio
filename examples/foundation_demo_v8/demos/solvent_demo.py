@@ -93,6 +93,24 @@ def create_solvent_demo(
         primPath=Sdf.Path("/ABLComplex"),
     )
 
+    # Default representation selection: abl_kinase_complex.usda's own
+    # `representation` VariantSet never authors a default (see
+    # templates/04_create_assembly.py, which ends with
+    # ClearVariantSelection()), so without an opinion here every atom
+    # resolves representation to "" on fresh-open (0 children -> invisible
+    # protein). solvent_instancer.usda's /Solvent DOES author a default
+    # ("points", set directly in that generator), which is why only the
+    # Protein reference needs this fix. Authoring the selection directly on
+    # this `over` prim is enough — USD's variant mechanism cascades the
+    # selection through the referenced /ABLComplex's own internal
+    # variant-edit-context structure to every descendant atom, the same way
+    # departmental_demo.py's /ABLComplex-level selection cascades (see
+    # demos/departmental_demo.py).
+    protein_vset = protein_prim.GetVariantSets().AddVariantSet("representation")
+    for mode in REPRESENTATIONS:
+        protein_vset.AddVariant(mode)
+    protein_vset.SetVariantSelection("ballstick")
+
     # =========================================================================
     # SOLVENT: /SolvatedComplex/Solvent -> references /Solvent
     # WHY reference: keeps instancer namespace isolated from protein root.
