@@ -105,7 +105,18 @@ class ManifestEntry:
 MANIFEST: list[ManifestEntry] = [
     # --- viewer entry points: animated (authored timeCode range expected) ---
     ManifestEntry("trajectory_demo.usda", ROLE_ANIMATED,
-                  "Cylinder bonds + per-atom Xform, clip-driven MD trajectory."),
+                  "Cylinder bonds + per-atom Xform, clip-driven MD trajectory. "
+                  "FIXED (v8-gap-closure, representation-variant-cascade fix): "
+                  "demos/trajectory_demo.py no longer creates a decorative "
+                  "/World dispatcher prim whose variant selection was a "
+                  "namespace-sibling no-op relative to /ABLComplex (each "
+                  "GetVariantEditContext() loop iteration wrote an "
+                  "unconditional opinion on /ABLComplex instead of a "
+                  "variant-scoped one; only the last iteration's value "
+                  "survived). defaultPrim is now /ABLComplex itself, which "
+                  "also owns the 'representation' selection directly, so "
+                  "cascade and lookup share the same namespace subtree by "
+                  "construction. See tests/test_representation_cascade.py."),
     ManifestEntry("curves_demo.usda", ROLE_ANIMATED,
                   "BasisCurves bond encoding + clip-driven MD trajectory. "
                   "FIXED (v8-gap-closure, curves_demo fix cycle): "
@@ -124,7 +135,11 @@ MANIFEST: list[ManifestEntry] = [
 
     # --- viewer entry points: static (no animation intended) ---
     ManifestEntry("assembly_demo.usda", ROLE_STATIC,
-                  "Full ABL kinase assembly, static topology only."),
+                  "Full ABL kinase assembly, static topology only. "
+                  "FIXED (v8-gap-closure, representation-variant-cascade fix): "
+                  "same /World-sibling no-op defect and same fix as "
+                  "trajectory_demo.usda above -- defaultPrim=/ABLComplex "
+                  "owns 'representation' directly, no proxy dispatcher prim."),
     ManifestEntry("element_grid_demo.usda", ROLE_STATIC,
                   "Periodic-table style grid of element class prims."),
     ManifestEntry("residue_grid_demo.usda", ROLE_STATIC,
@@ -274,19 +289,23 @@ def gate1_structural(entry: ManifestEntry) -> GateResult:
         msgs.append("FAIL: defaultPrim missing or invalid")
     else:
         msgs.append(f"defaultPrim={default_prim.GetPath()}")
-        # NOTE: this repo's convention sometimes makes defaultPrim a
+        # NOTE: this repo's convention USED TO sometimes make defaultPrim a
         # variant-cascade DISPATCHER prim (e.g. /World) whose actual
-        # renderable payload lives at a sibling stage root (e.g.
+        # renderable payload lived at a sibling stage root (e.g.
         # /ABLComplex), reached only through the dispatcher's nested
         # variant-edit-context cascade, not through parent/child
-        # containment. Traversing strictly under defaultPrim would miss
-        # that payload entirely and produce a false "nothing renders"
-        # failure. To catch the real "wrong file / empty stage" class of
-        # bug without that false positive, gate 1 checks renderable
-        # content across the WHOLE composed stage (usdview's own "what
-        # would I show if I opened this and hit Play" scope is the full
-        # stage, not just the defaultPrim subtree) while still requiring
-        # defaultPrim to be valid above.
+        # containment. Traversing strictly under defaultPrim would have
+        # missed that payload entirely and produced a false "nothing
+        # renders" failure. That /World-dispatcher pattern was retired for
+        # assembly_demo.usda and trajectory_demo.usda by the v8-gap-closure
+        # representation-variant-cascade fix -- defaultPrim is now the
+        # geometry root itself (see tests/test_representation_cascade.py) --
+        # but gate 1 still checks renderable content across the WHOLE
+        # composed stage rather than narrowing to defaultPrim's subtree,
+        # both as defense-in-depth against any future dispatcher-style demo
+        # and because usdview's own "what would I show if I opened this and
+        # hit Play" scope is the full stage, not just the defaultPrim
+        # subtree, while still requiring defaultPrim to be valid above.
         subtree = list(stage.Traverse())
         gprims = [p for p in subtree if p.GetTypeName() in _GPRIM_TYPES]
         msgs.append(f"gprims across whole stage (fresh, no variant selection "
@@ -398,8 +417,11 @@ def gate3_visibility_exclusivity(entry: ManifestEntry) -> GateResult:
     -- but 'ballstick' legitimately shows both spheres AND bonds together
     (that is its intended meaning). What must never happen is a variant
     selection under which a DIFFERENT, non-selected representation's
-    geometry is also visible -- i.e. the top-level /ABLComplex-or-/World
-    'representation' selection must be the only source of visible gprims;
+    geometry is also visible -- i.e. the top-level 'representation'
+    selection (authored directly on defaultPrim itself, e.g. /ABLComplex --
+    no /World dispatcher prim as of the v8-gap-closure
+    representation-variant-cascade fix) must be the only source of visible
+    gprims;
     no gprim group should be unconditionally visible regardless of the
     active selection when it is meant to be variant-gated.
 
