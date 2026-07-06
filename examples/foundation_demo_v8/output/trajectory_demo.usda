@@ -1,6 +1,6 @@
 #usda 1.0
 (
-    defaultPrim = "World"
+    defaultPrim = "ABLComplex"
     endTimeCode = 19
     framesPerSecond = 10
     metersPerUnit = 1e-10
@@ -10,29 +10,6 @@
     ]
     upAxis = "Y"
 )
-
-def "World" (
-    variants = {
-        string representation = "points"
-    }
-    prepend variantSets = "representation"
-)
-{
-    variantSet "representation" = {
-        "balls" {
-
-        }
-        "ballstick" {
-
-        }
-        "points" {
-
-        }
-        "vdw" {
-
-        }
-    }
-}
 
 over "ABLComplex" (
     clips = {
@@ -44,7 +21,7 @@ over "ABLComplex" (
         }
     }
     variants = {
-        string representation = "ballstick"
+        string representation = "points"
     }
 )
 {

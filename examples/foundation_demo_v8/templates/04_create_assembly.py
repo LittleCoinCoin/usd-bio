@@ -25,7 +25,6 @@ Hierarchy:
         ...
 """
 
-import json
 import os
 import sys
 import math
@@ -41,6 +40,7 @@ _provenance_dir = os.path.join(
 )
 sys.path.insert(0, _provenance_dir)
 from provenance_schema import apply_provenance_metadata  # noqa: E402
+from provenance_source import load_shinobulab_provenance  # noqa: E402
 
 from usdbio_env import get_data_dir
 from pxr import Usd, UsdGeom, Sdf, Gf
@@ -173,18 +173,19 @@ def create_assembly(output_path: str, element_template_path: str, pdb_path: str)
     complex_prim.CreateAttribute("bio:systemName", Sdf.ValueTypeNames.String).Set(
         "ABL kinase + ATP complex")
     # Structured provenance replaces the legacy flat bio:source string.
-    # Six lineage fields authored via the shared provenance_schema helper.
+    # Six lineage fields, DATA-DRIVEN: parsed at generation time from the
+    # real ShinobuLab GENESIS run artifacts (equilibration/5-eq2 .inp/.log)
+    # rather than hard-coded sentinels. See provenance_source.py for the
+    # extraction logic and per-field source paths.
     # [source: examples/composition_advanced/provenance_metadata/provenance_schema.py]
-    apply_provenance_metadata(complex_prim, {
-        "sourcePdb":       "2HYY.pdb",
-        "forceField":      "AMBER99SB-ILDN",
-        "softwareName":    "GENESIS",
-        "softwareVersion": "2.1.0",
-        "simSettings":     json.dumps(
-            {"timestep_fs": 2.0, "temp_K": 310, "pressure_bar": 1.0}
-        ),
-        "timestamp":       "2024-03-15T09:00:00+09:00",
-    })
+    # [source: examples/composition_advanced/provenance_metadata/provenance_source.py]
+    _provenance = load_shinobulab_provenance(get_data_dir())
+    if _provenance.unresolved:
+        print(
+            f"  WARNING: provenance fields unresolved from data, set to "
+            f"'unknown': {_provenance.unresolved}"
+        )
+    apply_provenance_metadata(complex_prim, _provenance.record)
     complex_prim.CreateAttribute("bio:atomCount", Sdf.ValueTypeNames.Int).Set(
         structure.atom_count)
     complex_prim.CreateAttribute("bio:chainCount", Sdf.ValueTypeNames.Int).Set(

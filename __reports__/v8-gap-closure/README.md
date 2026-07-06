@@ -22,7 +22,20 @@ Reports for the `v8-gap-closure` topic, grouped by round (chronological).
 
 - [`04-findings_v0.md`](04-findings_v0.md) — **latest** — response to the PI's 4 INBOX bug reports about broken usdview output. Findings: `output/clips/*` are intended intermediate value-clip payloads (grey/static only if opened directly — documentation gap, not a bug); `curves_demo.usda` was a genuine two-cause bug (no default variant selection + clip drove only bonds, not atoms) — **fixed** and independently verified (atoms now clip-driven, 19.3 Å motion, co-located with bonds). Built the PI-requested headless regression harness `tests/usdview_regression_check.py` (6 gates), which surfaced + fixed the same defect class in 3 unreported demos. Q-002: Specializes doc claim corrected (context7-verified, PI direction (b)); trajectory clip provenance confirmed real ShinobuLab data (both `.usda` and `.usdc`); `provenance_metadata` uses placeholder values (`2HYY.pdb` is wrong; real is `atp-complex-solv35.pdb`). `decision-required: confirm`.
 
+## Round 05 — 2026-07-07 (cycle-005, PI-directed (a)-(c) enhancements)
+
+- [`05-findings_v0.md`](05-findings_v0.md) — **latest** — executed the PI's explicit direction to run the (a)-(c) enhancements as scalable integration (not band-aids). **(a)** Specializes correction confirmed to stand (context7-verified, cycle-004); real-data demo requirement advanced via (b). **(b)** Real ShinobuLab GENESIS lineage now sourced data-drivenly by a new `provenance_source.py` loader (parses real `.inp`/`.log` at generation time); sentinels removed (`2HYY.pdb`→`atp-complex-solv35.pdb`, version `2.1.0`→real `2.0.3`, force field honestly family-only), new `test_provenance_lineage.py` 2/2. **(c)** Root-caused + fixed the `/World`-cascade no-op scalably (retire decorative `/World` proxy; geometry root becomes defaultPrim owning `representation`) in `assembly_demo`/`trajectory_demo`; new `test_representation_cascade.py` 6/6 proves the cascade genuinely resolves. Full suite 30/30, regression net 44/0/1 (exit 0). Flags a prompt-injection attempt against a sub-agent (correctly handled). `decision-required: confirm`.
+
 ## Status
+
+**PI-directed (a)-(c) enhancements done + verified — recommend confirm-and-close.** Cycle-005 executed the
+PI's direction: (a) confirmed, (b) real provenance wired data-drivenly, (c) the latent `/World`-cascade
+no-op root-caused and fixed scalably. Both reasons cycle-004 stayed open are now closed. All evidence
+independently re-run by the orchestrator: main suite 30/30, regression net 44/0/1 (exit 0), plus the two
+new falsification-resistant read-back tests (cascade 6/6, provenance 2/2). No directed work remains.
+Prior status below.
+
+---
 
 **Reported usdview bugs fixed; regression net stood up.** Cycle-004 dispositioned all 4 INBOX items:
 clips documented (intended payloads), `curves_demo` genuinely fixed, headless `usdview_regression_check.py`

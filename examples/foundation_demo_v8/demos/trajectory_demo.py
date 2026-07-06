@@ -9,6 +9,30 @@ timeline shows protein motion across simulation frames.
 Pattern applied (from docs):
 - Value Clips: topology/clip separation (like animation clips in film)
 - Static topology (bonds, metadata, colors) + dynamic positions
+
+WHY NOT a /World wrapper prim (this demo's pattern before the v8-gap-closure
+representation-variant-cascade fix): USD variant-selection fallthrough only
+cascades a GetVariantEditContext()-scoped edit to prims that are NAMESPACE
+DESCENDANTS of the variant-owning prim in the same composed site. /World and
+/ABLComplex were SIBLINGS here -- /ABLComplex arrived via SubLayer at its own
+top-level path, not as a child of /World -- so the per-mode
+`with world_vset.GetVariantEditContext(): complex_prim...SetVariantSelection(
+mode)` loop did not scope an opinion under /World's variant at all; each
+iteration instead wrote an unconditional `over "ABLComplex" { variants =
+{...} }` block at /ABLComplex's own path, and only the LAST iteration's
+value survived composition (verified directly in the previously-committed
+output/trajectory_demo.usda: /World's emitted variant blocks are empty `{}`
+and /ABLComplex carries one unconditional opinion regardless of which
+/World variant is selected in usdview). This was invisible in practice only
+because Sphere+Cylinder happen to both be visible in ballstick and the
+pinned selection ("points") also renders something under every mode --
+see demos/curves_demo.py's WHY-NOT comment (same defect, but there it WAS
+gate-3-visible because Bonds is genuinely visibility-gated per mode).
+Canonical fix (USD model-hierarchy convention, confirmed via context7
+/websites/openusd_release docs on GetVariantEditContext/EditTarget scoping):
+make the actual geometry root ALSO the defaultPrim and the variant owner,
+so cascade and lookup happen on the same prim -- no dispatcher indirection
+to go stale. No /World prim is created.
 """
 
 import os
@@ -21,6 +45,7 @@ sys.path.insert(0, root_dir)
 from pxr import Usd, UsdGeom, Sdf, Gf, Vt
 
 REPRESENTATIONS = ["points", "balls", "vdw", "ballstick"]
+DEFAULT_MODE = "points"  # faster rendering with 4676 atoms
 
 
 def create_trajectory_demo(output_path: str, assembly_path: str,
@@ -31,7 +56,16 @@ def create_trajectory_demo(output_path: str, assembly_path: str,
 
     stage = Usd.Stage.CreateNew(output_path)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
-    stage.SetDefaultPrim(stage.DefinePrim("/World"))
+    UsdGeom.SetStageMetersPerUnit(stage, 1e-10)  # coordinates in Ångström (1 Å = 1e-10 m)
+    # NOTE: authored explicitly on this root layer (not just relied on via
+    # sublayer fallthrough) because usdchecker's StageMetadataChecker.
+    # MissingMetersPerUnitMetadata validates the root layer's own authored
+    # metadata, not the composed/resolved value -- discovered while
+    # regenerating this file for the /World-removal fix (this stage
+    # previously carried metersPerUnit only because a prior generation of
+    # this script authored it; the source in this repo at the start of this
+    # fix cycle did not, which is a latent gap fixed here while already
+    # touching this generator).
 
     # Set timeline range
     stage.SetStartTimeCode(0)
@@ -44,24 +78,14 @@ def create_trajectory_demo(output_path: str, assembly_path: str,
         os.path.relpath(assembly_path, output_dir)
     )
 
-    world = stage.GetPrimAtPath("/World")
-
-    # World-level representation VariantSet
-    world_vset = world.GetVariantSets().AddVariantSet("representation")
-    for mode in REPRESENTATIONS:
-        world_vset.AddVariant(mode)
-
+    # defaultPrim = the actual geometry root. /ABLComplex's own
+    # `representation` VariantSet is the single selection surface for this
+    # stage -- no proxy dispatcher prim needed.
     complex_prim = stage.GetPrimAtPath("/ABLComplex")
+    stage.SetDefaultPrim(complex_prim)
 
-    # World variant cascade -> complex
-    for mode in REPRESENTATIONS:
-        world_vset.SetVariantSelection(mode)
-        with world_vset.GetVariantEditContext():
-            complex_prim.GetVariantSets().GetVariantSet(
-                "representation").SetVariantSelection(mode)
-
-    # Default to "points" for trajectory (faster rendering with 4676 atoms)
-    world_vset.SetVariantSelection("points")
+    complex_prim.GetVariantSets().GetVariantSet(
+        "representation").SetVariantSelection(DEFAULT_MODE)
 
     # =========================================================================
     # VALUE CLIPS SETUP
@@ -92,7 +116,7 @@ def create_trajectory_demo(output_path: str, assembly_path: str,
     print(f"Created: {output_path}")
     print(f"  Timeline: 0-{n_frames - 1} ({n_frames} frames at 10 fps)")
     print(f"  Clip: {clip_rel_path}")
-    print(f"  Default representation: points")
+    print(f"  Default representation: {DEFAULT_MODE} (defaultPrim=/ABLComplex)")
 
 
 def verify_trajectory(output_path: str, n_frames: int):
@@ -106,6 +130,34 @@ def verify_trajectory(output_path: str, n_frames: int):
     end = stage.GetEndTimeCode()
     assert start == 0, f"Expected start=0, got {start}"
     assert end == n_frames - 1, f"Expected end={n_frames-1}, got {end}"
+
+    # defaultPrim + default representation selection resolve on fresh open
+    default_prim = stage.GetDefaultPrim()
+    assert default_prim.IsValid() and default_prim.GetPath() == Sdf.Path("/ABLComplex"), (
+        f"Expected defaultPrim=/ABLComplex, got "
+        f"{default_prim.GetPath() if default_prim else None}"
+    )
+    default_sel = default_prim.GetVariantSets().GetVariantSet(
+        "representation").GetVariantSelection()
+    assert default_sel == DEFAULT_MODE, (
+        f"Expected default representation selection {DEFAULT_MODE!r}, got {default_sel!r}"
+    )
+    print(f"  PASS: fresh-open default representation resolves to {default_sel!r}")
+
+    assert stage.GetPrimAtPath("/World").IsValid() is False, (
+        "Decorative /World dispatcher prim should no longer be authored"
+    )
+    print("  PASS: no decorative /World dispatcher prim on stage")
+
+    sample_atom_check = stage.GetPrimAtPath("/ABLComplex/Chain_A/ACE_1/HH31")
+    assert sample_atom_check.IsValid(), "sample atom prim missing"
+    atom_children = sample_atom_check.GetChildren()
+    assert len(atom_children) == 1, (
+        f"Expected exactly 1 gprim child on fresh-open atom ({DEFAULT_MODE} default), "
+        f"got {len(atom_children)}: {[c.GetName() for c in atom_children]}"
+    )
+    print(f"  PASS: fresh-open sample atom has exactly 1 child gprim "
+          f"({atom_children[0].GetTypeName()})")
     print(f"  PASS: timeline 0-{int(end)} ({n_frames} frames)")
 
     # Check clips API on complex prim
