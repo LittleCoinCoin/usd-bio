@@ -1,6 +1,6 @@
 ---
 topic: v8-gap-closure
-state: needs-pi-review
+state: closed
 priority: normal
 review_cadence: per-cycle
 stall_threshold: 3
