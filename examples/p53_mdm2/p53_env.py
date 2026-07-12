@@ -6,9 +6,10 @@ Zero USD imports; safe to import before the OpenUSD environment is loaded
 path/string helper so the config can be threaded through parser -> builder ->
 tests without dragging in ``pxr``.
 
-The system root prim path is a PARAMETER, not a hard-coded literal. ``/ABLComplex``
-(v8's chimera hazard) must never appear anywhere in this package; downstream
-generators default to :data:`DEFAULT_ROOT_PATH` and callers may override it.
+The system root prim path is a PARAMETER, not a hard-coded literal. v8's
+ABL-specific root literal (its chimera hazard) must never appear anywhere in
+this package; downstream generators default to :data:`DEFAULT_ROOT_PATH` and
+callers may override it.
 """
 
 import os
@@ -61,7 +62,7 @@ def get_data_dir() -> str:
 # ---------------------------------------------------------------------------
 # The default USD root prim path for the p53-MDM2 complex. PARAMETERIZED --
 # callers override via the ``root_path`` argument. Deliberately NOT the v8
-# ``/ABLComplex`` literal (the anti-chimera invariant, R00 Contracts).
+# ABL-system root literal (the anti-chimera invariant, R00 Contracts).
 DEFAULT_ROOT_PATH = "/p53_MDM2_complex"
 
 # The canonical visual-mode VariantSet options (CLAUDE.md convention).

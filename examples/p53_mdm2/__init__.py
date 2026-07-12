@@ -3,8 +3,8 @@ examples/p53_mdm2 -- multi-scale p53-MDM2 OpenUSD demonstration package.
 
 Extracted and generalized from foundation_demo_v8 per the R00 reuse map
 (__reports__/p53-mdm2/00-architecture_v0.md). Every module here is
-root-path-parameterized: the ABL-specific ``/ABLComplex`` root and dataset
-atom counts must never appear in this tree.
+root-path-parameterized: the ABL-specific system root literal and hard-coded
+dataset atom counts must never appear in this tree.
 
 LAZY imports only.  v8's ``converters/__init__.py`` eager-imported
 ``xtc_to_clips`` (and therefore ``mdtraj``), which broke interpreters that

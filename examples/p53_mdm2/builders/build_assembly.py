@@ -14,7 +14,7 @@ generalize -- the reference LIVERPS-applied architecture). What is carried:
 
 What is generalized off ABL specifics (anti-chimera invariants, R00):
 
-- The ``/ABLComplex`` root literal is GONE; the root prim path is the
+- v8's ABL-system root literal is GONE; the root prim path is the
   ``root_path`` PARAMETER (default :data:`p53_env.DEFAULT_ROOT_PATH`).
 - v8's duplicated ATP/cap ``EXTRA_BONDS`` table is GONE; non-standard bond
   connectivity is a caller-supplied ``extra_bonds`` dict (default empty).
@@ -134,7 +134,7 @@ def build_assembly(
         output_path: destination .usda path.
         pdb_path: source PDB file.
         root_path: USD root prim path (PARAMETER; default
-            :data:`p53_env.DEFAULT_ROOT_PATH` -- never ``/ABLComplex``).
+            :data:`p53_env.DEFAULT_ROOT_PATH` -- never the ABL root literal).
         system_name: value for ``bio:systemName`` on the root prim.
         exclude_residues / ligand_residues: passed through to ``parse_pdb``.
         extra_bonds: optional {residue_name: [(a1,a2),...]} for non-standard

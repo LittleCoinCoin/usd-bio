@@ -10,9 +10,9 @@ dataclasses). What is generalized off ABL specifics:
   constants are GONE. Solvent/ion and ligand residue sets are CALLER-SUPPLIED
   parameters (``exclude_residues``, ``ligand_residues``). ``ligand_residues``
   defaults to empty -- no system carries a baked-in ligand name.
-- v8's ``verify_pdb_parse()`` (asserting 4676 atoms / 43 ligand atoms for the
-  ABL+ATP system) is GONE. Dataset counts belong in per-run test fixtures, not
-  in library code (R00 anti-chimera invariant).
+- v8's ``verify_pdb_parse()`` (which asserted the ABL+ATP system's hard-coded
+  total and ligand atom counts) is GONE. Dataset counts belong in per-run test
+  fixtures, not in library code (R00 anti-chimera invariant).
 - Chain labels: when the PDB carries real chain-ID columns (RCSB files), they
   are respected; when the column is blank (AMBER files), chains are segmented
   by TER and labeled sequentially -- so both file styles parse correctly.
