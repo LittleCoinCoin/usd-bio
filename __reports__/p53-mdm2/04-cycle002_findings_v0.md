@@ -15,9 +15,9 @@ decision-required: confirm
 ## Headline Result
 
 metric: Pipeline 1 (MD→USD topology) landed — first committed `.usda` + passing read-back tests
-value: 1 of 4 pipelines with a committed artifact; 9 of 9 read-back tests pass; 2 anti-chimera gates clean
-unit: pipelines / tests / gates
-prior: 0 pipelines, 0 tests (two prior cycles were planning/design only)
+value: 1 of 4 pipelines with a committed artifact; 9 of 9 checks pass (compliance + domain + read-back + anti-chimera layers); 2 anti-chimera gates clean
+unit: pipelines / checks / gates
+prior: 0 pipelines, 0 checks (two prior cycles were planning/design only)
 direction: new
 
 Cycle-002 converted the topic from all-planning to first-code: it generalized v8's PDB→USD path off ABL, emitted a committed 1YCR topology `.usda`, and proved it with falsification-resistant read-back tests. It also folded the PI's Q-003/Q-004 answers into the roadmap (p1b unblocked + promoted to critical-path; all four pipelines led in this one topic).
