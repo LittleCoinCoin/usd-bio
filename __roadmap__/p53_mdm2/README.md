@@ -16,7 +16,8 @@ Run the full end-to-end p53–MDM2 demonstration across all four pipelines (MD/�
 ## Pre-conditions
 - [x] cycle-000 reuse map + external-input decisions filed (R00)
 - [x] forOUSD venv available (`/Users/hacker/Documents/src/AOUSD/forOUSD/bin/python3` + `PYTHONPATH`) with both `pxr` and `mdtraj`
-- [ ] PI decision on the self-run-MD track (governs whether `p1b_md_parameter_representation` is in the critical path — see Q-003)
+- [x] PI decision on the self-run-MD track (Q-003): **YES** — the project runs its own MD on dgx1/banyan via Docker; `p1b_md_parameter_representation` is now **critical-path** (see Q-003 answer, PI 2026-07-12)
+- [x] PI decision on topic structure (Q-004): **lead all four pipelines in THIS topic** (no split) — the pipelines are coupled through the single shared USDBio representation (PI 2026-07-12)
 
 ## Success Gates
 - ✅ `examples/p53_mdm2/` package exists with no `/ABLComplex` literal and no dataset atom-count in library code (anti-chimera invariant, R00)
@@ -31,7 +32,7 @@ Run the full end-to-end p53–MDM2 demonstration across all four pipelines (MD/�
 graph TD
     f1_scaffold[F1 Scaffold + Anti-Chimera Contracts]:::planned
     p1_topology[P1 MD→USD — Topology from 1YCR]:::planned
-    p1b_mdparams[P1b MD-Parameter Representation greenfield — gated Q-003]:::blocked
+    p1b_mdparams[P1b MD-Parameter Representation greenfield — UNBLOCKED, critical-path Q-003]:::planned
     p2_ddg[P2 USD→ddMut-PPI→ΔΔG]:::planned
     p3_maboss[P3 USD→MaBoSS — ΔG↔param correlation]:::planned
     p4_readback[P4 MaBoSS→USD — time-sampled bio: attrs]:::planned
@@ -42,7 +43,7 @@ graph TD
     p2_ddg --> p3_maboss
     p3_maboss --> p4_readback
     p4_readback --> p5_demo
-    p1b_mdparams -.optional feed.-> p2_ddg
+    p1b_mdparams -.feeds ddG grounding.-> p2_ddg
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -55,19 +56,20 @@ graph TD
 |:-----|:-----|:-------|
 | `f1_scaffold.md` | 📄 Leaf Task | ⬜ Planned |
 | `p1_topology_from_1ycr.md` | 📄 Leaf Task | ⬜ Planned |
-| `p1b_md_parameter_representation.md` | 📄 Leaf Task | 🚧 Blocked (Q-003) |
+| `p1b_md_parameter_representation.md` | 📄 Leaf Task | ⬜ Planned — critical-path (Q-003 = yes) |
 | `p2_ddg_pipeline.md` | 📄 Leaf Task | ⬜ Planned |
 | `p3_maboss_emit.md` | 📄 Leaf Task | ⬜ Planned |
 | `p4_maboss_readback.md` | 📄 Leaf Task | ⬜ Planned |
 | `p5_integrated_demo.md` | 📄 Leaf Task | ⬜ Planned |
 
 ## Traversal
-BFS execution order (dependency-respecting): `f1_scaffold` → `p1_topology_from_1ycr` → { `p2_ddg_pipeline`, `p1b_md_parameter_representation` (if Q-003 unblocks) } → `p3_maboss_emit` → `p4_maboss_readback` → `p5_integrated_demo`. Each leaf's step-level decomposition is elaborated when the leaf is picked up (kept coarse here deliberately — a planning-cycle roadmap, not premature over-specification).
+BFS execution order (dependency-respecting): `f1_scaffold` → `p1_topology_from_1ycr` → { `p2_ddg_pipeline`, `p1b_md_parameter_representation` (Q-003 UNBLOCKED — now in-scope) } → `p3_maboss_emit` → `p4_maboss_readback` → `p5_integrated_demo`. Each leaf's step-level decomposition is elaborated when the leaf is picked up (kept coarse here deliberately — a planning-cycle roadmap, not premature over-specification). p1b's containerized-MD-on-cluster track (Docker + bind-mount, dgx1/banyan) is a substantial parallel workstream that may itself span multiple cycles.
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |
 |:---|:-----|:-------|:------------|:----------|
 | — | 2026-07-10 | cycle-001 initial authoring | all | Initial roadmap from R00 reuse map, reshaped by the PI's cycle-000 review (Q-001/Q-002 answers). |
+| A1 | 2026-07-13 | cycle-002, PI Q-003/Q-004 answers | (none — status change) | Q-003 = YES: `p1b` unblocked and promoted to critical-path; self-run MD on dgx1/banyan via Docker + bind-mount; ion concentration + protonation state promoted to the `bio:md:` CORE set; cluster is beta/shared → knowledge-report the usage patterns. Q-004: confirmed leading all four pipelines in this single topic (no split). |
 
 ## Progress
 | Node | Branch | Commits | Notes |

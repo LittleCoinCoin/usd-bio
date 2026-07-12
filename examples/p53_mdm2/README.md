@@ -2,7 +2,7 @@
 
 A runnable, multi-scale **p53–MDM2** demonstration in which OpenUSD is the shared representation tying molecular dynamics to systems-biology (MaBoSS Boolean-network) modelling. Brief: `__threads__/p53-mdm2/INTENT.md`. Reuse map & architecture: `__reports__/p53-mdm2/00-architecture_v0.md`.
 
-> **Not a copy of `foundation_demo_v8/`.** v8 is inspiration only. Every module here is *extracted and generalized* per the reuse map — the ABL-specific root path `/ABLComplex` and dataset atom counts (`4676`, `43`) must never appear in this tree. The system root is a `root_path` parameter threaded through parser → assembly → clips → tests.
+> **Not a copy of `foundation_demo_v8/`.** v8 is inspiration only. Every module here is *extracted and generalized* per the reuse map — the ABL-specific hard-coded root prim path and the ABL dataset atom counts must never appear in this tree. The system root is a `root_path` parameter threaded through parser → assembly → clips → tests.
 
 ## The four pipelines
 

@@ -431,6 +431,11 @@ AGENTS.md
 # Stray npm lockfile (no package.json in this repo)
 package-lock.json
 
+# Protein Data Bank input structures are biology data, not the Visual Studio
+# program-database (*.pdb) debug files the template rule above targets.
+# Re-include committed input structures (the parent dir is not itself ignored).
+!examples/**/data/structures/*.pdb
+
 # >>> umbod-managed (do not edit between these markers) >>>
 .umbod/
 # <<< umbod-managed <<<
