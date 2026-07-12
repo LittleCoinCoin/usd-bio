@@ -15,10 +15,11 @@ And these discussions are ultimately linked to the depth of the mandatory implem
 ## Q-003 Q-003 — Self-run-MD decision: should the project run its OWN p53-MDM2 MD simulations on dgx1/banyan (per your Q-001 idea), which makes the MD setup parameters a critical-path USDBio representation concern (roadmap node p1b, now Blocked on this decision)? Or stay ΔG-only for the demonstration — take ΔΔG from the ddMut-PPI server and treat p1b as deferred/optional? Context: no MD software is currently installed on dgx1/banyan (you noted this), and cycle-001's survey (report 01) identified MDDB (EU Molecular Dynamics Data Bank) as your referenced European DB and designed a ~14-attribute bio:md: schema grounded in the real ShinobuLab GENESIS decks, ready to build if the answer is yes. Sub-question: should ion concentration and protonation state (not derivable from geometry) be promoted into the bio:md: CORE set, or left optional?
 *asked: cycle-1*
 *priority: soft*
-*answer:*
-
+*answer:* 
+Yes, we promote p1b and make sure the project runs its own p53-mdm2 MD simulation. The reason is that it gives us a real use case for leveraging this connection to banyan/dgx1. Indeed we can consider it to still be in beta and so we should tread carefully and use the knowledge-report format as instructed in the skill /writing-reports to document how to improve the usage patterns and experience for the working agent. This also means you must be careful for any mutating commands or installation commands as this is a shared resource.
+Regarding the lack of MD simulation software, this is also a good opportunity to stress test the connection. We have two ways: either we instal everything directly on the server. Or we containerize things. On dgx1 and banyan, I don't think there is singularity: we rather use docker. It will likely take some work to set up and optimize the container, but the environment would then be reusable for future MD simulations. I suppose the pattern is simply to use the container for execution and bind-mount the folder with to get input data and save output.
+Promote ion concentration and protonation to the core. — PI, 2026-07-12
 ## Q-004 Q-004 — Topic-split confirmation: you offered a choice (Q-001/Q-002) between seeding dedicated umbod topics for pipelines 2/3/4 vs. leading the exploration directly in THIS topic if sub-agents are well-managed. I have decided to LEAD ALL FOUR PIPELINES HERE, because they are coupled through the single shared USDBio representation (the topic's whole thesis), so splitting would fragment the representation design and add the cross-topic communication overhead you wanted to avoid; cycle-001 ran two parallel design sub-agents to absorb the breadth. This is a soft question: confirm this, or tell me to split off one or more pipelines into their own topics if you'd rather isolate them.
 *asked: cycle-1*
 *priority: soft*
-*answer:*
-
+*answer:* I support your choice. — PI, 2026-07-12
