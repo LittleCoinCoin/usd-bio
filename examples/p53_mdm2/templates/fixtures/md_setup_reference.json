@@ -1,0 +1,35 @@
+{
+  "_comment": "INDEPENDENT hand-transcribed reference manifest of the R01 MD-setup parameters. This file is the falsification-resistant oracle for test_md_setup_readback.py: it is transcribed directly from the R01 survey tables and the PI Q-003 directive, and is deliberately maintained SEPARATELY from templates/md_parameters.py's DEFAULT_* constants so that a transcription error in the generator is caught by disagreement with this fixture. NOT generator output; do not import md_parameters to build this file.",
+  "_source": "__reports__/p53-mdm2/01-md_reproducibility_survey_v0.md (R01) + __threads__/p53-mdm2/QUESTIONS.md Q-003 answer",
+  "namespace": "bio:md:",
+  "starting_structure": "1YCR",
+  "core": {
+    "engine":              {"value": "GENESIS", "unit": null, "grounding": "R01"},
+    "engineVersion":       {"value": "unknown", "unit": null, "grounding": "R01"},
+    "forceField":          {"value": "AMBER ff19SB", "unit": null, "grounding": "R01"},
+    "waterModel":          {"value": "TIP3P", "unit": null, "grounding": "R01"},
+    "ensemble":            {"value": "NVT", "unit": null, "grounding": "R01"},
+    "integrator":          {"value": "VRES", "unit": null, "grounding": "R01"},
+    "timestep":            {"value": 0.0035, "unit": "ps", "grounding": "R01"},
+    "nSteps":              {"value": 600000, "unit": "steps", "grounding": "R01"},
+    "temperature":         {"value": 310.0, "unit": "K", "grounding": "R01"},
+    "thermostat":          {"value": "Bussi", "unit": null, "grounding": "R01"},
+    "barostat":            {"value": "Bussi", "unit": null, "grounding": "R01"},
+    "pressure":            {"value": 1.0, "unit": "atm", "grounding": "R01"},
+    "electrostatics":      {"value": "PME", "unit": null, "grounding": "R01"},
+    "cutoff":              {"value": 8.0, "unit": "angstrom", "grounding": "R01"},
+    "constraintAlgorithm": {"value": "SHAKE", "unit": null, "grounding": "R01"},
+    "ionConcentration":    {"value": 0.15, "unit": "mol/L", "grounding": "assumption"},
+    "protonationState":    {"value": "standard states at pH 7.0 (Amber default protonation)", "unit": null, "grounding": "assumption"}
+  },
+  "pi_promoted_core": ["ionConcentration", "protonationState"],
+  "optional": {
+    "ionSpecies":                 {"value": "NaCl", "unit": null, "grounding": "assumption"},
+    "boxType":                    {"value": "PBC", "unit": null, "grounding": "R01"},
+    "pairlistDist":               {"value": 10.0, "unit": "angstrom", "grounding": "R01"},
+    "dispersionCorrection":       {"value": "EPRESS", "unit": null, "grounding": "R01"},
+    "hydrogenMassRepartitioning": {"value": true, "unit": null, "grounding": "R01"},
+    "hmrRatio":                   {"value": 3.0, "unit": null, "grounding": "R01"},
+    "gammaT":                     {"value": 1.0, "unit": "1/ps", "grounding": "R01"}
+  }
+}
