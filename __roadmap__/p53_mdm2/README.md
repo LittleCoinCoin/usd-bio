@@ -30,10 +30,10 @@ Run the full end-to-end p53–MDM2 demonstration across all four pipelines (MD/�
 ## Status
 ```mermaid
 graph TD
-    f1_scaffold[F1 Scaffold + Anti-Chimera Contracts]:::planned
-    p1_topology[P1 MD→USD — Topology from 1YCR]:::planned
-    p1b_mdparams[P1b MD-Parameter Representation greenfield — UNBLOCKED, critical-path Q-003]:::planned
-    p2_ddg[P2 USD→ddMut-PPI→ΔΔG]:::planned
+    f1_scaffold[F1 Scaffold + Anti-Chimera Contracts]:::done
+    p1_topology[P1 MD→USD — Topology from 1YCR]:::done
+    p1b_mdparams[P1b MD-Parameter Representation — Step 1 bio:md: schema DONE; Step 2 containerized MD pending Q-005]:::inprogress
+    p2_ddg[P2 USD→ddMut-PPI→ΔΔG — mechanics DONE; live ΔΔG pending server recovery]:::done
     p3_maboss[P3 USD→MaBoSS — ΔG↔param correlation]:::planned
     p4_readback[P4 MaBoSS→USD — time-sampled bio: attrs]:::planned
     p5_demo[P5 Integrated Demonstration]:::planned
@@ -54,10 +54,10 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `f1_scaffold.md` | 📄 Leaf Task | ⬜ Planned |
-| `p1_topology_from_1ycr.md` | 📄 Leaf Task | ⬜ Planned |
-| `p1b_md_parameter_representation.md` | 📄 Leaf Task | ⬜ Planned — critical-path (Q-003 = yes) |
-| `p2_ddg_pipeline.md` | 📄 Leaf Task | ⬜ Planned |
+| `f1_scaffold.md` | 📄 Leaf Task | ✅ Done (cycle-002) |
+| `p1_topology_from_1ycr.md` | 📄 Leaf Task | ✅ Done (cycle-002) |
+| `p1b_md_parameter_representation.md` | 📄 Leaf Task | 🔶 In progress — Step 1 `bio:md:` schema done (cycle-003); Step 2 containerized MD pending Q-005 |
+| `p2_ddg_pipeline.md` | 📄 Leaf Task | ✅ Done (cycle-003) — mechanics + tests; live ΔΔG pending ddMut-PPI server recovery |
 | `p3_maboss_emit.md` | 📄 Leaf Task | ⬜ Planned |
 | `p4_maboss_readback.md` | 📄 Leaf Task | ⬜ Planned |
 | `p5_integrated_demo.md` | 📄 Leaf Task | ⬜ Planned |
@@ -74,4 +74,6 @@ BFS execution order (dependency-respecting): `f1_scaffold` → `p1_topology_from
 ## Progress
 | Node | Branch | Commits | Notes |
 |:-----|:-------|:--------|:------|
-| (none yet) | topic/p53-mdm2 | — | Roadmap authored cycle-001; no leaf executed yet. |
+| `f1_scaffold` + `p1_topology` | topic/p53-mdm2 | `3f25ad6`…`240570a` (cycle-002) | Package scaffold + committed 1YCR topology `.usda` (`/p53_MDM2_complex`, 818 atoms); 9/9 read-back tests. |
+| `p2_ddg_pipeline` | topic/p53-mdm2 | `4e96727`, `0db982c` (cycle-003) | Genotype VariantSet (off ABL T315I) + rate-limited ddMut-PPI client + ΔΔG write-back as `bio:` attrs. Live submit OK, retrieval endpoint 500'd → `unavailable` (no fabricated ΔG); committed artifact uses a self-tagged fixture. Live re-run pending server recovery. |
+| `p1b_md_parameter_representation` | topic/p53-mdm2 | `6b1cde6`, `a1ae572` (cycle-003) | Step 1 done: `bio:md:` schema (17 CORE incl. PI-promoted ion-conc + protonation, 7 optional) on a Protocol-layer prim; committed `.usda` + round-trip test. Step 2 (containerized MD) blocked on Q-005 (Docker→Singularity pivot) + cluster-tooling unblock — see report 05. |
