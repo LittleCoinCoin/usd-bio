@@ -1,0 +1,54 @@
+#usda 1.0
+(
+    "W23A alanine truncation (backbone+CB subset of real TRP23 coords) -- no fabricated positions."
+    defaultPrim = "Site_TRP_23"
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+def Xform "Site_TRP_23"
+{
+    custom int bio:atomCount = 5
+    custom token bio:residueName = "ALA"
+
+    def Xform "Atom_N"
+    {
+        custom token bio:atomName = "N"
+        custom token bio:element = "N"
+        double3 xformOp:translate = (27.477, -25.871, -8.251)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_CA"
+    {
+        custom token bio:atomName = "CA"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (27.021, -24.553, -7.803)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_C"
+    {
+        custom token bio:atomName = "C"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (25.532, -24.284, -8.011)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_O"
+    {
+        custom token bio:atomName = "O"
+        custom token bio:element = "O"
+        double3 xformOp:translate = (24.919, -23.498, -7.297)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_CB"
+    {
+        custom token bio:atomName = "CB"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (27.892, -23.448, -8.451)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+}
+

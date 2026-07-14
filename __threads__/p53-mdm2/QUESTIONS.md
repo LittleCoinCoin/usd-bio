@@ -23,3 +23,9 @@ Promote ion concentration and protonation to the core. — PI, 2026-07-12
 *asked: cycle-1*
 *priority: soft*
 *answer:* I support your choice. — PI, 2026-07-12
+
+## Q-005 p1b Step 2 execution-model pivot (from cluster recon, report 05): the dgx1/banyan docs say the SUPPORTED container runtime is Singularity, NOT unprivileged Docker (which usually needs docker-group=root on a shared node); banyan even loads Singularity 4.2.2 as a default module, and the submit_job tooling already wraps commands as 'singularity exec --nv'. Your Q-003 directive assumed Docker+bind-mounts. Recommendation: keep Docker as the local BUILD format but RUN on-cluster via Singularity (docker build locally -> convert to .sif -> singularity exec --nv with bind-mounts). Confirm this pivot, or insist on Docker? NOTE: this recon was doc-sourced only -- both clusters were unreachable this cycle (local rsync 2.6.9<3.0.0 blocker on dgx1; banyan ~/.banyan/config.json missing), so no live 'docker info'/'nvidia-smi' was possible. Next cycle must first unblock tooling locally, then run the read-only live-verification pass in report 05 sec.B before any cluster-mutating build/submit (which will be gated on your approval per the beta/shared caution).
+*asked: cycle-3*
+*priority: soft*
+*answer:*
+

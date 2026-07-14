@@ -1,0 +1,54 @@
+#usda 1.0
+(
+    "F19A alanine truncation (backbone+CB subset of real PHE19 coords) -- no fabricated positions."
+    defaultPrim = "Site_PHE_19"
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+def Xform "Site_PHE_19"
+{
+    custom int bio:atomCount = 5
+    custom token bio:residueName = "ALA"
+
+    def Xform "Atom_N"
+    {
+        custom token bio:atomName = "N"
+        custom token bio:element = "N"
+        double3 xformOp:translate = (32.143, -27.542, -11.625)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_CA"
+    {
+        custom token bio:atomName = "CA"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (31.769, -26.453, -10.742)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_C"
+    {
+        custom token bio:atomName = "C"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (30.344, -26.019, -10.974)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_O"
+    {
+        custom token bio:atomName = "O"
+        custom token bio:element = "O"
+        double3 xformOp:translate = (29.549, -25.992, -10.043)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_CB"
+    {
+        custom token bio:atomName = "CB"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (32.674, -25.245, -10.916)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+}
+

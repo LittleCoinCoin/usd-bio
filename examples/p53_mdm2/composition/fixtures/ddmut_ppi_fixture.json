@@ -1,0 +1,14 @@
+{
+  "_README": "SYNTHETIC / ILLUSTRATIVE FIXTURE -- these values are NOT DDMut-PPI server output. At authoring time (2026-07-14) the DDMut-PPI submit endpoint worked (returned real job_ids) but the GET-by-job_id retrieval endpoint consistently returned {\"message\": \"Internal Server Error\"} server-side, so no real predictions could be captured. Per the pipeline error model, the live path records an explicit 'unavailable' status (never a fabricated ddG); this committed fixture exists ONLY to exercise the write-back + read-back mechanics end-to-end. The magnitudes below are hand-set, literature-informed placeholders reflecting the well-established ranking of the p53 hydrophobic triad (Trp23 the deepest anchor, then Phe19, then Leu26) -- they are illustrative, not measured or predicted quantities.",
+  "source": "fixture (synthetic, literature-informed placeholders; NOT server output)",
+  "units": "kcal/mol",
+  "convention": "prediction = ddG of binding; negative = destabilizing (weaker p53-MDM2 binding)",
+  "structure": "1YCR",
+  "chain": "B",
+  "authored": "2026-07-14",
+  "predictions": {
+    "F19A": {"prediction": -2.8, "note": "Phe19 hot-spot; alanine strongly destabilizing (synthetic placeholder)"},
+    "W23A": {"prediction": -3.9, "note": "Trp23 deepest MDM2-cleft anchor; largest destabilization (synthetic placeholder)"},
+    "L26A": {"prediction": -1.9, "note": "Leu26 hot-spot; destabilizing (synthetic placeholder)"}
+  }
+}

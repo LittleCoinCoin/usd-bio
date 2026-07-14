@@ -1,0 +1,78 @@
+#usda 1.0
+(
+    "Wild-type LEU26 (chain B) from 1ycr.pdb -- real coordinates."
+    defaultPrim = "Site_LEU_26"
+    metersPerUnit = 1e-10
+    upAxis = "Y"
+)
+
+def Xform "Site_LEU_26"
+{
+    custom int bio:atomCount = 8
+    custom token bio:residueName = "LEU"
+
+    def Xform "Atom_N"
+    {
+        custom token bio:atomName = "N"
+        custom token bio:element = "N"
+        double3 xformOp:translate = (22.657, -24.998, -5.083)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_CA"
+    {
+        custom token bio:atomName = "CA"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (22.616, -24.202, -3.862)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_C"
+    {
+        custom token bio:atomName = "C"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (21.235, -23.583, -3.733)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_O"
+    {
+        custom token bio:atomName = "O"
+        custom token bio:element = "O"
+        double3 xformOp:translate = (20.63, -23.223, -4.753)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_CB"
+    {
+        custom token bio:atomName = "CB"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (23.652, -23.069, -3.918)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_CG"
+    {
+        custom token bio:atomName = "CG"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (25.131, -23.345, -4.163)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_CD1"
+    {
+        custom token bio:atomName = "CD1"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (25.825, -22.01, -4.268)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "Atom_CD2"
+    {
+        custom token bio:atomName = "CD2"
+        custom token bio:element = "C"
+        double3 xformOp:translate = (25.723, -24.177, -3.038)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+}
+
