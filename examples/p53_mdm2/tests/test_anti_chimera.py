@@ -25,7 +25,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 _PKG = os.path.dirname(_HERE)  # examples/p53_mdm2
 
 # Library code directories/files to scan (tests/ deliberately excluded).
-_LIBRARY_DIRS = ["converters", "builders", "data", "composition"]
+_LIBRARY_DIRS = ["converters", "builders", "data", "composition", "templates"]
 _LIBRARY_FILES = ["__init__.py", "p53_env.py"]
 
 # Assembled from fragments (see NOTE) -> the ABL root prim literal at runtime.

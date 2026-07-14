@@ -83,6 +83,9 @@ def main() -> int:
     import test_ddg_readback
     all_rows += _rows_from("readback-ddg", test_ddg_readback.run())
 
+    import test_md_setup_readback
+    all_rows += _rows_from("readback-md", test_md_setup_readback.run())
+
     import test_anti_chimera
     all_rows += _rows_from("anti-chimera", test_anti_chimera.run())
 

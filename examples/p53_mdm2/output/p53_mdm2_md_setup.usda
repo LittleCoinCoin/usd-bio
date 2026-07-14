@@ -1,0 +1,153 @@
+#usda 1.0
+(
+    "p53-MDM2 MD-setup parameters (bio:md:) -- Protocol departmental layer. CORE = R01 reproducible set + PI-promoted ionConcentration & protonationState (Q-003). Values tagged [source: R01] or [assumption:]."
+    defaultPrim = "p53_MDM2_complex"
+    metersPerUnit = 1e-10
+    subLayers = [
+        @./p53_mdm2_topology.usda@
+    ]
+    upAxis = "Y"
+)
+
+over "p53_MDM2_complex"
+{
+    def Scope "mdSetup"
+    {
+        custom string bio:forceField = "AMBER ff19SB"
+        custom string bio:md:barostat = "Bussi" (
+            customData = {
+                string source = "[source: R01 -- BUSSI barostat (NPT equilibration)]"
+            }
+        )
+        custom token bio:md:boxType = "PBC" (
+            customData = {
+                string source = "[source: R01 -- type=PBC]"
+            }
+        )
+        custom string bio:md:constraintAlgorithm = "SHAKE" (
+            customData = {
+                string source = "[source: R01 -- rigid_bond=YES (SHAKE)]"
+            }
+        )
+        custom double bio:md:cutoff = 8 (
+            customData = {
+                string source = "[source: R01 -- cutoffdist=8.0 Angstrom]"
+                string unit = "angstrom"
+            }
+        )
+        custom string bio:md:dispersionCorrection = "EPRESS" (
+            customData = {
+                string source = "[source: R01 -- dispersion_corr=EPRESS]"
+            }
+        )
+        custom token bio:md:electrostatics = "PME" (
+            customData = {
+                string source = "[source: R01 -- electrostatic=PME]"
+            }
+        )
+        custom string bio:md:engine = "GENESIS" (
+            customData = {
+                string source = "[source: R01 grounding -- ShinobuLab spdyn/GENESIS]"
+            }
+        )
+        custom string bio:md:engineVersion = "unknown" (
+            customData = {
+                string source = "[source: R01 -- version not in .inp decks; capture from job env]"
+            }
+        )
+        custom token bio:md:ensemble = "NVT" (
+            customData = {
+                string source = "[source: R01 -- production & REUS ensemble=NVT]"
+            }
+        )
+        custom string bio:md:forceField = "AMBER ff19SB" (
+            customData = {
+                string source = "[source: R01 core table -- forcefield=AMBER]"
+            }
+        )
+        custom double bio:md:gammaT = 1 (
+            customData = {
+                string source = "[source: R01 -- gamma_t=1.0 ps^-1]"
+                string unit = "1/ps"
+            }
+        )
+        custom double bio:md:hmrRatio = 3 (
+            customData = {
+                string source = "[source: R01 -- hmr_ratio=3.0]"
+            }
+        )
+        custom bool bio:md:hydrogenMassRepartitioning = 1 (
+            customData = {
+                string source = "[source: R01 -- hydrogen_mr=YES]"
+            }
+        )
+        custom string bio:md:integrator = "VRES" (
+            customData = {
+                string source = "[source: R01 -- RESPA multiple-timestep integrator]"
+            }
+        )
+        custom double bio:md:ionConcentration = 0.15 (
+            customData = {
+                string source = "[assumption: physiological 0.15 mol/L NaCl for a solvated p53-MDM2 setup; not fixed by R01/ShinobuLab decks]"
+                string unit = "mol/L"
+            }
+        )
+        custom string bio:md:ionSpecies = "NaCl" (
+            customData = {
+                string source = "[assumption: NaCl neutralisation, companion to ionConcentration]"
+            }
+        )
+        custom int64 bio:md:nSteps = 600000 (
+            customData = {
+                string source = "[source: R01 -- 600000 steps per production run]"
+                string unit = "steps"
+            }
+        )
+        custom double bio:md:pairlistDist = 10 (
+            customData = {
+                string source = "[source: R01 -- pairlistdist=10.0 Angstrom]"
+                string unit = "angstrom"
+            }
+        )
+        custom double bio:md:pressure = 1 (
+            customData = {
+                string source = "[source: R01 -- pressure=1.0 atm]"
+                string unit = "atm"
+            }
+        )
+        custom string bio:md:protonationState = "standard states at pH 7.0 (Amber default protonation)" (
+            customData = {
+                string source = "[assumption: standard-state protonation at physiological pH; not specified in R01 decks]"
+            }
+        )
+        custom string bio:md:startingStructure = "1YCR"
+        custom double bio:md:temperature = 310 (
+            customData = {
+                string source = "[source: R01 -- temperature=310.0 K]"
+                string unit = "K"
+            }
+        )
+        custom string bio:md:thermostat = "Bussi" (
+            customData = {
+                string source = "[source: R01 -- tpcontrol=BUSSI]"
+            }
+        )
+        custom double bio:md:timestep = 0.0035 (
+            customData = {
+                string source = "[source: R01 -- 3.5 fs, HMR-enabled]"
+                string unit = "ps"
+            }
+        )
+        custom string bio:md:waterModel = "TIP3P" (
+            customData = {
+                string source = "[source: R01 core table -- Amber WAT residue => TIP3P]"
+            }
+        )
+        custom string bio:simSettings = "R01 ShinobuLab GENESIS reference protocol (NVT production, VRES, PME, SHAKE, BUSSI 310K)"
+        custom string bio:softwareName = "GENESIS"
+        custom string bio:softwareVersion = "unknown"
+        custom string bio:sourcePdb = "1YCR"
+        custom string bio:timestamp = "unknown"
+    }
+}
+
