@@ -80,6 +80,9 @@ def main() -> int:
     import layer3_readback
     all_rows += _rows_from("readback", layer3_readback.run(STAGE_PATH, PDB_PATH))
 
+    import test_dg_correlation
+    all_rows += _rows_from("unit-correlation", test_dg_correlation.run())
+
     import test_ddg_readback
     all_rows += _rows_from("readback-ddg", test_ddg_readback.run())
 
