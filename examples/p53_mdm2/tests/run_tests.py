@@ -89,6 +89,9 @@ def main() -> int:
     import test_md_setup_readback
     all_rows += _rows_from("readback-md", test_md_setup_readback.run())
 
+    import test_maboss_emit
+    all_rows += _rows_from("readback-maboss", test_maboss_emit.run())
+
     import test_anti_chimera
     all_rows += _rows_from("anti-chimera", test_anti_chimera.run())
 
