@@ -32,9 +32,9 @@ Run the full end-to-end p53–MDM2 demonstration across all four pipelines (MD/�
 graph TD
     f1_scaffold[F1 Scaffold + Anti-Chimera Contracts]:::done
     p1_topology[P1 MD→USD — Topology from 1YCR]:::done
-    p1b_mdparams[P1b MD-Parameter Representation — Step 1 bio:md: schema DONE; Step 2 containerized MD pending Q-005]:::inprogress
+    p1b_mdparams[P1b MD-Parameter Representation — Step 1 bio:md: schema DONE; Step 2 substrate live-verified, build/submit PI-gated]:::inprogress
     p2_ddg[P2 USD→ddMut-PPI→ΔΔG — mechanics DONE; live ΔΔG pending server recovery]:::done
-    p3_maboss[P3 USD→MaBoSS — ΔG↔param correlation]:::planned
+    p3_maboss[P3 USD→MaBoSS — ΔG↔param correlation + emit DONE cycle-004]:::done
     p4_readback[P4 MaBoSS→USD — time-sampled bio: attrs]:::planned
     p5_demo[P5 Integrated Demonstration]:::planned
     f1_scaffold --> p1_topology
@@ -56,9 +56,9 @@ graph TD
 |:-----|:-----|:-------|
 | `f1_scaffold.md` | 📄 Leaf Task | ✅ Done (cycle-002) |
 | `p1_topology_from_1ycr.md` | 📄 Leaf Task | ✅ Done (cycle-002) |
-| `p1b_md_parameter_representation.md` | 📄 Leaf Task | 🔶 In progress — Step 1 `bio:md:` schema done (cycle-003); Step 2 containerized MD pending Q-005 |
+| `p1b_md_parameter_representation.md` | 📄 Leaf Task | 🔶 In progress — Step 1 `bio:md:` schema done (cycle-003); Step 2 cluster substrate live-verified (cycle-004, report 07), container build/submit PI-gated |
 | `p2_ddg_pipeline.md` | 📄 Leaf Task | ✅ Done (cycle-003) — mechanics + tests; live ΔΔG pending ddMut-PPI server recovery |
-| `p3_maboss_emit.md` | 📄 Leaf Task | ⬜ Planned |
+| `p3_maboss_emit.md` | 📄 Leaf Task | ✅ Done (cycle-004) — correlation + inverse + emit; 28/28 checks; MaBoSS run deferred to P4 |
 | `p4_maboss_readback.md` | 📄 Leaf Task | ⬜ Planned |
 | `p5_integrated_demo.md` | 📄 Leaf Task | ⬜ Planned |
 
@@ -70,10 +70,12 @@ BFS execution order (dependency-respecting): `f1_scaffold` → `p1_topology_from
 |:---|:-----|:-------|:------------|:----------|
 | — | 2026-07-10 | cycle-001 initial authoring | all | Initial roadmap from R00 reuse map, reshaped by the PI's cycle-000 review (Q-001/Q-002 answers). |
 | A1 | 2026-07-13 | cycle-002, PI Q-003/Q-004 answers | (none — status change) | Q-003 = YES: `p1b` unblocked and promoted to critical-path; self-run MD on dgx1/banyan via Docker + bind-mount; ion concentration + protonation state promoted to the `bio:md:` CORE set; cluster is beta/shared → knowledge-report the usage patterns. Q-004: confirmed leading all four pipelines in this single topic (no split). |
+| A2 | 2026-07-21 | cycle-004, PI Q-005 answer + live recon (report 07) | (none — status change) | Q-005 resolved: execution model pivots **Docker (local build) → Singularity (on-cluster run)**. Live verification (report 07) confirmed banyan Docker works but dgx1's does not, so Singularity is the only portable, Slurm-integrated path; the PI deferred to these technical findings. `p1b` Step 2 substrate is now live-verified; the container build + first smoke-submit are enumerated PI-gated steps. `p3_maboss_emit` completed. |
 
 ## Progress
 | Node | Branch | Commits | Notes |
 |:-----|:-------|:--------|:------|
 | `f1_scaffold` + `p1_topology` | topic/p53-mdm2 | `3f25ad6`…`240570a` (cycle-002) | Package scaffold + committed 1YCR topology `.usda` (`/p53_MDM2_complex`, 818 atoms); 9/9 read-back tests. |
 | `p2_ddg_pipeline` | topic/p53-mdm2 | `4e96727`, `0db982c` (cycle-003) | Genotype VariantSet (off ABL T315I) + rate-limited ddMut-PPI client + ΔΔG write-back as `bio:` attrs. Live submit OK, retrieval endpoint 500'd → `unavailable` (no fabricated ΔG); committed artifact uses a self-tagged fixture. Live re-run pending server recovery. |
-| `p1b_md_parameter_representation` | topic/p53-mdm2 | `6b1cde6`, `a1ae572` (cycle-003) | Step 1 done: `bio:md:` schema (17 CORE incl. PI-promoted ion-conc + protonation, 7 optional) on a Protocol-layer prim; committed `.usda` + round-trip test. Step 2 (containerized MD) blocked on Q-005 (Docker→Singularity pivot) + cluster-tooling unblock — see report 05. |
+| `p1b_md_parameter_representation` | topic/p53-mdm2 | `6b1cde6`, `a1ae572` (cycle-003) | Step 1 done: `bio:md:` schema (17 CORE incl. PI-promoted ion-conc + protonation, 7 optional) on a Protocol-layer prim; committed `.usda` + round-trip test. Step 2 (containerized MD): cluster substrate live-verified cycle-004 (report 07) — Singularity pivot confirmed; container build/convert/stage/smoke-submit are PI-gated (need MD-engine choice + PI "yes"). |
+| `p3_maboss_emit` | topic/p53-mdm2 | `1f53e38`, `6cf3cb3` (cycle-004) | Done: `dg_correlation.py` (logistic + logit inverse) + `emit_model.py` (byte-identical `.bnd` + `$KMn_pMCD`/`$KMn_pMC`-substituted `.cfg` per mutant) + `bio:maboss:*` write-back; reference matches R02; 28/28 checks; usdchecker exit 0. MaBoSS run (directional test) deferred to P4. |
