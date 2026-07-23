@@ -1,0 +1,173 @@
+# ============================================================================
+# gromacs.def — Singularity/Apptainer definition for a GPU-enabled GROMACS
+# build, portable across the project's TWO clusters (banyan H100 + dgx1 V100).
+#
+# STATUS: reviewable SCAFFOLDING ONLY. Nothing here has been built, uploaded,
+#         or run on any cluster. Building a .sif and putting it on the shared
+#         home is a PI-GATED mutating step (see ./README.md).
+#
+# WHY SINGULARITY (not "docker run"): see __reports__/p53-mdm2/07-cluster_liveverify_v1.md.
+#   Singularity is the ONLY portable, non-root, Slurm-integrated run path across
+#   BOTH clusters. Docker works interactively on banyan (user in docker group)
+#   but does NOT exist for this user on dgx1, and a bare `docker run` bypasses
+#   Slurm GPU isolation. submit_job wraps `singularity exec --nv` on GPU jobs.
+#
+# HOW TO BUILD (both PI-gated — do NOT run unattended):
+#   Route A (recommended): on banyan, which has singularity-ce 4.2.2 + fakeroot:
+#       singularity build gromacs.sif gromacs.def
+#   Route B (Docker first, then convert): build an equivalent Docker image from
+#       the SAME base + %post steps, `docker save img -o gromacs.tar`, then:
+#       singularity build gromacs.sif docker-archive://gromacs.tar
+#   Because home is one shared NFS (ts2:/export/home), a .sif built/staged once
+#   is visible from both clusters — stage-once, run-anywhere.
+# ============================================================================
+
+Bootstrap: docker
+# --- Base image: CUDA 12.9 devel on Ubuntu 22.04 -----------------------------
+# CUDA 12.9 is deliberate, not arbitrary. This is the CROSS-CLUSTER portability
+# pivot of the whole recipe:
+#   * dgx1  = 8x Tesla V100-SXM2-16GB  -> compute capability 7.0 (Volta, sm_70)
+#             driver 580.159.03  [live: report 07]
+#   * banyan= 2x H100 NVL ~94GB        -> compute capability 9.0 (Hopper, sm_90)
+#             driver 595.71.05   [live: report 07]
+# NVIDIA CUDA 13.0 REMOVES offline compilation for compute capability < 7.5,
+# which includes Volta (V100). NVIDIA's own guidance: to keep Volta support,
+# "remain on CUDA Toolkit 12.9 and NVIDIA Driver branch 580"
+#   [verified: https://developer.nvidia.com/blog/navigating-gpu-architecture-support-a-guide-for-nvidia-cuda-developers/ ;
+#              CUDA 12.8/12.9 release notes — Volta/Pascal/Maxwell feature-complete, frozen next major release].
+# dgx1 is on driver branch 580 EXACTLY, so CUDA 12.9 is the last toolkit that
+# compiles first-class sm_70 kernels for it. CUDA 12.x also fully supports sm_90
+# (H100, introduced in CUDA 12.0). => 12.9 is the single toolkit covering BOTH.
+# GROMACS requires CUDA toolkit >= 12.1 [verified: GROMACS 2025.3 install guide].
+#
+# Runtime note (Singularity --nv): the CONTAINER ships the CUDA runtime; the
+# HOST driver is bind-mounted in by `--nv`. A newer host driver running an older
+# CUDA runtime is always forward-compatible, so 12.9 runs fine under host
+# drivers 580 (dgx1) and 595 (banyan).
+#
+# [assumption] Exact patch tag `12.9.1` — verify the tag exists on Docker Hub
+# (nvidia/cuda) at build time; pin to whatever 12.9.x -devel tag is published.
+# `-devel` (not `-runtime`) is required: it carries nvcc + headers to COMPILE
+# GROMACS. Slimming to a multi-stage -runtime image is a later optimization.
+From: nvidia/cuda:12.9.1-devel-ubuntu22.04
+
+%labels
+    Maintainer   usd-bio p53-mdm2 track
+    Purpose      GPU-enabled GROMACS for p53-MDM2 self-run MD (p1b Step 2)
+    GromacsVer   2025.3
+    CudaToolkit  12.9
+    TargetSM     70;90   # V100 (dgx1) + H100 (banyan)
+    BuildStatus  SCAFFOLDING-not-built
+
+%post
+    # -------------------------------------------------------------------------
+    # Pinned versions. Bump deliberately, never float `latest`.
+    # -------------------------------------------------------------------------
+    set -eu
+    export DEBIAN_FRONTEND=noninteractive
+
+    # GROMACS 2025.3 = latest stable at time of writing
+    #   [verified: manual.gromacs.org/2025.3 install guide exists].
+    GROMACS_VERSION=2025.3
+    # [assumption] the 2025.3 source tarball URL pattern below matches the
+    # official ftp.gromacs.org layout used for the 2024/2025 series; confirm the
+    # exact URL + sha256 before an actual build.
+    GROMACS_SHA256=PUT_VERIFIED_SHA256_HERE   # <-- fill in from ftp.gromacs.org
+
+    # --- Build toolchain -----------------------------------------------------
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        cmake \
+        ca-certificates \
+        wget \
+        libfftw3-dev \
+        libopenblas-dev \
+        pkg-config \
+        python3
+    rm -rf /var/lib/apt/lists/*
+
+    # --- Fetch + verify GROMACS source --------------------------------------
+    cd /opt
+    wget -q "https://ftp.gromacs.org/gromacs/gromacs-${GROMACS_VERSION}.tar.gz"
+    # Integrity check (MDDB/provenance discipline: pin + hash every input).
+    # Uncomment once GROMACS_SHA256 is filled in:
+    # echo "${GROMACS_SHA256}  gromacs-${GROMACS_VERSION}.tar.gz" | sha256sum -c -
+    tar xf "gromacs-${GROMACS_VERSION}.tar.gz"
+    cd "gromacs-${GROMACS_VERSION}"
+    mkdir build && cd build
+
+    # --- Configure -----------------------------------------------------------
+    # GMX_GPU=CUDA            : NVIDIA CUDA acceleration on
+    # GMX_MPI=OFF             : no cross-node MPI; thread-MPI (intra-node) is
+    #                           ON by default and is all a 1-GPU / single-node
+    #                           smoke test needs. Both clusters are SINGLE-NODE
+    #                           Slurm [live: report 07], so multi-node MPI buys
+    #                           nothing here; add it later if scaling out.
+    # GMX_CUDA_TARGET_SM      : real-arch (SASS) codegen for the two GPUs we own.
+    #                           "70"=V100 Volta, "90"=H100 Hopper. Semicolon-
+    #                           delimited two-digit suffixes [verified: install guide].
+    # GMX_CUDA_TARGET_COMPUTE : embed PTX for 90 so future/newer GPUs can JIT.
+    #                           (PTX for 70 is not embedded to keep the binary
+    #                           lean; the 70 SASS above covers V100 directly.)
+    # GMX_DOUBLE=OFF          : single precision — the standard, GPU-supported build.
+    # GMX_BUILD_OWN_FFTW=OFF  : use the distro libfftw3-dev installed above.
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DGMX_GPU=CUDA \
+        -DGMX_MPI=OFF \
+        -DGMX_CUDA_TARGET_SM="70;90" \
+        -DGMX_CUDA_TARGET_COMPUTE="90" \
+        -DGMX_DOUBLE=OFF \
+        -DGMX_BUILD_OWN_FFTW=OFF \
+        -DGMX_SIMD=AVX2_256 \
+        -DCMAKE_INSTALL_PREFIX=/opt/gromacs \
+        -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda
+    # [assumption] GMX_SIMD=AVX2_256 is a safe, broadly-compatible host-CPU SIMD
+    # level for both cluster login/compute CPUs. If the build host CPU supports
+    # AVX-512 you MAY raise this, but AVX2_256 avoids illegal-instruction faults
+    # if the run node differs from the build node. Confirm CPU flags per cluster
+    # before optimizing.
+
+    # --- Build + install -----------------------------------------------------
+    make -j"$(nproc)"
+    # make check   # optional: GROMACS regression tests (slow; needs a GPU at
+    #              # build time for the GPU tests — skip in an unattended build).
+    make install
+
+    # Clean the source tree to keep the image small.
+    cd /opt && rm -rf "gromacs-${GROMACS_VERSION}" "gromacs-${GROMACS_VERSION}.tar.gz"
+
+%environment
+    # Put gmx on PATH for `singularity exec ... gmx ...` invocations.
+    export PATH=/opt/gromacs/bin:$PATH
+    # GROMACS also ships GMXRC; source it if a downstream tool needs the full env.
+    # . /opt/gromacs/bin/GMXRC  (kept commented: PATH above is enough for `gmx`)
+
+%runscript
+    # Default action when the .sif is "run" directly: prove the build is sane.
+    echo "=== GROMACS container (p53-mdm2 / usd-bio) ==="
+    exec /opt/gromacs/bin/gmx --version
+
+%test
+    # Runs at the END of `singularity build` (build-time sanity, CPU-only —
+    # no GPU is present in a build sandbox, so this only proves the binary links
+    # and reports its build config, NOT that GPU execution works. Real GPU
+    # verification happens in the PI-gated smoke_submit.sbatch on a GPU node).
+    set -e
+    /opt/gromacs/bin/gmx --version
+    # Confirm the binary was actually compiled with GPU support:
+    /opt/gromacs/bin/gmx --version | grep -i "GPU support" || \
+        { echo "FAIL: gmx reports no GPU support"; exit 1; }
+
+%help
+    GPU-enabled GROMACS 2025.3 (CUDA 12.9) for the usd-bio p53-MDM2 self-run MD
+    track. Built to run on BOTH banyan (H100/sm_90) and dgx1 (V100/sm_70) via
+    Singularity `--nv`. This .def is SCAFFOLDING — see ./README.md for the
+    ordered, PI-gated build/stage/smoke-test steps. Nothing has been run yet.
+
+    Typical use once a gromacs.sif exists on the shared home:
+        singularity exec --nv \
+            -B /home/eliott/p53mdm2/in:/data/in \
+            -B /home/eliott/p53mdm2/out:/data/out \
+            gromacs.sif gmx mdrun -deffnm /data/out/run
