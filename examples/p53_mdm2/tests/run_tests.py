@@ -92,6 +92,9 @@ def main() -> int:
     import test_maboss_emit
     all_rows += _rows_from("readback-maboss", test_maboss_emit.run())
 
+    import test_maboss_readback
+    all_rows += _rows_from("readback-maboss-p4", test_maboss_readback.run())
+
     import test_anti_chimera
     all_rows += _rows_from("anti-chimera", test_anti_chimera.run())
 
