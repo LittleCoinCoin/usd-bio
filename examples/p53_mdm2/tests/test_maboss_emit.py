@@ -17,8 +17,9 @@ Falsification-resistant / anti-tautology (R02 §Round-trip validation):
      ``bio:maboss:paramValue`` write-back. Closes the PI's inverse loop.
 
   #3 Directional test -- needs a MaBoSS run to compare time-averaged P(p53 up)
-     of a destabilizing variant vs. WT. DEFERRED to the Pipeline-4 cycle; a
-     documented placeholder is reported here (no MaBoSS installed, by design).
+     of a destabilizing variant vs. WT. Now implemented for real in
+     ``test_maboss_readback.py`` (Pipeline 4); the former placeholder here is
+     removed.
 
 All expected values are re-derived here from the committed genotype stage +
 reference files, so a chimeric or self-agreeing emitter cannot pass.
@@ -194,15 +195,6 @@ def assert_emit_roundtrip(genotype_path, out_dir, ref_bnd) -> Result:
     return Result("emit_inverse_roundtrip", not errors, errors, detail)
 
 
-def assert_directional_deferred() -> Result:
-    """#3 directional test -- requires a MaBoSS run; deferred to Pipeline-4."""
-    return Result(
-        "directional_test_deferred_to_pipeline4", True, [],
-        {"note": "Needs MaBoSS to compare time-averaged P(p53 up) of a "
-                 "destabilizing variant vs WT; no MaBoSS installed this cycle "
-                 "(R02 §Round-trip #3). Placeholder, not a substantive pass."})
-
-
 def run() -> list:
     genotype_path = emit_model.default_genotype_path()
     out_dir = emit_model.output_dir()
@@ -215,7 +207,6 @@ def run() -> list:
                        [f"not found: {ref_bnd}"])]
     return [
         assert_emit_roundtrip(genotype_path, out_dir, ref_bnd),
-        assert_directional_deferred(),
     ]
 
 
