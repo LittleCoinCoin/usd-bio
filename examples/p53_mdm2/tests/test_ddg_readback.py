@@ -115,38 +115,28 @@ def assert_fixture_is_honestly_tagged(fixture_path) -> ReadbackResult:
 
 
 def assert_live_capture_traceable(capture_dir) -> ReadbackResult:
-    """The live-capture directory must be self-consistent committed evidence.
+    """The live-capture evidence must be self-consistent and complete.
 
-    Guards the chain "recorded number -> derived JSON -> verbatim body":
-      - manifest.jsonl exists and every body file it names exists, non-empty,
-        with the byte count the manifest recorded;
-      - the script-derived predictions JSON agrees with the raw bodies it cites
-        (so the derived file cannot silently drift from the evidence);
-      - the derived JSON self-declares as real server output.
+    Guards the chain "recorded number -> curated JSON -> verbatim body":
+      - every body cited by the curated predictions JSON exists under
+        ``responses/`` and is a well-formed DONE payload whose job_id, chain and
+        prediction agree with the citing entry;
+      - the curated JSON self-declares as real server output;
+      - the root-cause proof in ``encoding_diagnostic/`` is still present, since
+        it is the only evidence that the historical 'server down' diagnosis was
+        wrong.
+
+    Note on layout: ``responses/`` is validated STRICTLY because it is the
+    canonical, immutable set the pipeline cites. Raw per-run capture
+    directories are not byte-checked here -- capture numbering restarts at 001
+    per run, so a shared directory can legitimately contain interleaved bodies
+    from more than one run (see the directory README).
     """
     errors, detail = [], {}
-    manifest_path = os.path.join(capture_dir, "manifest.jsonl")
-    if not os.path.isfile(manifest_path):
-        return ReadbackResult("live_capture_traceable", False,
-                              [f"no manifest: {manifest_path}"])
 
-    rows = []
-    with open(manifest_path, "r") as fh:
-        for ln in fh:
-            if ln.strip():
-                rows.append(json.loads(ln))
-    detail["exchanges"] = len(rows)
-
-    for row in rows:
-        body_path = os.path.join(capture_dir, row["body_file"])
-        if not os.path.isfile(body_path):
-            errors.append(f"manifest cites missing body {row['body_file']}")
-            continue
-        actual = len(open(body_path, "rb").read())
-        if actual != row["body_bytes"]:
-            errors.append(
-                f"{row['body_file']}: {actual} bytes on disk != "
-                f"{row['body_bytes']} recorded in manifest")
+    diag = os.path.join(capture_dir, "encoding_diagnostic")
+    if not os.path.isdir(diag) or not os.listdir(diag):
+        errors.append("encoding_diagnostic/ root-cause proof is missing")
 
     derived_path = os.path.join(capture_dir, "ddmut_ppi_live_predictions.json")
     if not os.path.isfile(derived_path):
@@ -157,26 +147,37 @@ def assert_live_capture_traceable(capture_dir) -> ReadbackResult:
         derived_raw = fh.read()
     derived = json.loads(derived_raw)
     if "real ddmut-ppi server output" not in derived_raw.lower():
-        errors.append("derived predictions file does not declare itself as "
+        errors.append("curated predictions file does not declare itself as "
                       "real server output")
 
     preds = derived.get("predictions", {})
-    detail["derived_mutations"] = sorted(preds)
+    detail["curated_mutations"] = sorted(preds)
     for mutation, entry in preds.items():
-        body_path = os.path.join(capture_dir, entry.get("response_file", ""))
+        rel = entry.get("response_file", "")
+        body_path = os.path.join(capture_dir, rel)
+        if not rel.startswith("responses/"):
+            errors.append(f"{mutation}: response_file {rel!r} is not in the "
+                          f"canonical responses/ set")
         if not os.path.isfile(body_path):
-            errors.append(f"{mutation}: derived entry cites missing body "
-                          f"{entry.get('response_file')!r}")
+            errors.append(f"{mutation}: curated entry cites missing body {rel!r}")
             continue
         with open(body_path, "r") as fh:
             body = json.load(fh)
+        if str(body.get("status")) != "DONE":
+            errors.append(f"{mutation}: {rel} status={body.get('status')!r}, "
+                          f"not a completed DONE payload")
         if abs(float(entry["prediction"]) - float(body["prediction"])) > 1e-9:
             errors.append(
-                f"{mutation}: derived prediction {entry['prediction']} != "
-                f"body prediction {body['prediction']} in "
-                f"{entry['response_file']}")
+                f"{mutation}: curated prediction {entry['prediction']} != "
+                f"body prediction {body['prediction']} in {rel}")
         if str(entry.get("job_id")) != str(body.get("job_id")):
-            errors.append(f"{mutation}: derived job_id != body job_id")
+            errors.append(f"{mutation}: curated job_id != body job_id in {rel}")
+        if str(entry.get("chain")) != str(body.get("chain")):
+            errors.append(f"{mutation}: curated chain != body chain in {rel}")
+        # the filename must not disagree with the payload it holds
+        if str(body.get("job_id")) not in os.path.basename(rel):
+            errors.append(f"{mutation}: {rel} filename does not carry its own "
+                          f"job_id {body.get('job_id')!r}")
 
     return ReadbackResult("live_capture_traceable", not errors, errors, detail)
 

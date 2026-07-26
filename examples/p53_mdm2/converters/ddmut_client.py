@@ -30,7 +30,7 @@ side-by-side against the live server on 2026-07-26:
 Also fixed: the in-progress sentinel is reported in the ``status`` field
 (``"status": "RUNNING"``), not only the ``message`` field the docs describe, so
 the running-detection now inspects both.
-  [source: examples/p53_mdm2/data/ddmut_ppi_live/manifest.jsonl]
+  [source: examples/p53_mdm2/data/ddmut_ppi_live/encoding_diagnostic/]
 
 Good-internet-citizen policy (enforced here):
   - Sequential requests only, with a client-side throttle of >= MIN_INTERVAL_S
@@ -260,7 +260,7 @@ class DDMutClient:
         The docs describe ``message - RUNNING``, but the live server actually
         reports it in ``status`` (``{"job_id": ..., "status": "RUNNING"}``), so
         both fields are inspected.
-        [source: examples/p53_mdm2/data/ddmut_ppi_live/manifest.jsonl]
+        [source: examples/p53_mdm2/data/ddmut_ppi_live/encoding_diagnostic/]
         """
         if not isinstance(payload, dict):
             return False
@@ -371,9 +371,36 @@ def default_fixture_path() -> str:
         "ddmut_ppi_fixture.json")
 
 
-def default_capture_dir() -> str:
-    """Committed directory holding VERBATIM live-server responses (evidence)."""
+def live_capture_root() -> str:
+    """Committed root holding VERBATIM live-server responses (evidence).
+
+    Layout:
+      ``ddmut_ppi_live_predictions.json``  curated ΔΔG per variant + pointers
+      ``responses/``       the canonical bodies those pointers cite
+      ``run_<UTC>/``       one immutable directory per live run (raw capture)
+      ``encoding_diagnostic/``  the query-string-vs-form-body root-cause proof
+    """
     return os.path.join(_PKG_PARENT, "p53_mdm2", "data", "ddmut_ppi_live")
+
+
+def new_run_capture_dir(root: Optional[str] = None) -> str:
+    """A FRESH per-run capture directory: ``<root>/run_<UTC timestamp>``.
+
+    Capture files are numbered per client instance starting at 001, so two runs
+    sharing one directory would renumber over each other's evidence -- which is
+    exactly what happened on 2026-07-26 when a concurrent sibling task re-ran
+    the live path into the shared directory and overwrote committed bodies
+    mid-commit. Scoping every run to its own timestamped directory makes prior
+    evidence immutable no matter who runs what concurrently.
+    """
+    root = root or live_capture_root()
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return os.path.join(root, f"run_{stamp}")
+
+
+def canonical_responses_dir(root: Optional[str] = None) -> str:
+    """Directory of the canonical bodies the curated predictions JSON cites."""
+    return os.path.join(root or live_capture_root(), "responses")
 
 
 def load_fixture(path: Optional[str] = None) -> dict:
@@ -386,7 +413,7 @@ def load_fixture(path: Optional[str] = None) -> dict:
 
 
 def default_capture_predictions_path() -> str:
-    return os.path.join(default_capture_dir(), "ddmut_ppi_live_predictions.json")
+    return os.path.join(live_capture_root(), "ddmut_ppi_live_predictions.json")
 
 
 def load_live_capture(path: Optional[str] = None) -> dict:
@@ -474,9 +501,11 @@ def write_back_ddg(
                 raise
 
     if client is None and source in ("live", "auto"):
+        # A FRESH run directory per invocation -- never the shared root, so a
+        # concurrent or later run cannot renumber over committed evidence.
         client = DDMutClient(
             capture_dir=capture_dir if capture_dir is not None
-            else default_capture_dir())
+            else new_run_capture_dir())
 
     stage = Usd.Stage.Open(genotype_path)
     root = stage.GetDefaultPrim()
@@ -588,8 +617,9 @@ if __name__ == "__main__":
     ap.add_argument("--stage", default=default_output_path())
     ap.add_argument("--max-wait", type=float, default=DEFAULT_MAX_POLL_S)
     ap.add_argument("--capture-dir", default=None,
-                    help="where to write VERBATIM server responses "
-                         f"(default: {default_capture_dir()})")
+                    help="where to write VERBATIM server responses (default: "
+                         "a fresh run_<UTC> directory under "
+                         f"{live_capture_root()})")
     args = ap.parse_args()
 
     print(f"[ddmut_client] write-back source={args.source} stage={args.stage}")

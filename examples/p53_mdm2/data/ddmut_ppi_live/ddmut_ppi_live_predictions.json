@@ -1,5 +1,5 @@
 {
-  "_README": "REAL DDMut-PPI SERVER OUTPUT. Every value here is parsed from a VERBATIM captured response body committed alongside this file in this directory; 'response_file' names that body for each mutation, and manifest.jsonl records the full request/response metadata (URL, method, encoding, request fields, HTTP status, timing). This file is DERIVED from those bodies by a script, never hand-entered.",
+  "_README": "REAL DDMUT-PPI SERVER OUTPUT. Every value here is parsed from a VERBATIM captured response body committed under responses/ in this directory; 'response_file' names that body for each mutation. This file is DERIVED from those bodies by script, never hand-entered. responses/ is the CANONICAL, immutable evidence set the pipeline cites -- see README.md for why it exists separately from the raw per-run capture directories.",
   "source": "ddmut-ppi-live (https://biosig.lab.uq.edu.au/ddmut_ppi/api/single)",
   "captured": "2026-07-26",
   "units": "kcal/mol",
@@ -16,8 +16,7 @@
       "distance_to_interface": 3.017,
       "job_id": "17850858889778712",
       "results_page": "http://biosig.lab.uq.edu.au/ddmut_ppi/results_prediction/17850858889778712",
-      "response_file": "008_GET_single.body.txt",
-      "submit_response_file": "001_POST_single.body.txt",
+      "response_file": "responses/F19A_17850858889778712_DONE.json",
       "retrieved_utc": "2026-07-26T17:12:26+00:00"
     },
     "L26A": {
@@ -29,8 +28,7 @@
       "distance_to_interface": 3.36,
       "job_id": "17850859504748063",
       "results_page": "http://biosig.lab.uq.edu.au/ddmut_ppi/results_prediction/17850859504748063",
-      "response_file": "016_GET_single.body.txt",
-      "submit_response_file": "009_POST_single.body.txt",
+      "response_file": "responses/L26A_17850859504748063_DONE.json",
       "retrieved_utc": "2026-07-26T17:13:28+00:00"
     },
     "W23A": {
@@ -42,8 +40,7 @@
       "distance_to_interface": 2.831,
       "job_id": "17850860117753787",
       "results_page": "http://biosig.lab.uq.edu.au/ddmut_ppi/results_prediction/17850860117753787",
-      "response_file": "024_GET_single.body.txt",
-      "submit_response_file": "017_POST_single.body.txt",
+      "response_file": "responses/W23A_17850860117753787_DONE.json",
       "retrieved_utc": "2026-07-26T17:14:29+00:00"
     }
   }
