@@ -129,7 +129,7 @@ an explicit PI "yes". They are sequential — do not skip ahead.
 
 - **(a) GROMACS exact version.** Scaffolded at **2025.3**. Note this is a
   deliberate pin, *not* "the newest" — **2025.4 and 2026.x now exist upstream**
-  (visible in the GROMACS ftp index and in Spack/EasyBuild recipes). Confirm 2025.3,
+  (both appear as released versions in the Spack and EasyBuild GROMACS recipes). Confirm 2025.3,
   bump, or pin to a specific 2024.x if reproducibility with an existing study is wanted.
 - **(b) Build on banyan vs locally.** Recommend **banyan** — it has Docker *and*
   singularity 4.2.2 *and* fakeroot, so `singularity build gromacs.sif gromacs.def`
