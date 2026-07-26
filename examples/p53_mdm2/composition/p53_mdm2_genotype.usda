@@ -30,27 +30,8 @@ def Xform "p53_MDM2_complex" (
     }
     variantSet "Genotype" = {
         "F19A" {
-            custom string bio:ddgJobId = "unknown"
-            custom float bio:ddgKcalPerMol = -2.8
-            custom token bio:ddgSource = "fixture"
-            custom token bio:ddgStatus = "fixture"
-            custom token bio:ddgUnits = "kcal/mol"
-            custom string bio:forceField = "n/a (DDMut-PPI graph-based ML predictor)"
             custom string bio:genotypeLabel = "F19A"
-            custom token bio:maboss:correlationForm = "logistic"
-            custom float bio:maboss:correlationMidpointKcalPerMol = -3
-            custom float bio:maboss:correlationSteepnessPerKcal = 1.5
-            custom token[] bio:maboss:paramNames = ["KMn_pMCD", "KMn_pMC"]
-            custom float bio:maboss:paramValue = 0.5744425
-            custom token bio:maboss:paramValueSource = "fixture"
-            custom token bio:maboss:paramValueStatus = "fixture"
-            custom token bio:maboss:targetNode = "Mdm2N"
             custom string bio:mutation = "F19A"
-            custom string bio:simSettings = '{"chain": "B", "endpoint": "https://biosig.lab.uq.edu.au/ddmut_ppi/api/single", "mutation": "F19A", "reverse": false}'
-            custom string bio:softwareName = "DDMut-PPI"
-            custom string bio:softwareVersion = "unknown"
-            custom string bio:sourcePdb = "1YCR"
-            custom string bio:timestamp = "2026-07-13T23:50:31+00:00"
 
             over "Site_PHE_19" (
                 prepend references = @geometries/f19a_phe_19.usda@
@@ -72,27 +53,8 @@ def Xform "p53_MDM2_complex" (
 
         }
         "L26A" {
-            custom string bio:ddgJobId = "unknown"
-            custom float bio:ddgKcalPerMol = -1.9
-            custom token bio:ddgSource = "fixture"
-            custom token bio:ddgStatus = "fixture"
-            custom token bio:ddgUnits = "kcal/mol"
-            custom string bio:forceField = "n/a (DDMut-PPI graph-based ML predictor)"
             custom string bio:genotypeLabel = "L26A"
-            custom token bio:maboss:correlationForm = "logistic"
-            custom float bio:maboss:correlationMidpointKcalPerMol = -3
-            custom float bio:maboss:correlationSteepnessPerKcal = 1.5
-            custom token[] bio:maboss:paramNames = ["KMn_pMCD", "KMn_pMC"]
-            custom float bio:maboss:paramValue = 0.838891
-            custom token bio:maboss:paramValueSource = "fixture"
-            custom token bio:maboss:paramValueStatus = "fixture"
-            custom token bio:maboss:targetNode = "Mdm2N"
             custom string bio:mutation = "L26A"
-            custom string bio:simSettings = '{"chain": "B", "endpoint": "https://biosig.lab.uq.edu.au/ddmut_ppi/api/single", "mutation": "L26A", "reverse": false}'
-            custom string bio:softwareName = "DDMut-PPI"
-            custom string bio:softwareVersion = "unknown"
-            custom string bio:sourcePdb = "1YCR"
-            custom string bio:timestamp = "2026-07-13T23:50:31+00:00"
 
             over "Site_PHE_19" (
                 prepend references = @geometries/wildtype_phe_19.usda@
@@ -114,27 +76,8 @@ def Xform "p53_MDM2_complex" (
 
         }
         "W23A" {
-            custom string bio:ddgJobId = "unknown"
-            custom float bio:ddgKcalPerMol = -3.9
-            custom token bio:ddgSource = "fixture"
-            custom token bio:ddgStatus = "fixture"
-            custom token bio:ddgUnits = "kcal/mol"
-            custom string bio:forceField = "n/a (DDMut-PPI graph-based ML predictor)"
             custom string bio:genotypeLabel = "W23A"
-            custom token bio:maboss:correlationForm = "logistic"
-            custom float bio:maboss:correlationMidpointKcalPerMol = -3
-            custom float bio:maboss:correlationSteepnessPerKcal = 1.5
-            custom token[] bio:maboss:paramNames = ["KMn_pMCD", "KMn_pMC"]
-            custom float bio:maboss:paramValue = 0.20587035
-            custom token bio:maboss:paramValueSource = "fixture"
-            custom token bio:maboss:paramValueStatus = "fixture"
-            custom token bio:maboss:targetNode = "Mdm2N"
             custom string bio:mutation = "W23A"
-            custom string bio:simSettings = '{"chain": "B", "endpoint": "https://biosig.lab.uq.edu.au/ddmut_ppi/api/single", "mutation": "W23A", "reverse": false}'
-            custom string bio:softwareName = "DDMut-PPI"
-            custom string bio:softwareVersion = "unknown"
-            custom string bio:sourcePdb = "1YCR"
-            custom string bio:timestamp = "2026-07-13T23:50:31+00:00"
 
             over "Site_PHE_19" (
                 prepend references = @geometries/wildtype_phe_19.usda@
