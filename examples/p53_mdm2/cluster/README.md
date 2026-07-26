@@ -15,7 +15,7 @@ the two shared clusters.
 
 | File | What it is |
 |---|---|
-| `gromacs.def` | Singularity/Apptainer definition: GPU-enabled **GROMACS 2025.3** on a **CUDA 12.9** base, built for both V100 (sm_70) and H100 (sm_90). Not built. |
+| `gromacs.def` | Singularity/Apptainer definition: GPU-enabled **GROMACS 2025.3** on a **CUDA 12.9.1 / Ubuntu 22.04** base, built for both V100 (sm_70) and H100 (sm_90). Every pin carries an inline source URL. Not built. |
 | `smoke_submit.sbatch` | Slurm template for a **1-GPU** smoke test (`gmx --version` on the GPU node + a trivial energy minimization) via `singularity exec --nv`. Not submitted. |
 | `README.md` | This runbook. |
 
@@ -49,11 +49,43 @@ break the V100 path.
 the **host** driver is bind-mounted in; both host drivers (580, 595) are newer
 than the 12.9 runtime, so they are forward-compatible.
 
-**Verified vs assumed:** GROMACS 2025.3 as latest, the CUDA 12.1+ requirement,
-the CUDA-13-drops-Volta fact, and the `GMX_*` build-flag names are **verified**
-against GROMACS 2025.3 docs and NVIDIA docs. The exact `nvidia/cuda:12.9.1` patch
-tag, the GROMACS source tarball URL/sha256, and `GMX_SIMD=AVX2_256` are tagged
-`[assumption]` in `gromacs.def` and must be confirmed at build time.
+### Verified vs assumed (upstream verification pass, cycle-006)
+
+Every pinned value in `gromacs.def` now carries an inline source URL. **Exactly
+one `[assumption]` remains.**
+
+**Verified against upstream sources** (URLs are in `gromacs.def` next to each value):
+
+| Item | Resolved value | Source |
+|---|---|---|
+| GROMACS version + tarball URL | `2025.3`, `https://ftp.gromacs.org/gromacs/gromacs-2025.3.tar.gz` (42 MB, 2025-08-29) | GROMACS 2025.3 download page + ftp index |
+| Tarball checksum (official) | **md5** `5a2315b6f6e13b091bbbbfddee9eb62b` | GROMACS 2025.3 download page — GROMACS publishes **only** an md5, no sha256 anywhere |
+| Tarball checksum (corroborated) | **sha256** `8bdfca02…c65` | Spack *and* EasyBuild recipes agree byte-for-byte; **not** vendor-published — flagged as such in the def. Both checks are active in `%post`. |
+| Minimum CUDA for GROMACS 2025.3 | "CUDA toolkit version 12.1 or newer" | GROMACS 2025.3 install guide (12.9.1 clears it; note GROMACS' own CI only tests 12.1/12.5.1/12.6) |
+| CUDA base image tag | `nvidia/cuda:12.9.1-devel-ubuntu22.04` **exists**, digest `sha256:bd4e2680…ba8`, updated 2025-07-25 | Docker Hub tag API (a newer `12.9.2-devel-ubuntu22.04` also exists) |
+| `GMX_*` flag spellings | `GMX_GPU=CUDA`, `GMX_CUDA_TARGET_SM`/`_COMPUTE` (semicolon-delimited two-digit CCs), `GMX_MPI`, `GMX_DOUBLE`, `GMX_BUILD_OWN_FFTW`, `CUDA_TOOLKIT_ROOT_DIR` | GROMACS 2025.3 install guide |
+| CUDA 13 drops Volta | Confirmed **twice**: NVIDIA's guidance is verbatim "remain on branch 580 … Remain on 12.9"; and nvcc 12.9.1's SM list has `sm_70`, while nvcc 13.0.0's list **starts at `sm_75`** | NVIDIA architecture-support blog (2025-08-04) + both toolkits' nvcc manuals |
+
+**Two build-breakers found and fixed while verifying** (neither was previously flagged):
+
+- **jammy's apt `cmake` is 3.22.1, but GROMACS 2025.3 requires ≥ 3.28.** The old
+  recipe `apt-get install cmake` would have failed at configure time. `%post` now
+  installs pinned **CMake 4.0.3** from Kitware's official binary tarball with
+  Kitware's own published sha256, and no longer installs cmake from apt.
+- **Ubuntu 22.04 vs 24.04 is a compiler decision.** GROMACS 2025.3 recommends
+  "GCC … version 9.x to 11.x. Note: there are known issues with GCC 12 and
+  newer." jammy gives gcc 11.x; noble gives gcc 13.2. So the 22.04 base is the
+  *correct* choice and the CMake gap is the price paid for it — now documented in
+  the def instead of implicit.
+
+**Still `[assumption]` — `GMX_SIMD=AVX2_256`.** `AVX2_256` is a real, correctly
+spelled value, but **no CPU model was ever recorded for either cluster** — report
+07 has GPUs, drivers, Slurm and singularity versions and no `lscpu`. Resolve it at
+build time by running `lscpu` on **both** machines and taking the highest SIMD
+level supported by **both** (least common denominator). Do **not** fall back to
+CMake's auto-detection: it detects the *build host*, and one `.sif` on the shared
+NFS home runs on two different CPU generations — an over-detected build can throw
+illegal-instruction faults on the other cluster.
 
 ---
 
@@ -68,8 +100,11 @@ an explicit PI "yes". They are sequential — do not skip ahead.
    - **Route B (Docker-first):** build an equivalent Docker image from the same
      base + `%post` steps, `docker save img -o gromacs.tar`, then
      `singularity build gromacs.sif docker-archive://gromacs.tar`.
-   - Before building, fill in the `[assumption]`-tagged blanks in `gromacs.def`
-     (CUDA patch tag, GROMACS tarball sha256).
+   - Before building, resolve the **one** remaining `[assumption]` in
+     `gromacs.def`: run `lscpu` on both clusters and set `GMX_SIMD` to the
+     highest level **both** support. Everything else (base-image tag, tarball
+     URL, md5 + sha256, CMake version/hash, all `GMX_*` flags) is verified with
+     an inline source URL — no blanks left to fill.
 
 2. **⛔ Stage the `.sif` + a tiny test system into shared home.**
    `fs_mkdir /home/eliott/p53mdm2/{,smoke/in,smoke/out}` then `fs_upload` the
@@ -92,8 +127,10 @@ an explicit PI "yes". They are sequential — do not skip ahead.
 
 ## Open sub-decisions the PI still needs to settle
 
-- **(a) GROMACS exact version.** Scaffolded at **2025.3** (latest stable). Confirm,
-  or pin to a specific 2024.x if reproducibility with an existing study is wanted.
+- **(a) GROMACS exact version.** Scaffolded at **2025.3**. Note this is a
+  deliberate pin, *not* "the newest" — **2025.4 and 2026.x now exist upstream**
+  (visible in the GROMACS ftp index and in Spack/EasyBuild recipes). Confirm 2025.3,
+  bump, or pin to a specific 2024.x if reproducibility with an existing study is wanted.
 - **(b) Build on banyan vs locally.** Recommend **banyan** — it has Docker *and*
   singularity 4.2.2 *and* fakeroot, so `singularity build gromacs.sif gromacs.def`
   runs directly and the output lands on shared home. Local build is possible but
@@ -120,3 +157,6 @@ an explicit PI "yes". They are sequential — do not skip ahead.
 ---
 *Generated as prep scaffolding for p1b Step 2 (cycle-005). Not committed by the
 generating agent; left for the orchestrator to review and commit.*
+*cycle-006: upstream verification pass over `gromacs.def` — all pins but one
+resolved to citable sources; two latent build-breakers (CMake floor, gcc range)
+found and fixed. Still nothing built, uploaded, or submitted.*
