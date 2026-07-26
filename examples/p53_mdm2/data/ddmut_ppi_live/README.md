@@ -1,9 +1,21 @@
 # DDMut-PPI live capture — 2026-07-26
 
 **Real server output.** Every file in this directory is a verbatim response body
-from the DDMut-PPI public API, written unmodified by
-`examples/p53_mdm2/converters/ddmut_client.py` at request time. Nothing here is
-hand-written, reformatted, or reconstructed.
+from the DDMut-PPI public API, written by
+`examples/p53_mdm2/converters/ddmut_client.py`. Nothing here is hand-written,
+reformatted, or reconstructed.
+
+**Provenance caveat, stated up front:** the three canonical bodies under
+`responses/` were *not* written in place by the capturing run. A concurrent
+cycle-006 sibling task overwrote the original capture files mid-commit (see
+"Capture scoping" below); they were recovered **byte-for-byte from git commit
+`b60e62d`** and then relocated and renamed. So they are byte-identical to what
+the server returned, but they are relocations rather than first-hand captures.
+Files under `run_<UTC>/` and `encoding_diagnostic/` *were* written in place at
+request time. A reviewer who requires first-hand capture provenance for the
+canonical set should re-run the three jobs. Note also that the read-back test
+verifies internal consistency (job_id / chain / position / residues vs. the
+mutation code), not capture provenance.
 
 This directory is the evidence backing the `bio:ddgKcalPerMol` values on the
 `Genotype` variants of `examples/p53_mdm2/composition/p53_mdm2_genotype.usda`.

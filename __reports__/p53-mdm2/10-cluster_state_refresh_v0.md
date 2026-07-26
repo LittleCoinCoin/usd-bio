@@ -8,7 +8,7 @@ topic: p53-mdm2
 spotted-during: cycle-006 read-only state refresh of banyan/dgx1 ahead of the PI-attended GROMACS container build (p1b Step 2)
 date: 2026-07-27
 domain: other
-confidence: confirmed
+confidence: mixed — most observations are directly confirmed from captured command output; the headline finding (Route A cannot work) is INFERENCE from a proved-missing /etc/subuid mapping, never an observed build failure. See the caveats at "What Was Noticed" and in the uncertainty section.
 urgency: high
 deferred-because: Every remedy is a cluster-mutating or file-writing action; this pass was mandated read-only, so findings are recorded rather than acted on.
 ---
