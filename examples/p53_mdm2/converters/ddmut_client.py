@@ -4,15 +4,33 @@ ddmut_client.py -- Pipeline 2 Step 2: a rate-limited DDMut-PPI client and a
 ddG write-back that records the result onto Genotype variants as ``bio:``
 attributes with six-field provenance.
 
-DDMut-PPI API (confirmed from the API page, not guessed):
-  - Single-mutation submit:  POST {base}/single  with fields
-        pdb_accession (or pdb_file), chain (required), mutation (required),
-        Reverse (optional), email (optional)  ->  JSON {"job_id": "..."}
-  - Single-mutation retrieve: GET {base}/single?job_id=...  ->  completed JSON
-        with fields job_id, status, prediction (ddG kcal/mol, negative =
-        destabilizing), chain, position, wild-type, mutant, ...; in-progress
-        returns {"message": "RUNNING"}.
-  [source: https://biosig.lab.uq.edu.au/ddmut_ppi/api]
+DDMut-PPI API (transcribed from the official API documentation, not guessed):
+  - Single-mutation submit:  POST {base}/single  as multipart/form-data with
+        fields pdb_accession (or pdb_file), chain (required), mutation
+        (required), Reverse (optional), email (optional)
+        ->  JSON {"job_id": "..."}
+  - Single-mutation retrieve: GET {base}/single  with job_id sent as a
+        **multipart/form-data body field** (the documented example is
+        ``curl .../api/single -X GET -F job_id=<id>``), NOT as a URL query
+        parameter.  ->  in-progress: {"job_id": ..., "status": "RUNNING"};
+        completed: {"job_id", "status": "DONE", "prediction" (ddG kcal/mol,
+        negative = destabilizing), "chain", "position", "wild-type", "mutant",
+        "distance_to_interface", "results_page"}.
+  [source: extras/DDMut-PPI-API.md -- local Markdown conversion of the PDF
+   print of https://biosig.lab.uq.edu.au/ddmut_ppi/api provided by the PI]
+
+CYCLE-006 ROOT-CAUSE FIX. Cycles 002-005 could submit jobs (real job_ids came
+back) but every retrieval returned {"message": "Internal Server Error"}, so no
+real prediction was ever captured and a synthetic fixture stood in. The cause
+was the retrieval encoding: this client sent ``GET /single?job_id=<id>`` (URL
+query string) whereas the server reads job_id from the *form body*. Verified
+side-by-side against the live server on 2026-07-26:
+    GET /single?job_id=<id>          -> HTTP 500 {"message": "Internal Server Error"}
+    GET /single  -F job_id=<id>      -> HTTP 200 {"job_id": ..., "status": "RUNNING"}
+Also fixed: the in-progress sentinel is reported in the ``status`` field
+(``"status": "RUNNING"``), not only the ``message`` field the docs describe, so
+the running-detection now inspects both.
+  [source: examples/p53_mdm2/data/ddmut_ppi_live/encoding_diagnostic/]
 
 Good-internet-citizen policy (enforced here):
   - Sequential requests only, with a client-side throttle of >= MIN_INTERVAL_S
@@ -93,6 +111,9 @@ class DDMutResult:
     detail: str = ""
     timestamp: str = field(default_factory=_now_iso)
     raw: Optional[dict] = None
+    # Basename of the VERBATIM captured response body that this prediction was
+    # read out of -- the traceability link from a number to its evidence.
+    response_file: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -108,12 +129,21 @@ class DDMutClient:
         user_agent: str = DEFAULT_USER_AGENT,
         min_interval_s: float = MIN_INTERVAL_S,
         timeout_s: float = DEFAULT_TIMEOUT_S,
+        capture_dir: Optional[str] = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.user_agent = user_agent
         self.min_interval_s = float(min_interval_s)
         self.timeout_s = float(timeout_s)
         self._last_request_t = 0.0
+        # Evidence capture: when set, every HTTP exchange writes its response
+        # body VERBATIM to a file and appends a metadata row to manifest.jsonl.
+        # This is what makes a reported ddG traceable to a real response.
+        self.capture_dir = capture_dir
+        self._capture_seq = 0
+        self.last_capture_path = ""  # set by _capture on every exchange
+        if capture_dir:
+            os.makedirs(capture_dir, exist_ok=True)
 
     # -- throttle: enforce >= min_interval between any two HTTP calls --
     def _throttle(self) -> None:
@@ -139,14 +169,50 @@ class DDMutClient:
         body = "\r\n".join(parts).encode("utf-8")
         return body, f"multipart/form-data; boundary={boundary}"
 
+    def _capture(self, *, method: str, url: str, fields: Optional[dict],
+                 code, body: str, elapsed_s: float, error: str = "") -> Optional[str]:
+        """Write one response body verbatim + a manifest row. Returns the path."""
+        if not self.capture_dir:
+            return None
+        self._capture_seq += 1
+        slug = url.rsplit("/", 1)[-1].split("?")[0] or "root"
+        name = f"{self._capture_seq:03d}_{method}_{slug}.body.txt"
+        body_path = os.path.join(self.capture_dir, name)
+        with open(body_path, "w") as fh:
+            fh.write(body)  # VERBATIM -- no reformatting, no pretty-printing
+        row = {
+            "seq": self._capture_seq,
+            "timestamp_utc": _now_iso(),
+            "method": method,
+            "url": url,
+            "request_encoding": "multipart/form-data" if fields else "none",
+            "request_fields": fields or {},
+            "http_status": code,
+            "elapsed_s": round(elapsed_s, 3),
+            "body_file": name,
+            "body_bytes": len(body.encode("utf-8")),
+            "network_error": error,
+        }
+        with open(os.path.join(self.capture_dir, "manifest.jsonl"), "a") as fh:
+            fh.write(json.dumps(row, sort_keys=True) + "\n")
+        self.last_capture_path = name
+        return body_path
+
     def _http(self, method: str, path: str, *,
               fields: Optional[dict] = None,
               params: Optional[dict] = None) -> tuple:
         """Perform one throttled HTTP call. Returns (status_code, parsed_json).
 
+        ``fields`` is sent as a multipart/form-data body -- for BOTH POST and
+        GET, because the DDMut-PPI retrieval endpoint reads ``job_id`` from the
+        form body even on GET (see module docstring). ``params`` appends a URL
+        query string and is retained only for diagnostics/experiments; the
+        production paths do not use it.
+
         A non-2xx response whose body is JSON is returned as (code, json) rather
         than raised, so the caller can read an API error message (e.g.
-        {"message": "Internal Server Error"}). Network-level failures raise.
+        {"message": "Internal Server Error"}). Network-level failures raise
+        after their evidence has been captured.
         """
         url = f"{self.base_url}/{path.lstrip('/')}"
         data = None
@@ -159,6 +225,7 @@ class DDMutClient:
 
         req = _urlrequest.Request(url, data=data, headers=headers, method=method)
         self._throttle()
+        t0 = time.monotonic()
         try:
             with _urlrequest.urlopen(req, timeout=self.timeout_s) as resp:
                 code = resp.getcode()
@@ -166,8 +233,19 @@ class DDMutClient:
         except HTTPError as exc:
             code = exc.code
             body = exc.read().decode("utf-8", errors="replace") if exc.fp else ""
+        except (URLError, OSError) as exc:
+            # Capture the failure as evidence, then re-raise for the caller's
+            # honest 'unavailable' path.
+            self._capture(method=method, url=url, fields=fields,
+                          code=None, body="", elapsed_s=time.monotonic() - t0,
+                          error=f"{type(exc).__name__}: {exc}")
+            self._finish_request()
+            raise
         finally:
             self._finish_request()
+
+        self._capture(method=method, url=url, fields=fields, code=code,
+                      body=body, elapsed_s=time.monotonic() - t0)
 
         try:
             parsed = json.loads(body) if body.strip() else {}
@@ -177,8 +255,20 @@ class DDMutClient:
 
     @staticmethod
     def _looks_running(payload: dict) -> bool:
-        msg = str(payload.get("message", "")).upper()
-        return any(tok in msg for tok in _RUNNING_TOKENS)
+        """True when the payload is an in-progress sentinel.
+
+        The docs describe ``message - RUNNING``, but the live server actually
+        reports it in ``status`` (``{"job_id": ..., "status": "RUNNING"}``), so
+        both fields are inspected.
+        [source: examples/p53_mdm2/data/ddmut_ppi_live/encoding_diagnostic/]
+        """
+        if not isinstance(payload, dict):
+            return False
+        for key in ("message", "status"):
+            val = str(payload.get(key, "")).upper()
+            if any(tok in val for tok in _RUNNING_TOKENS):
+                return True
+        return False
 
     def submit_single(
         self, mutation: str, chain: str, *,
@@ -216,7 +306,11 @@ class DDMutClient:
         deadline = time.monotonic() + max_wait_s
         backoff = initial_backoff_s
         while time.monotonic() < deadline:
-            code, payload = self._http("GET", "single", params={"job_id": job_id})
+            # job_id goes in the multipart BODY, not the query string -- sending
+            # it as ?job_id=... makes the server return HTTP 500. This is the
+            # cycle-006 root-cause fix; do not "simplify" it back to params=.
+            code, payload = self._http("GET", "single",
+                                       fields={"job_id": str(job_id)})
             if isinstance(payload, dict) and payload.get("prediction") is not None:
                 return payload
             if self._looks_running(payload):
@@ -264,7 +358,8 @@ class DDMutClient:
                                job_id=job_id, detail="prediction not numeric",
                                raw=payload)
         return DDMutResult(mutation, chain, prediction=prediction,
-                           status="success", job_id=job_id, raw=payload)
+                           status="success", job_id=job_id, raw=payload,
+                           response_file=self.last_capture_path)
 
 
 # ---------------------------------------------------------------------------
@@ -276,6 +371,38 @@ def default_fixture_path() -> str:
         "ddmut_ppi_fixture.json")
 
 
+def live_capture_root() -> str:
+    """Committed root holding VERBATIM live-server responses (evidence).
+
+    Layout:
+      ``ddmut_ppi_live_predictions.json``  curated ΔΔG per variant + pointers
+      ``responses/``       the canonical bodies those pointers cite
+      ``run_<UTC>/``       one immutable directory per live run (raw capture)
+      ``encoding_diagnostic/``  the query-string-vs-form-body root-cause proof
+    """
+    return os.path.join(_PKG_PARENT, "p53_mdm2", "data", "ddmut_ppi_live")
+
+
+def new_run_capture_dir(root: Optional[str] = None) -> str:
+    """A FRESH per-run capture directory: ``<root>/run_<UTC timestamp>``.
+
+    Capture files are numbered per client instance starting at 001, so two runs
+    sharing one directory would renumber over each other's evidence -- which is
+    exactly what happened on 2026-07-26 when a concurrent sibling task re-ran
+    the live path into the shared directory and overwrote committed bodies
+    mid-commit. Scoping every run to its own timestamped directory makes prior
+    evidence immutable no matter who runs what concurrently.
+    """
+    root = root or live_capture_root()
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return os.path.join(root, f"run_{stamp}")
+
+
+def canonical_responses_dir(root: Optional[str] = None) -> str:
+    """Directory of the canonical bodies the curated predictions JSON cites."""
+    return os.path.join(root or live_capture_root(), "responses")
+
+
 def load_fixture(path: Optional[str] = None) -> dict:
     """Load the committed ddG fixture. Returns {mutation: prediction_float}."""
     path = path or default_fixture_path()
@@ -285,16 +412,41 @@ def load_fixture(path: Optional[str] = None) -> dict:
     return {mut: float(v["prediction"]) for mut, v in preds.items()}
 
 
+def default_capture_predictions_path() -> str:
+    return os.path.join(live_capture_root(), "ddmut_ppi_live_predictions.json")
+
+
+def load_live_capture(path: Optional[str] = None) -> dict:
+    """Load REAL live-server ddG values from the committed capture.
+
+    Returns {mutation: entry_dict} where each entry carries ``prediction``,
+    ``job_id`` and ``response_file`` -- the values are genuine DDMut-PPI output,
+    each traceable to a verbatim response body committed next to this file.
+
+    This backs ``source="captured"``: a deterministic, offline REPLAY of the
+    2026-07-26 live results. It exists so that re-running the pipeline (demos,
+    CI, a sibling task) restores the real live values WITHOUT re-submitting jobs
+    to a free public academic service. It is not a fixture and not synthetic --
+    but it is also not a fresh query, and the write-back records that
+    distinction in ``bio:ddgLiveOutcome``.
+    """
+    path = path or default_capture_predictions_path()
+    with open(path, "r") as fh:
+        doc = json.load(fh)
+    return dict(doc.get("predictions", {}))
+
+
 # ---------------------------------------------------------------------------
 # Write-back: record ddG + provenance onto each Genotype variant
 # ---------------------------------------------------------------------------
 def write_back_ddg(
     genotype_path: str,
     *,
-    source: str = "auto",              # "live" | "fixture" | "auto"
+    source: str = "auto",              # "live" | "captured" | "fixture" | "auto"
     pdb_accession: str = "1YCR",
     client: Optional[DDMutClient] = None,
     fixture_path: Optional[str] = None,
+    capture_dir: Optional[str] = None,
     max_wait_s: float = DEFAULT_MAX_POLL_S,
     verbose: bool = True,
 ) -> dict:
@@ -307,12 +459,20 @@ def write_back_ddg(
     the six ``bio:`` provenance fields.
 
     source:
-        "live"    -- query the DDMut-PPI API; failures => status 'unavailable',
-                     no numeric written.
-        "fixture" -- use the committed fixture; tags 'fixture'.
-        "auto"    -- attempt live; on live failure fall back to the fixture
-                     (clearly tagged 'fixture'), recording the live outcome in
-                     ``bio:ddgLiveOutcome``.
+        "live"     -- query the DDMut-PPI API now; failures => status
+                      'unavailable', no numeric written.
+        "captured" -- REPLAY the committed real live-server values from
+                      data/ddmut_ppi_live/ (no network). Tags 'success' /
+                      'ddmut-ppi-live', because the numbers ARE server output;
+                      ``bio:ddgLiveOutcome`` records that it was a replay.
+                      This is the reproducible default-safe way to restore the
+                      real values offline.
+        "fixture"  -- use the committed SYNTHETIC fixture; tags 'fixture'.
+                      Offline fallback only; not real predictions.
+        "auto"     -- attempt live; on live failure fall back to the captured
+                      real values if present, else the synthetic fixture
+                      (clearly tagged), recording the live outcome in
+                      ``bio:ddgLiveOutcome``.
 
     Returns a summary dict {mutation: {status, source, prediction}}.
     """
@@ -320,8 +480,9 @@ def write_back_ddg(
     from p53_mdm2.composition.provenance import (
         apply_provenance_metadata, ddmut_provenance_record, UNKNOWN)
 
-    if source not in ("live", "fixture", "auto"):
-        raise ValueError(f"source must be live|fixture|auto, got {source!r}")
+    if source not in ("live", "captured", "fixture", "auto"):
+        raise ValueError(
+            f"source must be live|captured|fixture|auto, got {source!r}")
 
     fixture = {}
     if source in ("fixture", "auto"):
@@ -331,8 +492,20 @@ def write_back_ddg(
             if source == "fixture":
                 raise
 
+    captured = {}
+    if source in ("captured", "auto"):
+        try:
+            captured = load_live_capture()
+        except FileNotFoundError:
+            if source == "captured":
+                raise
+
     if client is None and source in ("live", "auto"):
-        client = DDMutClient()
+        # A FRESH run directory per invocation -- never the shared root, so a
+        # concurrent or later run cannot renumber over committed evidence.
+        client = DDMutClient(
+            capture_dir=capture_dir if capture_dir is not None
+            else new_run_capture_dir())
 
     stage = Usd.Stage.Open(genotype_path)
     root = stage.GetDefaultPrim()
@@ -351,6 +524,7 @@ def write_back_ddg(
         ddg_source = "none"
         job_id = None
         live_outcome = ""
+        response_file = ""
 
         # --- obtain a value honestly ---
         if source in ("live", "auto"):
@@ -363,6 +537,22 @@ def write_back_ddg(
                 prediction = result.prediction
                 status = "success"
                 ddg_source = "ddmut-ppi-live"
+                response_file = result.response_file
+
+        # Replay of real captured server output (preferred over the synthetic
+        # fixture whenever a genuine captured value exists for this mutation).
+        if prediction is None and source in ("captured", "auto") \
+                and mutation in captured:
+            entry = captured[mutation]
+            prediction = float(entry["prediction"])
+            status = "success"
+            ddg_source = "ddmut-ppi-live"
+            job_id = str(entry.get("job_id") or "") or None
+            response_file = str(entry.get("response_file") or "")
+            live_outcome = (
+                f"replay: real server value read from committed verbatim "
+                f"capture {response_file} (captured "
+                f"{entry.get('retrieved_utc', 'unknown')}); no new query")
 
         if prediction is None and source in ("fixture", "auto") and mutation in fixture:
             prediction = fixture[mutation]
@@ -379,7 +569,12 @@ def write_back_ddg(
             root.CreateAttribute("bio:ddgSource", Sdf.ValueTypeNames.Token).Set(ddg_source)
             root.CreateAttribute("bio:ddgUnits", Sdf.ValueTypeNames.Token).Set("kcal/mol")
             root.CreateAttribute("bio:ddgJobId", Sdf.ValueTypeNames.String).Set(job_id or UNKNOWN)
-            if source in ("live", "auto"):
+            # Evidence link: for a live 'success' this names the verbatim
+            # captured response body the number was read from; 'unknown'
+            # otherwise (fixture / unavailable) -- never a fabricated path.
+            root.CreateAttribute("bio:ddgResponseFile", Sdf.ValueTypeNames.String).Set(
+                response_file or UNKNOWN)
+            if source in ("live", "captured", "auto"):
                 root.CreateAttribute("bio:ddgLiveOutcome", Sdf.ValueTypeNames.String).Set(
                     live_outcome or UNKNOWN)
             if prediction is not None:
@@ -397,7 +592,7 @@ def write_back_ddg(
         summary[mutation] = {
             "status": status, "source": ddg_source,
             "prediction": prediction, "job_id": job_id,
-            "live_outcome": live_outcome,
+            "live_outcome": live_outcome, "response_file": response_file,
         }
         if verbose:
             val = f"{prediction:+.3f} kcal/mol" if prediction is not None else "(none)"
@@ -416,11 +611,17 @@ if __name__ == "__main__":
     from p53_mdm2.composition.build_genotype import default_output_path
 
     ap = argparse.ArgumentParser(description="ddMut-PPI ddG write-back")
-    ap.add_argument("--source", choices=("live", "fixture", "auto"),
+    ap.add_argument("--source",
+                    choices=("live", "captured", "fixture", "auto"),
                     default="auto")
     ap.add_argument("--stage", default=default_output_path())
     ap.add_argument("--max-wait", type=float, default=DEFAULT_MAX_POLL_S)
+    ap.add_argument("--capture-dir", default=None,
+                    help="where to write VERBATIM server responses (default: "
+                         "a fresh run_<UTC> directory under "
+                         f"{live_capture_root()})")
     args = ap.parse_args()
 
     print(f"[ddmut_client] write-back source={args.source} stage={args.stage}")
-    write_back_ddg(args.stage, source=args.source, max_wait_s=args.max_wait)
+    write_back_ddg(args.stage, source=args.source, max_wait_s=args.max_wait,
+                   capture_dir=args.capture_dir)

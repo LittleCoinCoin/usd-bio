@@ -13,40 +13,107 @@
 #   Slurm GPU isolation. submit_job wraps `singularity exec --nv` on GPU jobs.
 #
 # HOW TO BUILD (both PI-gated — do NOT run unattended):
-#   Route A (recommended): on banyan, which has singularity-ce 4.2.2 + fakeroot:
-#       singularity build gromacs.sif gromacs.def
-#   Route B (Docker first, then convert): build an equivalent Docker image from
-#       the SAME base + %post steps, `docker save img -o gromacs.tar`, then:
-#       singularity build gromacs.sif docker-archive://gromacs.tar
+#   Route B (RECOMMENDED — Docker first, then convert): on banyan, which has the
+#       Docker daemon 29.4.3 with this user in the `docker` group:
+#         docker build -t gromacs-p53mdm2 .    # SAME base + %post steps
+#         docker save gromacs-p53mdm2 -o gromacs.tar
+#         singularity build gromacs.sif docker-archive://gromacs.tar
+#       The daemon builds as root, so %post's apt-get + compile just work.
+#   Route A (DEMOTED — expected to FAIL): native `singularity build gromacs.sif
+#       gromacs.def` on banyan. banyan does have singularity-ce 4.2.2, BUT this
+#       user has NO /etc/subuid + /etc/subgid mapping on EITHER cluster (banyan
+#       lists only `user` and `test`; dgx1 only `lxd` and `root`), and the %post
+#       below needs root-in-container, i.e. --fakeroot, which needs that mapping.
+#       Unprivileged userns is otherwise enabled on banyan
+#       (kernel.unprivileged_userns_clone = 1), so the blocker is specifically the
+#       missing subuid range, not a kernel lockdown.
+#         [source: __reports__/p53-mdm2/10-cluster_state_refresh_v0.md §3
+#                  (read-only live refresh, cycle-006, commit c8f2cc2)]
+#       CAVEAT — this is INFERENCE, not an observed failure. The missing mapping
+#       is proved; no build was ever attempted (mutating + PI-gated). One attended
+#       command settles it:  singularity build gromacs.sif gromacs.def
+#       If it works, Route A is back and this note is void.
+#       (Report 07's earlier claim that banyan "has fakeroot" was a
+#        capability-vs-entitlement conflation: the RUNTIME supports fakeroot; this
+#        USER is not entitled to it. That claim is hereby retracted.)
+#   Podman is a LEAD, not a route: banyan has podman 3.4.4 reporting
+#       `Rootless: true` [same source §3], but rootless podman builds normally
+#       need subuid ranges too, and this was never tested.
 #   Because home is one shared NFS (ts2:/export/home), a .sif built/staged once
 #   is visible from both clusters — stage-once, run-anywhere.
+#   Build scratch: keep it OFF banyan's root filesystem. `/tmp` is on `/`, which
+#   lost 147 G in 6 days (586 G -> 439 G free) [same source §5]. Export
+#   SINGULARITY_TMPDIR / SINGULARITY_CACHEDIR / TMPDIR under the shared home and
+#   re-check `df -h /` immediately before building. See ./README.md gated step 1.
+#
+# VERSION-PINNING PROVENANCE (cycle-006 upstream verification pass):
+#   Every pinned value below now carries the source URL it was checked against.
+#   NO `[assumption]` items remain. The last one — GMX_SIMD — was resolved later
+#   in cycle-006 once the cluster CPU models were finally recorded by the live
+#   refresh; see the [verified] note next to the flag.
 # ============================================================================
 
 Bootstrap: docker
-# --- Base image: CUDA 12.9 devel on Ubuntu 22.04 -----------------------------
+# --- Base image: CUDA 12.9.1 devel on Ubuntu 22.04 ---------------------------
 # CUDA 12.9 is deliberate, not arbitrary. This is the CROSS-CLUSTER portability
 # pivot of the whole recipe:
 #   * dgx1  = 8x Tesla V100-SXM2-16GB  -> compute capability 7.0 (Volta, sm_70)
 #             driver 580.159.03  [live: report 07]
 #   * banyan= 2x H100 NVL ~94GB        -> compute capability 9.0 (Hopper, sm_90)
 #             driver 595.71.05   [live: report 07]
+#
 # NVIDIA CUDA 13.0 REMOVES offline compilation for compute capability < 7.5,
-# which includes Volta (V100). NVIDIA's own guidance: to keep Volta support,
-# "remain on CUDA Toolkit 12.9 and NVIDIA Driver branch 580"
-#   [verified: https://developer.nvidia.com/blog/navigating-gpu-architecture-support-a-guide-for-nvidia-cuda-developers/ ;
-#              CUDA 12.8/12.9 release notes — Volta/Pascal/Maxwell feature-complete, frozen next major release].
+# which includes Volta (V100). NVIDIA's own guidance, verbatim: "If you're
+# writing applications that support GPUs of CC earlier than 7.5, then you'll
+# want to install and remain on the following: NVIDIA Driver: Remain on branch
+# 580 [...] CUDA Toolkit: Remain on 12.9."
+#   [verified 2026-07-27: https://developer.nvidia.com/blog/navigating-gpu-architecture-support-a-guide-for-nvidia-cuda-developers/
+#    (NVIDIA developer blog, published 2025-08-04); branch 580 is stated there
+#    to be an LTS driver supported until mid-2028.]
+# Independently CONFIRMED against the toolkits' own nvcc manuals — the removal
+# is not merely announced, it shipped:
+#   * CUDA 12.9.1 nvcc "Streaming Multiprocessor (SM) Architectures" list
+#     CONTAINS both sm_70 and sm_90
+#     [verified: https://docs.nvidia.com/cuda/archive/12.9.1/cuda-compiler-driver-nvcc/index.html]
+#   * CUDA 13.0.0 nvcc's same list STARTS AT sm_75 — sm_70 is absent
+#     [verified: https://docs.nvidia.com/cuda/archive/13.0.0/cuda-compiler-driver-nvcc/index.html]
 # dgx1 is on driver branch 580 EXACTLY, so CUDA 12.9 is the last toolkit that
-# compiles first-class sm_70 kernels for it. CUDA 12.x also fully supports sm_90
-# (H100, introduced in CUDA 12.0). => 12.9 is the single toolkit covering BOTH.
-# GROMACS requires CUDA toolkit >= 12.1 [verified: GROMACS 2025.3 install guide].
+# compiles first-class sm_70 kernels for it. => 12.9 is the single toolkit
+# covering BOTH clusters (sm_70 + sm_90).
 #
 # Runtime note (Singularity --nv): the CONTAINER ships the CUDA runtime; the
 # HOST driver is bind-mounted in by `--nv`. A newer host driver running an older
 # CUDA runtime is always forward-compatible, so 12.9 runs fine under host
 # drivers 580 (dgx1) and 595 (banyan).
 #
-# [assumption] Exact patch tag `12.9.1` — verify the tag exists on Docker Hub
-# (nvidia/cuda) at build time; pin to whatever 12.9.x -devel tag is published.
+# TAG EXISTS — no longer an assumption. `nvidia/cuda:12.9.1-devel-ubuntu22.04`
+# is published on Docker Hub, last updated 2025-07-25, manifest digest
+#   sha256:bd4e2680a261c212f1e2fea241606f71497dc67a417f73175d794ec8212b5ba8
+# (amd64 image ~5.67 GB compressed-manifest size)
+#   [verified 2026-07-27: https://hub.docker.com/v2/repositories/nvidia/cuda/tags/12.9.1-devel-ubuntu22.04].
+# A newer 12.9 patch tag `12.9.2-devel-ubuntu22.04` also exists (updated
+# 2026-05-20) — bump deliberately if wanted, but 12.9.1 is what EasyBuild's own
+# GROMACS 2025.3 CUDA easyconfig targets (see GROMACS section below), so 12.9.1
+# is the better-corroborated combination. To pin immutably, replace the tag with
+# `nvidia/cuda@sha256:bd4e26...` (digest above).
+#
+# WHY ubuntu22.04 AND NOT ubuntu24.04 (this is a compiler decision, not inertia):
+#   * jammy's `build-essential` gives gcc 11.x (apt `gcc` = 4:11.2.0-1ubuntu1)
+#     [verified: https://packages.ubuntu.com/jammy/gcc]. GROMACS 2025.3 says
+#     verbatim: "We recommend to use the GCC compiler, version 9.x to 11.x.
+#     Note: there are known issues with GCC 12 and newer."
+#     [verified: https://manual.gromacs.org/documentation/2025.3/install-guide/index.html]
+#   * noble ships gcc 13.2 [verified: https://packages.ubuntu.com/noble/gcc],
+#     i.e. squarely inside GROMACS' "known issues" range.
+#   * Ubuntu 22.04 LTS is a natively supported distro for CUDA 12.9
+#     [verified: https://docs.nvidia.com/cuda/archive/12.9.1/cuda-installation-guide-linux/index.html].
+# COST of that choice, handled in %post: jammy's apt `cmake` is 3.22.1
+# [verified: https://packages.ubuntu.com/jammy/cmake] but GROMACS 2025.3
+# "builds with the CMake build system, requiring at least version 3.28"
+# [verified: install guide, same URL as above]. So CMake must NOT come from apt
+# here — a pinned upstream CMake is installed below. (noble's cmake 3.28.3 would
+# satisfy that, but the gcc-13 problem outweighs the convenience.)
+#
 # `-devel` (not `-runtime`) is required: it carries nvcc + headers to COMPILE
 # GROMACS. Slimming to a multi-stage -runtime image is a later optimization.
 From: nvidia/cuda:12.9.1-devel-ubuntu22.04
@@ -55,7 +122,8 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
     Maintainer   usd-bio p53-mdm2 track
     Purpose      GPU-enabled GROMACS for p53-MDM2 self-run MD (p1b Step 2)
     GromacsVer   2025.3
-    CudaToolkit  12.9
+    CudaToolkit  12.9.1
+    CMakeVer     4.0.3
     TargetSM     70;90   # V100 (dgx1) + H100 (banyan)
     BuildStatus  SCAFFOLDING-not-built
 
@@ -66,19 +134,58 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
     set -eu
     export DEBIAN_FRONTEND=noninteractive
 
-    # GROMACS 2025.3 = latest stable at time of writing
-    #   [verified: manual.gromacs.org/2025.3 install guide exists].
+    # --- GROMACS source pin --------------------------------------------------
+    # 2025.3 exists and its docs/download page is live; the tarball is present in
+    # the ftp index (gromacs-2025.3.tar.gz, 42 MB, dated 2025-08-29)
+    #   [verified: https://manual.gromacs.org/documentation/2025.3/download.html
+    #              https://ftp.gromacs.org/gromacs/ ].
+    # NOTE for the PI: 2025.4 and 2026.x also exist upstream by now; 2025.3 is a
+    # deliberate pin, not "the newest". Bump only with intent.
     GROMACS_VERSION=2025.3
-    # [assumption] the 2025.3 source tarball URL pattern below matches the
-    # official ftp.gromacs.org layout used for the 2024/2025 series; confirm the
-    # exact URL + sha256 before an actual build.
-    GROMACS_SHA256=PUT_VERIFIED_SHA256_HERE   # <-- fill in from ftp.gromacs.org
+
+    # Official URL, copied verbatim from the GROMACS 2025.3 download page:
+    GROMACS_URL="https://ftp.gromacs.org/gromacs/gromacs-${GROMACS_VERSION}.tar.gz"
+
+    # INTEGRITY: GROMACS publishes only an MD5 for the source tarball — there is
+    # no sha256 on the download page and no .sha256/SHA256SUMS file in the ftp
+    # index. So BOTH of these are checked below:
+    #
+    #   (1) MD5 — OFFICIAL, straight off the GROMACS download page
+    #       "https://ftp.gromacs.org/gromacs/gromacs-2025.3.tar.gz
+    #        (md5sum 5a2315b6f6e13b091bbbbfddee9eb62b)"
+    #       [verified: https://manual.gromacs.org/documentation/2025.3/download.html]
+    GROMACS_MD5=5a2315b6f6e13b091bbbbfddee9eb62b
+    #
+    #   (2) SHA256 — NOT published by GROMACS. The value below is independently
+    #       corroborated by TWO unrelated packaging projects that each hash the
+    #       same official tarball, and they agree byte-for-byte:
+    #         * Spack:     version("2025.3", sha256="8bdfca02...")
+    #           https://github.com/spack/spack-packages/blob/develop/repos/spack_repo/builtin/packages/gromacs/package.py
+    #         * EasyBuild: checksums = [{'gromacs-2025.3.tar.gz': '8bdfca02...'}]
+    #           https://github.com/easybuilders/easybuild-easyconfigs/blob/develop/easybuild/easyconfigs/g/GROMACS/GROMACS-2025.3-foss-2025b-CUDA-12.9.1.eb
+    #       Treat it as strongly corroborated, NOT as vendor-published. If it
+    #       ever mismatches at build time, trust the official MD5 first and
+    #       re-derive this value; do not silently delete the check.
+    GROMACS_SHA256=8bdfca0268f3f10a7ca3c06e59b62f73ea02420c67211c0ff3912f32d7833c65
+
+    # --- CMake pin (MUST be >= 3.28; jammy's apt cmake is 3.22.1) ------------
+    # 4.0.3 is not a guess: EasyBuild's GROMACS-2025.3-foss-2025b-CUDA-12.9.1.eb
+    # builds this exact GROMACS with ('CMake', '4.0.3') and CUDA 12.9.1, so the
+    # GROMACS-2025.3 + CMake-4.0.3 + CUDA-12.9.1 triple is known-good upstream
+    #   [verified: the easyconfig linked above].
+    CMAKE_VERSION=4.0.3
+    # sha256 IS officially published by Kitware, in the per-release checksum
+    # asset cmake-4.0.3-SHA-256.txt:
+    #   585ae9e0...  cmake-4.0.3-linux-x86_64.tar.gz
+    #   [verified: https://github.com/Kitware/CMake/releases/download/v4.0.3/cmake-4.0.3-SHA-256.txt]
+    CMAKE_SHA256=585ae9e013107bc8e7c7c9ce872cbdcbdff569e675b07ef57aacfb88c886faac
 
     # --- Build toolchain -----------------------------------------------------
+    # NOTE: `cmake` is deliberately ABSENT from this list — apt would give 3.22.1,
+    # below GROMACS 2025.3's hard 3.28 floor. Installed from upstream below.
     apt-get update
     apt-get install -y --no-install-recommends \
         build-essential \
-        cmake \
         ca-certificates \
         wget \
         libfftw3-dev \
@@ -87,31 +194,80 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
         python3
     rm -rf /var/lib/apt/lists/*
 
+    # --- CMake >= 3.28 from upstream binary tarball --------------------------
+    cd /opt
+    wget -q "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz"
+    echo "${CMAKE_SHA256}  cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz" | sha256sum -c -
+    tar xf "cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz"
+    mv "cmake-${CMAKE_VERSION}-linux-x86_64" /opt/cmake
+    rm -f "cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz"
+    export PATH=/opt/cmake/bin:$PATH
+    cmake --version   # must print >= 3.28
+
     # --- Fetch + verify GROMACS source --------------------------------------
     cd /opt
-    wget -q "https://ftp.gromacs.org/gromacs/gromacs-${GROMACS_VERSION}.tar.gz"
+    wget -q "${GROMACS_URL}"
     # Integrity check (MDDB/provenance discipline: pin + hash every input).
-    # Uncomment once GROMACS_SHA256 is filled in:
-    # echo "${GROMACS_SHA256}  gromacs-${GROMACS_VERSION}.tar.gz" | sha256sum -c -
+    # Both checks are ACTIVE. The MD5 is the vendor-published one; the SHA256 is
+    # the cross-corroborated one (see provenance notes above).
+    echo "${GROMACS_MD5}  gromacs-${GROMACS_VERSION}.tar.gz" | md5sum -c -
+    echo "${GROMACS_SHA256}  gromacs-${GROMACS_VERSION}.tar.gz" | sha256sum -c -
     tar xf "gromacs-${GROMACS_VERSION}.tar.gz"
     cd "gromacs-${GROMACS_VERSION}"
     mkdir build && cd build
 
     # --- Configure -----------------------------------------------------------
-    # GMX_GPU=CUDA            : NVIDIA CUDA acceleration on
+    # All flag spellings below are checked against the GROMACS 2025.3 install
+    # guide [verified: https://manual.gromacs.org/documentation/2025.3/install-guide/index.html]:
+    #
+    # GMX_GPU=CUDA            : NVIDIA CUDA acceleration on. Guide, verbatim:
+    #                           "-DGMX_GPU=CUDA to build with NVIDIA CUDA support
+    #                           enabled." Requirements it states: "CUDA toolkit
+    #                           version 12.1 or newer" and "GPU with compute
+    #                           capability 5.0 or higher" — 12.9.1 / cc 7.0+9.0
+    #                           both satisfy this. (Caveat: GROMACS' own CI tests
+    #                           CUDA 12.1, 12.5.1 and 12.6, so 12.9 is above the
+    #                           CI-tested set while still above the documented
+    #                           minimum; EasyBuild ships a 2025.3 + CUDA 12.9.1
+    #                           easyconfig, which is the corroboration for it.)
     # GMX_MPI=OFF             : no cross-node MPI; thread-MPI (intra-node) is
-    #                           ON by default and is all a 1-GPU / single-node
-    #                           smoke test needs. Both clusters are SINGLE-NODE
-    #                           Slurm [live: report 07], so multi-node MPI buys
+    #                           ON by default ("GROMACS can run in parallel on
+    #                           multiple cores of a single workstation using its
+    #                           built-in thread-MPI. No user action is required")
+    #                           and is all a 1-GPU / single-node smoke test
+    #                           needs. Both clusters are SINGLE-NODE Slurm
+    #                           [live: report 07], so multi-node MPI buys
     #                           nothing here; add it later if scaling out.
     # GMX_CUDA_TARGET_SM      : real-arch (SASS) codegen for the two GPUs we own.
-    #                           "70"=V100 Volta, "90"=H100 Hopper. Semicolon-
-    #                           delimited two-digit suffixes [verified: install guide].
+    #                           "70"=V100 Volta, "90"=H100 Hopper. Guide:
+    #                           GMX_CUDA_TARGET_SM / GMX_CUDA_TARGET_COMPUTE
+    #                           "take a semicolon delimited string with the two
+    #                           digit suffixes of CUDA (virtual) architectures
+    #                           names, for instance '60;75;86'" — so "70;90" is
+    #                           the right shape. Both sm_70 and sm_90 are in
+    #                           nvcc 12.9.1's supported SM list (URL above).
+    #                           (Known 2025.3 CMake quirk: gmxManageNvccConfig
+    #                           strips letter suffixes from CCs, breaking values
+    #                           like "120f" — see EasyBuild's
+    #                           GROMACS-2025.3_retain_cuda_cc_suffix.patch. Our
+    #                           plain "70;90" has no suffix, so it is unaffected.)
     # GMX_CUDA_TARGET_COMPUTE : embed PTX for 90 so future/newer GPUs can JIT.
     #                           (PTX for 70 is not embedded to keep the binary
     #                           lean; the 70 SASS above covers V100 directly.)
     # GMX_DOUBLE=OFF          : single precision — the standard, GPU-supported build.
     # GMX_BUILD_OWN_FFTW=OFF  : use the distro libfftw3-dev installed above.
+    #                           HONEST CAVEAT: upstream recommends the opposite —
+    #                           "the GROMACS team recommends either that you
+    #                           permit the GROMACS installation to download and
+    #                           build FFTW from source automatically for you (use
+    #                           cmake -DGMX_BUILD_OWN_FFTW=ON)", because distro
+    #                           FFTW packages are typically double-precision-first
+    #                           and may miss AVX/AVX2 codelets. OFF is kept here
+    #                           for a hermetic, download-free configure step; it
+    #                           is a PERFORMANCE trade, not a correctness one.
+    #                           Flip to ON if PME-on-CPU throughput matters.
+    # CUDA_TOOLKIT_ROOT_DIR   : guide shows exactly
+    #                           `cmake .. -DGMX_GPU=CUDA -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda`.
     cmake .. \
         -DCMAKE_BUILD_TYPE=Release \
         -DGMX_GPU=CUDA \
@@ -123,11 +279,69 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
         -DGMX_SIMD=AVX2_256 \
         -DCMAKE_INSTALL_PREFIX=/opt/gromacs \
         -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda
-    # [assumption] GMX_SIMD=AVX2_256 is a safe, broadly-compatible host-CPU SIMD
-    # level for both cluster login/compute CPUs. If the build host CPU supports
-    # AVX-512 you MAY raise this, but AVX2_256 avoids illegal-instruction faults
-    # if the run node differs from the build node. Confirm CPU flags per cluster
-    # before optimizing.
+    # [verified] GMX_SIMD=AVX2_256 — RESOLVED cycle-006. Was the file's last
+    # `[assumption]`; the value is UNCHANGED but is now a documented decision
+    # rather than a conservative guess. The resolution is counter-intuitive
+    # (both CPUs support AVX-512 and we still keep AVX2_256), so read the whole
+    # note before "fixing" it.
+    #
+    # STEP 1 — THE HARDWARE, finally recorded (report 07 had no `lscpu`):
+    #   * banyan: Intel Xeon Gold 6530  (Emerald Rapids)
+    #   * dgx1:   Intel Xeon Gold 6130  (Skylake-SP)
+    #   BOTH carry the AVX-512 core set: avx512f avx512dq avx512bw avx512vl
+    #   avx512cd. banyan additionally has VNNI/BF16/FP16/IFMA/VBMI + AMX; dgx1
+    #   has ONLY the core set, so dgx1 is the least common denominator.
+    #     [source: __reports__/p53-mdm2/10-cluster_state_refresh_v0.md §4
+    #              (lscpu on both clusters, cycle-006, commit c8f2cc2)]
+    #
+    # STEP 2 — `AVX_512` IS a valid GMX_SIMD value for 2025.3. The accepted list
+    #   is: None, SSE2, SSE4.1, AVX_128_FMA, AVX_256, AVX2_128, AVX2_256,
+    #   AVX_512, AVX_512_KNL, IBM_VSX, ARM_NEON_ASIMD, ARM_SVE (+ Reference for
+    #   developers). So the naive least-common-denominator rule would say AVX_512.
+    #     [verified: https://manual.gromacs.org/documentation/2025.3/install-guide/index.html]
+    #
+    # STEP 3 — BUT THE GROMACS DOCS OVERRIDE THE NAIVE RULE. The 2025.3 install
+    #   guide's AVX_512 entry says, VERBATIM:
+    #     "With GPU accelerated runs `AVX2_256` can also be faster on high-end
+    #      Skylake CPUs with both 512-bit FMA units enabled."
+    #     [verified: install guide URL above, GMX_SIMD section]
+    #   Our runs ARE GPU-accelerated by construction (-DGMX_GPU=CUDA above;
+    #   `gmx mdrun -nb gpu` in smoke_submit.sbatch), and dgx1 IS a high-end
+    #   Skylake (Skylake-SP Xeon Gold). That sentence describes this exact
+    #   machine and this exact workload — it is not a generic aside.
+    #
+    # STEP 4 — THE CONCLUSION IS ROBUST TO THE ONE UNCHECKED FACT. The guide also
+    #   notes AVX_512 is fastest "on the higher-end desktop and server
+    #   processors", while models such as "Xeon Bronze and Silver" have "only one
+    #   AVX512 FMA unit and therefore on these processors `AVX2_256` is faster"
+    #   [verified: same section]. We did NOT verify the Gold 6130's FMA-unit
+    #   count — and do not need to, because both branches agree:
+    #     * one FMA unit  -> guide says AVX2_256 IS faster
+    #     * two FMA units -> the GPU-accelerated sentence applies, AVX2_256 CAN
+    #                        be faster
+    #   No branch makes AVX_512 the documented choice for a GPU-accelerated run
+    #   on this CPU.
+    #
+    # SAFETY: AVX2_256 is "Present on Intel Haswell (and later) processors (2013)
+    #   and AMD Zen3 and later (2020)" [verified: same section]. Both CPUs are far
+    #   newer than Haswell, so there is no illegal-instruction risk on either
+    #   cluster. One .sif, runs on both.
+    #
+    # WHAT THIS DOES NOT CLAIM: no benchmark was run, on either CPU. banyan's
+    #   Emerald Rapids may well be faster with AVX_512
+    #     [assumption: the 2025.3 guide's AVX_512 caveats are written about
+    #      Skylake-X/SP and Zen4 and say nothing about Emerald Rapids either way;
+    #      that later Intel generations narrowed the AVX-512 downside is general
+    #      industry lore, NOT verified against a citable source here.]
+    #   If CPU-side PME ever becomes the bottleneck ON BANYAN SPECIFICALLY, the
+    #   escape hatch is a PER-ARCHITECTURE build (-DGMX_BINARY_SUFFIX, the guide's
+    #   own advice for heterogeneous fleets), NOT raising this flag on the shared
+    #   image. The single-.sif-run-anywhere constraint is what pins this value.
+    #
+    # DO NOT delete the flag and rely on CMake auto-detection: the guide says it
+    # detects "the SIMD instruction set supported by the CPU architecture (on
+    # which the configuring is done)" — for one .sif shared across two CPU
+    # generations via one NFS home, that pins the image to the BUILD host.
 
     # --- Build + install -----------------------------------------------------
     make -j"$(nproc)"
@@ -161,10 +375,21 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
         { echo "FAIL: gmx reports no GPU support"; exit 1; }
 
 %help
-    GPU-enabled GROMACS 2025.3 (CUDA 12.9) for the usd-bio p53-MDM2 self-run MD
+    GPU-enabled GROMACS 2025.3 (CUDA 12.9.1) for the usd-bio p53-MDM2 self-run MD
     track. Built to run on BOTH banyan (H100/sm_90) and dgx1 (V100/sm_70) via
     Singularity `--nv`. This .def is SCAFFOLDING — see ./README.md for the
     ordered, PI-gated build/stage/smoke-test steps. Nothing has been run yet.
+
+    All pinned versions/hashes carry an inline source URL in this file, and NO
+    value is left as an assumption — GMX_SIMD (the last one) resolved to
+    AVX2_256 in cycle-006 against the GROMACS 2025.3 install guide, once the
+    cluster CPU models were recorded. See the [verified] note by that flag.
+
+    BUILD ROUTE: use Route B (docker build on banyan -> docker save ->
+    singularity build docker-archive://...). Native `singularity build` from this
+    .def is expected to FAIL — no /etc/subuid mapping for this user on either
+    cluster, so --fakeroot is unavailable. See the header for the full reasoning
+    and the one command that would disprove it.
 
     Typical use once a gromacs.sif exists on the shared home:
         singularity exec --nv \

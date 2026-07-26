@@ -33,12 +33,34 @@
 # #SBATCH --qos=<PLACEHOLDER_QOS>
 #
 # ---- Cluster-specific notes (Slurm version skew) ----------------------------
-# banyan: Slurm 22.05.2, 2x H100 NVL (sm_90). Recommended FIRST target — newer,
-#         and it has the Docker + singularity 4.2.2 used to build the .sif.
+# banyan: Slurm 22.05.2, 2x H100 NVL (sm_90). Has the Docker daemon + singularity
+#         4.2.2 used to build the .sif. BUT SEE THE GPU-CONTENTION WARNING BELOW —
+#         banyan is no longer the obvious first target.
 # dgx1:   Slurm 23.11.4, 8x V100 (sm_70), singularity 3.5.2 (2019). `--gres=gpu:1`
 #         is identical. The RISK on dgx1 is SIF-format skew (built under 4.2.2,
 #         run under 3.5.2) — see README "SIF version skew". If the .sif fails to
 #         open on 3.5.2, that is the skew, not this script.
+#         dgx1 was FULLY IDLE at the last refresh (8 free V100s, no processes), so
+#         it is the contention-free option AND the harder portability target.
+#
+# ---- !! MANDATORY PRE-FLIGHT ON BANYAN: Slurm's GPU view diverges from reality --
+# At the last read-only refresh, banyan GPU 0 held ANOTHER USER'S vLLM process
+# consuming 86061 MiB of 95830 MiB, while Slurm reported the node IDLE with an
+# EMPTY AllocTRES. The process is unscheduled, so Slurm does not know it exists and
+# can hand a `--gres=gpu:1` job the already-full card (~9.7 GB left) -> contention
+# or OOM. GPU 1 was fully free.
+#   [source: __reports__/p53-mdm2/10-cluster_state_refresh_v0.md §7
+#            (nvidia-smi vs scontrol, cycle-006, commit c8f2cc2)]
+# UNRESOLVED: it is NOT known whether Slurm actually assigns GPU 0 — no job was
+# submitted to observe which device it hands out, and it is unknown whether the
+# site applies any out-of-band GRES exclusion for GPU 0. So do not assume either
+# way; RUN THE CHECK. Occupancy is point-in-time and already changed once in 6 days.
+# BEFORE SUBMITTING, on the target cluster:
+#   nvidia-smi --query-gpu=index,memory.used,memory.total,utilization.gpu --format=csv
+#   sinfo -o '%T %C %G'      # compare Slurm's view against the above
+# If GPU 0 is still occupied: prefer the free GPU (see the guard in Step 1 below,
+# and CUDA_VISIBLE_DEVICES if you must force it — GPU isolation here is soft), or
+# smoke-test on dgx1 instead.
 
 set -euo pipefail
 
@@ -54,6 +76,28 @@ mkdir -p "${INDIR}" "${OUTDIR}"
 
 echo "=== Node / GPU visible to this job ==="
 nvidia-smi -L || echo "WARN: nvidia-smi not on PATH of the batch shell (still fine if --nv passes the GPU into the container)"
+
+# ---- In-job GPU occupancy guard ---------------------------------------------
+# Slurm may hand us a GPU that another (unscheduled) process already fills —
+# proved on banyan, where GPU 0 held 86 GB of a 95.8 GB card while Slurm reported
+# the node IDLE [source: __reports__/p53-mdm2/10-cluster_state_refresh_v0.md §7].
+# This is a WARNING, not a hard failure: the tiny smoke system needs very little
+# memory, so a contended card may still work — but if mdrun OOMs or crawls, this
+# output is the first place to look. Non-fatal by design (`|| true` throughout).
+echo "=== GPU occupancy as seen from inside the job ==="
+echo "    (CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<unset>} — what Slurm gave us)"
+nvidia-smi --query-gpu=index,name,memory.used,memory.total,utilization.gpu \
+           --format=csv,noheader 2>/dev/null || echo "    (query unavailable)"
+echo "=== Foreign processes on the visible GPU(s) ==="
+nvidia-smi --query-compute-apps=gpu_uuid,pid,used_memory \
+           --format=csv,noheader 2>/dev/null || echo "    (query unavailable)"
+# Flag any visible card that is more than ~50% consumed before we even start.
+nvidia-smi --query-gpu=index,memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null \
+  | awk -F', *' '$3 > 0 && ($2/$3) > 0.5 {
+        printf "WARN: GPU %s is already %.0f%% full (%s of %s MiB) — foreign process likely. Expect contention.\n", $1, 100*$2/$3, $2, $3
+    }' || true
+# To pin a specific card manually (soft isolation — see README gated step 3):
+#   export CUDA_VISIBLE_DEVICES=1     # e.g. banyan's free GPU
 
 echo "=== Step 1: gmx --version inside the container (on the GPU node) ==="
 singularity exec --nv "${SIF}" gmx --version

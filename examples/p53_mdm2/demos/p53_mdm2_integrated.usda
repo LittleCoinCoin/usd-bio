@@ -1,0 +1,82 @@
+#usda 1.0
+(
+    defaultPrim = "p53_MDM2_complex"
+    doc = "Integrated demonstration (Pipeline 5): a single composed stage carrying the 1YCR Biology topology, the Protocol bio:md: setup deck, the Perturbation Genotype VariantSet with its DDMut-PPI ΔΔG and correlated MaBoSS parameter S, and the time-sampled MaBoSS node probabilities -- across four departmental SubLayers. This root layer adds ONLY the subLayers list, the root-layer-only stage metadata, a Local Genotype selection, and the integration/ cross-pipeline join. MaBoSS backend: MaBoSS (external binary, colomoto) (MaBoSS version 2.6.6 [networks up to 64 nodes])."
+    endTimeCode = 499
+    framesPerSecond = 10
+    metersPerUnit = 1e-10
+    startTimeCode = 0
+    subLayers = [
+        @../analysis/p53_mdm2_analysis.usda@,
+        @../composition/p53_mdm2_genotype.usda@,
+        @../output/p53_mdm2_md_setup.usda@
+    ]
+    timeCodesPerSecond = 10
+    upAxis = "Y"
+)
+
+over "p53_MDM2_complex" (
+    variants = {
+        string Genotype = "WildType"
+    }
+)
+{
+    def Scope "integration"
+    {
+        custom string[] bio:demo:hops = ["1: MD/structure -> USD topology (1YCR -> bio: atoms, elements, bonds)", "2: USD -> ΔΔG (Genotype VariantSet -> DDMut-PPI -> bio:ddgKcalPerMol)", "3: ΔΔG -> MaBoSS model (logistic correlation -> $KMn_pMC*, bio:maboss:*)", "4: MaBoSS run -> USD (node probtraj -> time-sampled bio:maboss:prob:<node>)"]
+        custom string bio:demo:provenance = "Cross-pipeline join derived from the composed departmental layers (ΔΔG + S read through the Genotype VariantSet; <P(node up)> averaged over the Analysis layer's committed MaBoSS time samples). The ΔΔG status/source tokens below carry the input lineage unchanged -- a 'fixture' ΔΔG is never presented as measured or predicted."
+        custom token bio:demo:readoutNode = "p53"
+        custom string[] bio:demo:sourceLayers = ["../analysis/p53_mdm2_analysis.usda", "../composition/p53_mdm2_genotype.usda", "../output/p53_mdm2_md_setup.usda", "../output/p53_mdm2_topology.usda"]
+        custom string bio:maboss:backend = "MaBoSS (external binary, colomoto)"
+        custom string bio:maboss:engineVersion = "MaBoSS version 2.6.6 [networks up to 64 nodes]"
+
+        def Scope "F19A"
+        {
+            custom float bio:ddgKcalPerMol = -3.917
+            custom token bio:ddgSource = "ddmut-ppi-live"
+            custom token bio:ddgStatus = "success"
+            custom token bio:ddgUnits = "kcal/mol"
+            custom int bio:maboss:frameCount = 500
+            custom float bio:maboss:p53TimeAverage = 0.3984972
+            custom float bio:maboss:paramValue = 0.20173268
+            custom token bio:maboss:paramValueStatus = "success"
+            custom token bio:maboss:variant = "F19A"
+        }
+
+        def Scope "L26A"
+        {
+            custom float bio:ddgKcalPerMol = -2.948
+            custom token bio:ddgSource = "ddmut-ppi-live"
+            custom token bio:ddgStatus = "success"
+            custom token bio:ddgUnits = "kcal/mol"
+            custom int bio:maboss:frameCount = 500
+            custom float bio:maboss:p53TimeAverage = 0.32608062
+            custom float bio:maboss:paramValue = 0.5194901
+            custom token bio:maboss:paramValueStatus = "success"
+            custom token bio:maboss:variant = "L26A"
+        }
+
+        def Scope "W23A"
+        {
+            custom float bio:ddgKcalPerMol = -6.192
+            custom token bio:ddgSource = "ddmut-ppi-live"
+            custom token bio:ddgStatus = "success"
+            custom token bio:ddgUnits = "kcal/mol"
+            custom int bio:maboss:frameCount = 500
+            custom float bio:maboss:p53TimeAverage = 0.8614668
+            custom float bio:maboss:paramValue = 0.008260299
+            custom token bio:maboss:paramValueStatus = "success"
+            custom token bio:maboss:variant = "W23A"
+        }
+
+        def Scope "WildType"
+        {
+            custom token bio:ddgSource = "wild-type-reference"
+            custom token bio:ddgStatus = "baseline"
+            custom int bio:maboss:frameCount = 500
+            custom float bio:maboss:p53TimeAverage = 0.31001768
+            custom token bio:maboss:variant = "WildType"
+        }
+    }
+}
+

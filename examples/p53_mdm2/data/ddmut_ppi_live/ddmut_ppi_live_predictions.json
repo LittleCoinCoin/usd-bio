@@ -1,0 +1,47 @@
+{
+  "_README": "REAL DDMUT-PPI SERVER OUTPUT. Every value here is parsed from a VERBATIM captured response body committed under responses/ in this directory; 'response_file' names that body for each mutation. This file is DERIVED from those bodies by script, never hand-entered. responses/ is the CANONICAL, immutable evidence set the pipeline cites -- see README.md for why it exists separately from the raw per-run capture directories.",
+  "source": "ddmut-ppi-live (https://biosig.lab.uq.edu.au/ddmut_ppi/api/single)",
+  "captured": "2026-07-26",
+  "units": "kcal/mol",
+  "convention": "prediction = ddG of binding; negative = destabilizing (weaker p53-MDM2 binding)",
+  "structure": "1YCR",
+  "chain": "B",
+  "predictions": {
+    "F19A": {
+      "prediction": -3.917,
+      "chain": "B",
+      "position": "19",
+      "wild-type": "PHE",
+      "mutant": "ALA",
+      "distance_to_interface": 3.017,
+      "job_id": "17850858889778712",
+      "results_page": "http://biosig.lab.uq.edu.au/ddmut_ppi/results_prediction/17850858889778712",
+      "response_file": "responses/F19A_17850858889778712_DONE.json",
+      "retrieved_utc": "2026-07-26T17:12:26+00:00"
+    },
+    "L26A": {
+      "prediction": -2.948,
+      "chain": "B",
+      "position": "26",
+      "wild-type": "LEU",
+      "mutant": "ALA",
+      "distance_to_interface": 3.36,
+      "job_id": "17850859504748063",
+      "results_page": "http://biosig.lab.uq.edu.au/ddmut_ppi/results_prediction/17850859504748063",
+      "response_file": "responses/L26A_17850859504748063_DONE.json",
+      "retrieved_utc": "2026-07-26T17:13:28+00:00"
+    },
+    "W23A": {
+      "prediction": -6.192,
+      "chain": "B",
+      "position": "23",
+      "wild-type": "TRP",
+      "mutant": "ALA",
+      "distance_to_interface": 2.831,
+      "job_id": "17850860117753787",
+      "results_page": "http://biosig.lab.uq.edu.au/ddmut_ppi/results_prediction/17850860117753787",
+      "response_file": "responses/W23A_17850860117753787_DONE.json",
+      "retrieved_utc": "2026-07-26T17:14:29+00:00"
+    }
+  }
+}

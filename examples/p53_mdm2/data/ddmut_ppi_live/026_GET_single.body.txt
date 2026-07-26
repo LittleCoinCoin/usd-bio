@@ -1,0 +1,1 @@
+{"job_id": "1785086811577498", "status": "DONE", "prediction": -6.192, "chain": "B", "position": "23", "wild-type": "TRP", "mutant": "ALA", "distance_to_interface": 2.831, "results_page": "http://biosig.lab.uq.edu.au/ddmut_ppi/results_prediction/1785086811577498"}

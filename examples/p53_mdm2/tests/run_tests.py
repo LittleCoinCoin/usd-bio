@@ -8,10 +8,11 @@ Usage (from the repo root, OpenUSD env sourced):
         /path/to/forOUSD/python3 examples/p53_mdm2/tests/run_tests.py
 
 Layers (mirrors the v8 4-layer ladder; rebuilt for 1YCR topology-only):
-    compliance   -- usdchecker on the committed topology .usda
-    domain       -- biological invariants (bio:element, inherits, variants)
-    readback     -- fresh-open assertions vs. INDEPENDENT 1YCR re-derivation
-    anti-chimera -- static grep-gate for the ABL root literal / dataset counts
+    compliance    -- usdchecker on the committed topology .usda
+    domain        -- biological invariants (bio:element, inherits, variants)
+    readback      -- fresh-open assertions vs. INDEPENDENT 1YCR re-derivation
+    integrated-p5 -- the composed four-pipeline stage (demos/run_end_to_end.py)
+    anti-chimera  -- static grep-gate for the ABL root literal / dataset counts
 
 Exit code: 0 all pass, 1 any failure.
 """
@@ -94,6 +95,9 @@ def main() -> int:
 
     import test_maboss_readback
     all_rows += _rows_from("readback-maboss-p4", test_maboss_readback.run())
+
+    import test_integrated
+    all_rows += _rows_from("integrated-p5", test_integrated.run())
 
     import test_anti_chimera
     all_rows += _rows_from("anti-chimera", test_anti_chimera.run())
