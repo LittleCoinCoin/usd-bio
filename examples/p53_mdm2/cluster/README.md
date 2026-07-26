@@ -194,10 +194,13 @@ Intel Haswell (and later) processors (2013) and AMD Zen3 and later (2020)"
 no illegal-instruction risk on either cluster. One `.sif`, runs on both, and it is
 the flag the docs favour for a GPU run on Skylake-SP.
 
-**What this does NOT claim.** No benchmark was run. banyan's Emerald Rapids may
-well be faster with `AVX_512` (its AVX-512 implementation does not suffer
-Skylake's clock-throttling penalty to the same degree), so if CPU-side PME ever
-becomes the bottleneck on banyan specifically, the escape hatch is a
+**What this does NOT claim.** No benchmark was run, on either CPU. banyan's
+Emerald Rapids may well be faster with `AVX_512`
+`[assumption: the GROMACS 2025.3 guide's AVX_512 caveats are written about
+Skylake-X/SP and Zen4 and say nothing about Emerald Rapids either way; that later
+Intel generations narrowed the AVX-512 downside is general industry lore I did not
+verify against a citable source, and no benchmark was run here]`. So if CPU-side
+PME ever becomes the bottleneck on banyan specifically, the escape hatch is a
 **per-architecture build** (`-DGMX_BINARY_SUFFIX`, per the guide's own advice for
 heterogeneous fleets) rather than raising the flag on the shared image. The
 single-`.sif`, run-anywhere constraint is what pins this to one value.

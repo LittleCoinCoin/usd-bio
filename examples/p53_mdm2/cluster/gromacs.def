@@ -327,8 +327,12 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
     #   newer than Haswell, so there is no illegal-instruction risk on either
     #   cluster. One .sif, runs on both.
     #
-    # WHAT THIS DOES NOT CLAIM: no benchmark was run. banyan's Emerald Rapids may
-    #   well be faster with AVX_512 (its AVX-512 does not throttle like Skylake's).
+    # WHAT THIS DOES NOT CLAIM: no benchmark was run, on either CPU. banyan's
+    #   Emerald Rapids may well be faster with AVX_512
+    #     [assumption: the 2025.3 guide's AVX_512 caveats are written about
+    #      Skylake-X/SP and Zen4 and say nothing about Emerald Rapids either way;
+    #      that later Intel generations narrowed the AVX-512 downside is general
+    #      industry lore, NOT verified against a citable source here.]
     #   If CPU-side PME ever becomes the bottleneck ON BANYAN SPECIFICALLY, the
     #   escape hatch is a PER-ARCHITECTURE build (-DGMX_BINARY_SUFFIX, the guide's
     #   own advice for heterogeneous fleets), NOT raising this flag on the shared
