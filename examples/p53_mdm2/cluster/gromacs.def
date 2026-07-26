@@ -13,19 +13,44 @@
 #   Slurm GPU isolation. submit_job wraps `singularity exec --nv` on GPU jobs.
 #
 # HOW TO BUILD (both PI-gated — do NOT run unattended):
-#   Route A (recommended): on banyan, which has singularity-ce 4.2.2 + fakeroot:
-#       singularity build gromacs.sif gromacs.def
-#   Route B (Docker first, then convert): build an equivalent Docker image from
-#       the SAME base + %post steps, `docker save img -o gromacs.tar`, then:
-#       singularity build gromacs.sif docker-archive://gromacs.tar
+#   Route B (RECOMMENDED — Docker first, then convert): on banyan, which has the
+#       Docker daemon 29.4.3 with this user in the `docker` group:
+#         docker build -t gromacs-p53mdm2 .    # SAME base + %post steps
+#         docker save gromacs-p53mdm2 -o gromacs.tar
+#         singularity build gromacs.sif docker-archive://gromacs.tar
+#       The daemon builds as root, so %post's apt-get + compile just work.
+#   Route A (DEMOTED — expected to FAIL): native `singularity build gromacs.sif
+#       gromacs.def` on banyan. banyan does have singularity-ce 4.2.2, BUT this
+#       user has NO /etc/subuid + /etc/subgid mapping on EITHER cluster (banyan
+#       lists only `user` and `test`; dgx1 only `lxd` and `root`), and the %post
+#       below needs root-in-container, i.e. --fakeroot, which needs that mapping.
+#       Unprivileged userns is otherwise enabled on banyan
+#       (kernel.unprivileged_userns_clone = 1), so the blocker is specifically the
+#       missing subuid range, not a kernel lockdown.
+#         [source: __reports__/p53-mdm2/10-cluster_state_refresh_v0.md §3
+#                  (read-only live refresh, cycle-006, commit c8f2cc2)]
+#       CAVEAT — this is INFERENCE, not an observed failure. The missing mapping
+#       is proved; no build was ever attempted (mutating + PI-gated). One attended
+#       command settles it:  singularity build gromacs.sif gromacs.def
+#       If it works, Route A is back and this note is void.
+#       (Report 07's earlier claim that banyan "has fakeroot" was a
+#        capability-vs-entitlement conflation: the RUNTIME supports fakeroot; this
+#        USER is not entitled to it. That claim is hereby retracted.)
+#   Podman is a LEAD, not a route: banyan has podman 3.4.4 reporting
+#       `Rootless: true` [same source §3], but rootless podman builds normally
+#       need subuid ranges too, and this was never tested.
 #   Because home is one shared NFS (ts2:/export/home), a .sif built/staged once
 #   is visible from both clusters — stage-once, run-anywhere.
+#   Build scratch: keep it OFF banyan's root filesystem. `/tmp` is on `/`, which
+#   lost 147 G in 6 days (586 G -> 439 G free) [same source §5]. Export
+#   SINGULARITY_TMPDIR / SINGULARITY_CACHEDIR / TMPDIR under the shared home and
+#   re-check `df -h /` immediately before building. See ./README.md gated step 1.
 #
 # VERSION-PINNING PROVENANCE (cycle-006 upstream verification pass):
 #   Every pinned value below now carries the source URL it was checked against.
-#   Exactly ONE item remains `[assumption]` — GMX_SIMD — because the cluster CPU
-#   models were never recorded by the live recon (report 07 has GPUs, drivers,
-#   Slurm and singularity versions, but NO `lscpu` output). See its note.
+#   NO `[assumption]` items remain. The last one — GMX_SIMD — was resolved later
+#   in cycle-006 once the cluster CPU models were finally recorded by the live
+#   refresh; see the [verified] note next to the flag.
 # ============================================================================
 
 Bootstrap: docker
@@ -254,26 +279,65 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
         -DGMX_SIMD=AVX2_256 \
         -DCMAKE_INSTALL_PREFIX=/opt/gromacs \
         -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda
-    # [assumption] GMX_SIMD=AVX2_256 — THE ONE VALUE STILL UNVERIFIED.
-    # `AVX2_256` is a real, correctly-spelled GMX_SIMD value ("Present on Intel
-    # Haswell (and later) processors (2013) and AMD Zen3 and later (2020)")
-    # [verified: install guide URL above] — what is NOT verified is that it fits
-    # THIS hardware, because report 07 recorded GPUs, drivers, Slurm and
-    # singularity versions but NO CPU model / `lscpu` output for either cluster.
-    # HOW TO RESOLVE AT BUILD TIME (do this, do not guess):
-    #   1. On BOTH clusters run:  lscpu | grep -E 'Model name|Flags' | tr ' ' '\n' | grep -E 'avx|avx2|avx512'
-    #   2. Set GMX_SIMD to the highest level supported by BOTH machines (the
-    #      least common denominator), NOT by the build host alone.
-    # Do NOT just delete the flag and rely on CMake's auto-detection: the guide
-    # says it detects "the SIMD instruction set supported by the CPU architecture
-    # (on which the configuring is done)" — for a single .sif shared across two
-    # different CPU generations via one NFS home, auto-detection pins the image
-    # to the BUILD host and can produce illegal-instruction faults on the other
-    # cluster. The guide's own advice for heterogeneous fleets: "choose the
-    # lowest number you think might work, and see what mdrun says" (or build
-    # per-architecture binaries with -DGMX_BINARY_SUFFIX). AVX2_256 is a
-    # deliberately conservative floor pending step 1; it will still be WRONG if
-    # either machine predates Haswell/Zen3, hence: check before building.
+    # [verified] GMX_SIMD=AVX2_256 — RESOLVED cycle-006. Was the file's last
+    # `[assumption]`; the value is UNCHANGED but is now a documented decision
+    # rather than a conservative guess. The resolution is counter-intuitive
+    # (both CPUs support AVX-512 and we still keep AVX2_256), so read the whole
+    # note before "fixing" it.
+    #
+    # STEP 1 — THE HARDWARE, finally recorded (report 07 had no `lscpu`):
+    #   * banyan: Intel Xeon Gold 6530  (Emerald Rapids)
+    #   * dgx1:   Intel Xeon Gold 6130  (Skylake-SP)
+    #   BOTH carry the AVX-512 core set: avx512f avx512dq avx512bw avx512vl
+    #   avx512cd. banyan additionally has VNNI/BF16/FP16/IFMA/VBMI + AMX; dgx1
+    #   has ONLY the core set, so dgx1 is the least common denominator.
+    #     [source: __reports__/p53-mdm2/10-cluster_state_refresh_v0.md §4
+    #              (lscpu on both clusters, cycle-006, commit c8f2cc2)]
+    #
+    # STEP 2 — `AVX_512` IS a valid GMX_SIMD value for 2025.3. The accepted list
+    #   is: None, SSE2, SSE4.1, AVX_128_FMA, AVX_256, AVX2_128, AVX2_256,
+    #   AVX_512, AVX_512_KNL, IBM_VSX, ARM_NEON_ASIMD, ARM_SVE (+ Reference for
+    #   developers). So the naive least-common-denominator rule would say AVX_512.
+    #     [verified: https://manual.gromacs.org/documentation/2025.3/install-guide/index.html]
+    #
+    # STEP 3 — BUT THE GROMACS DOCS OVERRIDE THE NAIVE RULE. The 2025.3 install
+    #   guide's AVX_512 entry says, VERBATIM:
+    #     "With GPU accelerated runs `AVX2_256` can also be faster on high-end
+    #      Skylake CPUs with both 512-bit FMA units enabled."
+    #     [verified: install guide URL above, GMX_SIMD section]
+    #   Our runs ARE GPU-accelerated by construction (-DGMX_GPU=CUDA above;
+    #   `gmx mdrun -nb gpu` in smoke_submit.sbatch), and dgx1 IS a high-end
+    #   Skylake (Skylake-SP Xeon Gold). That sentence describes this exact
+    #   machine and this exact workload — it is not a generic aside.
+    #
+    # STEP 4 — THE CONCLUSION IS ROBUST TO THE ONE UNCHECKED FACT. The guide also
+    #   notes AVX_512 is fastest "on the higher-end desktop and server
+    #   processors", while models such as "Xeon Bronze and Silver" have "only one
+    #   AVX512 FMA unit and therefore on these processors `AVX2_256` is faster"
+    #   [verified: same section]. We did NOT verify the Gold 6130's FMA-unit
+    #   count — and do not need to, because both branches agree:
+    #     * one FMA unit  -> guide says AVX2_256 IS faster
+    #     * two FMA units -> the GPU-accelerated sentence applies, AVX2_256 CAN
+    #                        be faster
+    #   No branch makes AVX_512 the documented choice for a GPU-accelerated run
+    #   on this CPU.
+    #
+    # SAFETY: AVX2_256 is "Present on Intel Haswell (and later) processors (2013)
+    #   and AMD Zen3 and later (2020)" [verified: same section]. Both CPUs are far
+    #   newer than Haswell, so there is no illegal-instruction risk on either
+    #   cluster. One .sif, runs on both.
+    #
+    # WHAT THIS DOES NOT CLAIM: no benchmark was run. banyan's Emerald Rapids may
+    #   well be faster with AVX_512 (its AVX-512 does not throttle like Skylake's).
+    #   If CPU-side PME ever becomes the bottleneck ON BANYAN SPECIFICALLY, the
+    #   escape hatch is a PER-ARCHITECTURE build (-DGMX_BINARY_SUFFIX, the guide's
+    #   own advice for heterogeneous fleets), NOT raising this flag on the shared
+    #   image. The single-.sif-run-anywhere constraint is what pins this value.
+    #
+    # DO NOT delete the flag and rely on CMake auto-detection: the guide says it
+    # detects "the SIMD instruction set supported by the CPU architecture (on
+    # which the configuring is done)" — for one .sif shared across two CPU
+    # generations via one NFS home, that pins the image to the BUILD host.
 
     # --- Build + install -----------------------------------------------------
     make -j"$(nproc)"
@@ -312,9 +376,16 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
     Singularity `--nv`. This .def is SCAFFOLDING — see ./README.md for the
     ordered, PI-gated build/stage/smoke-test steps. Nothing has been run yet.
 
-    All pinned versions/hashes carry an inline source URL in this file. Exactly
-    one value is still an assumption: GMX_SIMD (cluster CPU models were never
-    recorded) — resolve it with `lscpu` on both clusters before building.
+    All pinned versions/hashes carry an inline source URL in this file, and NO
+    value is left as an assumption — GMX_SIMD (the last one) resolved to
+    AVX2_256 in cycle-006 against the GROMACS 2025.3 install guide, once the
+    cluster CPU models were recorded. See the [verified] note by that flag.
+
+    BUILD ROUTE: use Route B (docker build on banyan -> docker save ->
+    singularity build docker-archive://...). Native `singularity build` from this
+    .def is expected to FAIL — no /etc/subuid mapping for this user on either
+    cluster, so --fakeroot is unavailable. See the header for the full reasoning
+    and the one command that would disprove it.
 
     Typical use once a gromacs.sif exists on the shared home:
         singularity exec --nv \
