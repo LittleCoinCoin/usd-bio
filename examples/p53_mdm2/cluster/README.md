@@ -30,7 +30,8 @@ the two shared clusters.
 
 | File | What it is |
 |---|---|
-| `gromacs.def` | Singularity/Apptainer definition: GPU-enabled **GROMACS 2025.3** on a **CUDA 12.9.1 / Ubuntu 22.04** base, built for both V100 (sm_70) and H100 (sm_90). Every pin carries an inline source URL. Not built. |
+| `gromacs.def` | Singularity/Apptainer definition: GPU-enabled **GROMACS 2025.3** on a **CUDA 12.9.1 / Ubuntu 22.04** base, built for both V100 (sm_70) and H100 (sm_90). Every pin carries an inline source URL. Drives **Route A** (demoted). Not built. |
+| `Dockerfile` | **Route B** (recommended) build recipe — a *faithful translation* of `gromacs.def`: same base tag, same tarball URL, same md5 **and** sha256, same pinned CMake 4.0.3, same `GMX_*` flags. Single-stage, no `ENTRYPOINT`. ⚠️ **Parallel implementation of `gromacs.def` — the two must be kept in sync.** Not built. |
 | `smoke_submit.sbatch` | Slurm template for a **1-GPU** smoke test (`gmx --version` on the GPU node + a trivial energy minimization) via `singularity exec --nv`. Not submitted. |
 | `README.md` | This runbook. |
 
@@ -224,15 +225,34 @@ an explicit PI "yes". They are sequential — do not skip ahead.
 
    - **Route B — Docker-first (RECOMMENDED).** On **banyan**, which has the Docker
      daemon (29.4.3) with this user in the `docker` group *and* singularity-ce
-     4.2.2 `[source: report 10 §3]`. Build an equivalent Docker image from the same
-     base + `%post` steps, then convert:
+     4.2.2 `[source: report 10 §3]`. The Docker recipe now **exists in this
+     directory as [`./Dockerfile`](./Dockerfile)** — run these three commands from
+     here:
      ```
-     docker build -t gromacs-p53mdm2 .          # same base + %post steps
+     docker build -t gromacs-p53mdm2 .          # uses ./Dockerfile
      docker save gromacs-p53mdm2 -o gromacs.tar
      singularity build gromacs.sif docker-archive://gromacs.tar
      ```
+     `./Dockerfile` is a **faithful translation** of `gromacs.def` — identical base
+     image tag, GROMACS tarball URL, md5 **and** sha256 checks (md5 trusted first),
+     pinned CMake 4.0.3 with Kitware's published sha256, and every `GMX_*` flag
+     including `GMX_SIMD=AVX2_256` and `GMX_CUDA_TARGET_SM="70;90"`. It is
+     deliberately **single-stage** (the `-devel` base is the final image), because
+     the shared-library list a slimmer `-runtime` stage would need cannot be
+     verified without an actual build; the reasoning is in the file's header.
+     It sets **no `ENTRYPOINT`** — only a `CMD` — so `singularity exec --nv
+     gromacs.sif gmx …` is never intercepted, and `gmx` is on `PATH` via `ENV`.
+
+     > ### ⚠️ `Dockerfile` and `gromacs.def` are PARALLEL IMPLEMENTATIONS — keep them in sync
+     > **Editing one without the other is the obvious failure mode:** the directory
+     > then yields two different containers depending on which route is taken, and
+     > nothing detects it until a run disagrees. Any change to a version, URL,
+     > checksum, apt package, or `GMX_*` flag must land in **both files in the same
+     > commit**. `gromacs.def` remains the source of truth for the pins and their
+     > provenance; a divergence in `Dockerfile` is a bug in `Dockerfile`.
+
      **Why this is now the recommendation:** the Docker daemon builds as root, so
-     `%post`'s `apt-get` + compile work without needing `--fakeroot` — which this
+     the `apt-get` + compile steps work without needing `--fakeroot` — which this
      user does not have (see "🚫 `--fakeroot` is NOT available" above).
      *Cost, stated honestly:* a `docker build` is unscheduled use of a shared node
      and `docker` group ≈ root on that box (the PI's own Q-003 caution). Keep it
@@ -263,6 +283,18 @@ an explicit PI "yes". They are sequential — do not skip ahead.
      ```
      Write the `docker save` tarball to shared home too, and delete it once the
      `.sif` exists.
+   - **`TMPDIR` does NOT move `docker build`'s layer storage.** The redirection
+     above catches `singularity build` and `docker save`, but a `docker build`
+     writes its layers to the **daemon's** data-root, which the client cannot
+     redirect. Check it and clean up afterwards:
+     ```
+     docker info | grep -i 'Docker Root Dir'   # default /var/lib/docker, i.e. on /
+     docker builder prune ; docker image rm gromacs-p53mdm2   # after the .sif exists
+     ```
+     `[assumption: banyan's docker data-root was never inspected — the default
+     location is inferred, not observed. If it is on `/`, the Route B build is a
+     multi-GB write to the very filesystem that lost 147 G in 6 days, and only the
+     admin can move it.]`
    - **Don't go looking for a CUDA 12.9 module.** banyan's module system tops out
      at `cuda/12.5.1` — there is no 12.9 module `[source: report 10 §8]`. This is
      **irrelevant** to the build: the container ships its own CUDA 12.9.1 from the
@@ -356,6 +388,12 @@ an explicit PI "yes". They are sequential — do not skip ahead.
   recommended path** rather than something to route around — `--fakeroot` is
   gone, so the `singularity build` alternative is not available to prefer. Keep
   the Docker step short, off the GPUs, and clean up the saved tarball afterwards.
+- **⚠️ Two build recipes for one image ⇒ drift risk.** `Dockerfile` (Route B) and
+  `gromacs.def` (Route A) now describe the same container twice. Nothing in the
+  repo enforces that they agree — no test builds either file. A pin bumped in one
+  and not the other produces two silently different containers from one directory.
+  **Mitigation is social:** change both in the same commit, and treat
+  `gromacs.def` as the source of truth for pins and provenance.
 - **⚠️ No fakeroot ⇒ Route A expected to fail.** Documented in full above. The
   residual risk is the inverse: this is an *inference*, so someone may burn a
   session assuming Route A is dead when it isn't. One attended `singularity build`
@@ -387,3 +425,10 @@ GROMACS 2025.3 install guide; GPU-contention and disk-space pre-flight checks
 added. The build gate is now the async harness's permission classifier (Q-006),
 not the PI's authorization, which was already given. Still nothing built,
 uploaded, or submitted.*
+*cycle-006 (later still): closed the gap that Route B named a `docker build` with
+no `Dockerfile` present — `./Dockerfile` now exists as a faithful, single-stage
+translation of `gromacs.def` (same pins, both checksums, all `GMX_*` flags, no
+`ENTRYPOINT`), with the sync obligation between the two files written down here
+and in both files. Shell syntax of every `RUN` body was checked with `sh -n`;
+**no image was built** — nothing in this directory has been built, uploaded, or
+submitted.*
