@@ -224,7 +224,7 @@ def hop1_topology_and_protocol(*, verbose: bool = True) -> None:
     build_md_setup_artifact(md_setup_path())
 
 
-def hop2_genotype_and_ddg(*, ddg_source: str = "fixture",
+def hop2_genotype_and_ddg(*, ddg_source: str = "captured",
                           verbose: bool = True) -> dict:
     """P2: Genotype (Perturbation) VariantSet + the ΔΔG write-back.
 
