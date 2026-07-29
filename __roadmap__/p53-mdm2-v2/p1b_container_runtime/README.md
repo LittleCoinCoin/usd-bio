@@ -38,7 +38,7 @@ Turn the built-but-unproven GROMACS Docker image into a verified, portable `grom
 ## Status
 ```mermaid
 graph TD
-    recipe_evidence_corrections[Recipe + Runbook Corrections]:::planned
+    recipe_evidence_corrections[Recipe + Runbook Corrections]:::done
     sass_portability_audit[CUDA SASS Portability Audit]:::planned
     docker_gpu_smoke[Docker GPU Smoke Test on banyan]:::planned
     sif_delivery[SIF Delivery]:::planned
@@ -52,7 +52,7 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `recipe_evidence_corrections.md` | 📄 Leaf Task | ⬜ Planned |
+| `recipe_evidence_corrections.md` | 📄 Leaf Task | ✅ Done |
 | `sass_portability_audit.md` | 📄 Leaf Task | ⬜ Planned |
 | `docker_gpu_smoke.md` | 📄 Leaf Task | ⬜ Planned |
 | `sif_delivery/` | 📁 Directory | ⬜ Planned |
@@ -64,3 +64,5 @@ graph TD
 ## Progress
 | Node | Branch | Commits | Notes |
 |:-----|:-------|:--------|:------|
+| `recipe_evidence_corrections.md` | task/p53-mdm2-container-runtime | 3 | `2e20cbf` R13 observation, `6a4407c` runbook, `34595c9` recipe twins; merged `--no-ff` at `4df8da3` after rebase. `BuildStatus` label deleted from both recipes so it cannot reach the `.sif`. Also corrected the false PTX-for-90-only claim, resolved the `libcuda.so.1` DT_NEEDED assumption against real `readelf` output, and recorded banyan's `Default Runtime: nvidia`. 39/39 suite. |
+| `sass_portability_audit.md` | task/p53-mdm2-container-runtime | 2 | `d828f9c` audit script, `56536f2` captured evidence. Steps 1–2 done: `SM_ELF=sm_70;sm_90` both present as real SASS, `LIBCUDA_DT_NEEDED=no`, evidence byte-verified against the cluster (`ca3902cf`). Step 3 (the `container-evidence` test layer) still open. |
