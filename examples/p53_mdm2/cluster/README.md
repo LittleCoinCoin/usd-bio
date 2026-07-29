@@ -4,35 +4,44 @@
 **GROMACS** (PI's engine choice, INBOX 2026-07-23) inside a portable container on
 the two shared clusters.
 
-> ## ⚠️ NOTHING HAS BEEN BUILT, UPLOADED, OR SUBMITTED
-> Everything in this directory is **reviewable scaffolding**. No image has been
-> built, no `.sif` exists, no file has been written to any cluster, and no job
-> has been submitted. Every cluster-mutating action below is **PI-gated** and
-> waits for an explicit "go". This session was unattended and the PI was not
-> present (topic Q-003: cluster mutation is PI-gated per step).
+> ## ✅ THE DOCKER IMAGE IS BUILT — THE `.sif` IS NOT
+> **Slurm job 30 on banyan COMPLETED, exit 0, in 5m27s (2026-07-29).** It
+> produced `gromacs-p53mdm2:latest` (image id `70659e395c53`, 10.6 GB),
+> independently corroborated by the `/home/eliott/p53mdm2/BUILD_STATUS`
+> sentinel (`stage=docker_build exit=0 finished=2026-07-29T23:31:29+09:00`).
+> Full evidence: `__reports__/p53-mdm2/13-route_b_build_observed_v0.md` (R13).
 >
-> ### The gate is now TOOLING, not authorization
-> **The PI has already given authorization.** INBOX 2026-07-25T07:58 authorized
-> gated steps 1–3 (build on banyan, GROMACS 2025.3 / CUDA 12.9, then the 1-GPU
-> smoke test). Cycle-006 dispatched that work **twice** and both dispatches were
+> **Still true — do not read past this line as "done":** no `gromacs.sif`
+> exists yet, no GPU has executed the container (the build-time gate reported
+> `CUDA driver: 0.0` — no NVIDIA driver was present in the CPU-only build
+> sandbox, which is expected there and proves nothing about GPU execution),
+> the `sm_70`/`sm_90` SASS targets are independently under audit, and the
+> build's own layers have not been cleaned up on banyan yet. Those four gaps
+> are exactly the four sibling nodes under
+> `__roadmap__/p53-mdm2-v2/p1b_container_runtime/`
+> (`recipe_evidence_corrections` — this leaf; `sass_portability_audit`;
+> `docker_gpu_smoke`; `sif_delivery`). Every remaining cluster-mutating action
+> stays **PI-gated** and attended.
+>
+> ### The gate was tooling; it is resolved for attended sessions
+> **Q-006 is answered.** Container builds — the mutating, shared-node-costly
+> half — stay PI-attended by policy; other clean, engineering-justified work
+> may be *attempted* unattended and escalated through the umbod question path
+> rather than stalled; no blanket pre-allow rule was added. The build above is
+> the proof the attended path works: two earlier unattended dispatches were
 > **refused by Claude Code's auto-mode permission classifier**, which blocks
-> cluster-mutating actions in unattended sessions regardless of an authorization
-> written into project files — the classifier does not read the thread as
-> permission. See topic **Q-006** (`__threads__/p53-mdm2/QUESTIONS.md`) for the
-> three ways out (attended session / pre-allow rule in
-> `.claude/settings.local.json` / keep it permanently attended by policy).
->
-> So: **not waiting on the PI's approval — waiting on a harness that can act on
-> it.** Cycle-006 therefore did only the non-mutating half (read-only state
-> refresh + finishing the version pins), and everything below is build-ready.
+> cluster-mutating actions regardless of an authorization written into project
+> files; the attended session that followed built the image on the first
+> attempt. See topic **Q-006** (`__threads__/p53-mdm2/QUESTIONS.md`) for the
+> full resolution.
 
 ## Files here
 
 | File | What it is |
 |---|---|
-| `gromacs.def` | Singularity/Apptainer definition: GPU-enabled **GROMACS 2025.3** on a **CUDA 12.9.1 / Ubuntu 22.04** base, built for both V100 (sm_70) and H100 (sm_90). Every pin carries an inline source URL. Drives **Route A** (demoted). Not built. |
-| `Dockerfile` | **Route B** (recommended) build recipe — a *faithful translation* of `gromacs.def`: same base tag, same tarball URL, same md5 **and** sha256, same pinned CMake 4.0.3, same `GMX_*` flags. Single-stage, no `ENTRYPOINT`. ⚠️ **Parallel implementation of `gromacs.def` — the two must be kept in sync.** Not built. |
-| `smoke_submit.sbatch` | Slurm template for a **1-GPU** smoke test (`gmx --version` on the GPU node + a trivial energy minimization) via `singularity exec --nv`. Not submitted. |
+| `gromacs.def` | Singularity/Apptainer definition: GPU-enabled **GROMACS 2025.3** on a **CUDA 12.9.1 / Ubuntu 22.04** base, built for both V100 (sm_70) and H100 (sm_90). Every pin carries an inline source URL. Drives **Route A**, which is dead by observation (see below) — this file's `%post` has never itself been executed by `singularity build`, though its Docker twin has. |
+| `Dockerfile` | **Route B** (the path that was actually used) build recipe — a *faithful translation* of `gromacs.def`: same base tag, same tarball URL, same md5 **and** sha256, same pinned CMake 4.0.3, same `GMX_*` flags. Single-stage, no `ENTRYPOINT`. ⚠️ **Parallel implementation of `gromacs.def` — the two must be kept in sync.** **Built 2026-07-29** — Slurm job 30, exit 0, `gromacs-p53mdm2:latest` (`70659e395c53`, 10.6 GB). See gated step 1 and R13. |
+| `smoke_submit.sbatch` | Slurm template for a **1-GPU** smoke test (`gmx --version` on the GPU node + a trivial energy minimization) via `singularity exec --nv`. Not yet submitted — depends on `sif_delivery` producing a `.sif` first. |
 | `README.md` | This runbook. |
 
 ## Why this shape (grounded in the live recon)
@@ -65,39 +74,44 @@ choice (GROMACS) is the PI's.
   and the GROMACS tarball fetch will succeed *on-cluster* (registry manifest and
   tarball URL both answer) `[source: report 10 §10]`.
 
-### 🚫 `--fakeroot` is NOT available to this user — the build route changed
+### 🚫 `--fakeroot` is NOT available to this user — OBSERVED, not inferred
 
 Report 07 asserted banyan "has singularity-ce 4.2.2 + fakeroot". The version half
-is right; **the fakeroot half was never tested and is wrong.** `/etc/subuid` and
-`/etc/subgid` contain **no mapping for this user on either cluster** — banyan has
-only `user` and `test`, dgx1 only `lxd` and `root` `[source: report 10 §3]`.
-Unprivileged user namespaces are otherwise enabled on banyan
-(`kernel.unprivileged_userns_clone = 1`), so the constraint is specifically the
-**missing subuid/subgid range**, not a kernel lockdown. This was a
-capability-vs-entitlement conflation: singularity 4.2.2 *supports* fakeroot; this
-*user* is not entitled to it.
+is right; **the fakeroot half is wrong, and this is now settled by an attended
+probe, not by inference.** `/etc/subuid` and `/etc/subgid` contain **no mapping
+for this user on either cluster** — banyan has only `user` and `test`, dgx1 only
+`lxd` and `root` `[source: report 10 §3]`. Unprivileged user namespaces are
+otherwise enabled on banyan (`kernel.unprivileged_userns_clone = 1`), so the
+constraint is specifically the **missing subuid/subgid range**, not a kernel
+lockdown. This was a capability-vs-entitlement conflation: singularity 4.2.2
+*supports* fakeroot; this *user* is not entitled to it.
 
 `gromacs.def`'s `%post` runs `apt-get install` and compiles, i.e. it needs
-root-in-container, i.e. `--fakeroot`. **So `singularity build gromacs.sif
-gromacs.def` (Route A) is expected to fail.**
+root-in-container, i.e. `--fakeroot`. **`singularity build gromacs.sif
+gromacs.def` (Route A) was run, attended, on 2026-07-29, and it failed in
+seconds:**
 
-> **This is inference, not an observed failure.** The missing subuid mapping is
-> *proved*; no build was ever attempted (that would be a gated mutating action).
-> The expectation rests on singularity's documented requirement that an
-> unprivileged `--fakeroot` build needs an `/etc/subuid` entry for the invoking
-> user. **One attended command settles it in seconds:**
-> `singularity build --fakeroot /tmp/probe.sif gromacs.def` (or simply
-> `singularity build gromacs.sif gromacs.def` and read the error). If
-> singularity-ce 4.2.2 has an unprivileged `%post` path we are unaware of, this
-> whole finding is void and Route A returns.
+```
+$ singularity build gromacs.sif gromacs.def
+FATAL:   --remote, --fakeroot, or the proot command are required to build
+         this source as a non-root user
+(exit 255)
+```
 
-**Route B is the live path** and is now the recommendation: build with banyan's
-Docker daemon, then convert to `.sif`. See gated step 1.
+That error names three ways out, and this session closed all three:
+`--fakeroot` has no subuid range (above); `proot` is **absent** from banyan's
+`PATH` (`command -v proot` found nothing); and `--remote` is declined on
+principle — it would ship the recipe to a third-party cloud builder, a
+different decision than a technical gap. **Route A is dead by observation.**
+`[source: __reports__/p53-mdm2/13-route_b_build_observed_v0.md §7-8]`
+
+**Route B is the live path, and it already succeeded** — see gated step 1,
+now marked done.
 
 *Podman is a lead, not a route.* banyan has `podman 3.4.4` reporting
 `Rootless: true` `[source: report 10 §3]`, but **rootless podman builds normally
-consume subuid ranges too**, and no build was attempted. Do not plan around it
-until someone tries it.
+consume subuid ranges too**, and no build was attempted with it. Do not plan
+around it until someone tries it.
 
 ### The CUDA-version reasoning (the crux)
 
@@ -212,27 +226,43 @@ generations.
 
 ---
 
-## ⛔ PI-gated mutating steps — IN ORDER (none done)
+## ⛔ PI-gated mutating steps — IN ORDER (step 1 done)
 
 Each step mutates a shared resource (the shared home or the scheduler) and needs
 an explicit PI "yes". They are sequential — do not skip ahead.
 
-1. **⛔ Build the image → `.sif`.** *(writes a multi-GB `.sif` to shared home)*
+1. **✅ Build the image → Docker image done; `.sif` conversion still pending.**
+   *(writes a multi-GB `.sif` to shared home once conversion runs)*
 
-   All `gromacs.def` values are now resolved — base-image tag, tarball URL,
-   md5 + sha256, CMake version/hash, every `GMX_*` flag including `GMX_SIMD` —
-   each with an inline source URL. **No blanks left to fill.**
+   All `gromacs.def` values were resolved before the build — base-image tag,
+   tarball URL, md5 + sha256, CMake version/hash, every `GMX_*` flag including
+   `GMX_SIMD` — each with an inline source URL. **No blanks were left to fill.**
 
-   - **Route B — Docker-first (RECOMMENDED).** On **banyan**, which has the Docker
-     daemon (29.4.3) with this user in the `docker` group *and* singularity-ce
-     4.2.2 `[source: report 10 §3]`. The Docker recipe now **exists in this
-     directory as [`./Dockerfile`](./Dockerfile)** — run these three commands from
-     here:
+   - **Route B — Docker-first (SUCCEEDED, 2026-07-29).** On **banyan**, which has
+     the Docker daemon (29.4.3) with this user in the `docker` group *and*
+     singularity-ce 4.2.2 `[source: report 10 §3]`. **Slurm job 30 ran the three
+     commands below, COMPLETED with exit 0 in 5m27s, and produced
+     `gromacs-p53mdm2:latest` (image id `70659e395c53`, 10.6 GB):**
      ```
      docker build -t gromacs-p53mdm2 .          # uses ./Dockerfile
      docker save gromacs-p53mdm2 -o gromacs.tar
      singularity build gromacs.sif docker-archive://gromacs.tar
      ```
+     The build-time gate reported a real, GPU-compiled binary: `GROMACS version:
+     2025.3`, `Precision: mixed`, `GPU support: CUDA`, `SIMD instructions:
+     AVX2_256`, `CUDA compiler: nvcc release 12.9, V12.9.86`, `CUDA runtime:
+     12.90`, `CUDA driver: 0.0` (no NVIDIA driver in the CPU-only build sandbox —
+     expected, not a fault). Both tarball integrity gates passed against the real
+     fetched bytes, including the GROMACS sha256 that was previously only
+     cross-corroborated between Spack and EasyBuild, never checked against the
+     actual tarball. Full evidence:
+     `__reports__/p53-mdm2/13-route_b_build_observed_v0.md` (R13).
+
+     The **third `singularity build docker-archive://…` line above has not yet
+     run** — the Docker image exists, the `.sif` does not. That conversion,
+     verification and cleanup is `sif_delivery/convert_verify_cleanup`, a
+     separate roadmap leaf.
+
      `./Dockerfile` is a **faithful translation** of `gromacs.def` — identical base
      image tag, GROMACS tarball URL, md5 **and** sha256 checks (md5 trusted first),
      pinned CMake 4.0.3 with Kitware's published sha256, and every `GMX_*` flag
@@ -251,29 +281,52 @@ an explicit PI "yes". They are sequential — do not skip ahead.
      > commit**. `gromacs.def` remains the source of truth for the pins and their
      > provenance; a divergence in `Dockerfile` is a bug in `Dockerfile`.
 
-     **Why this is now the recommendation:** the Docker daemon builds as root, so
-     the `apt-get` + compile steps work without needing `--fakeroot` — which this
-     user does not have (see "🚫 `--fakeroot` is NOT available" above).
-     *Cost, stated honestly:* a `docker build` is unscheduled use of a shared node
-     and `docker` group ≈ root on that box (the PI's own Q-003 caution). Keep it
-     short and off the GPUs.
+     **Why this was the recommendation, confirmed after the fact:** the Docker
+     daemon builds as root, so the `apt-get` + compile steps worked without
+     needing `--fakeroot` — which this user does not have (see "🚫 `--fakeroot`
+     is NOT available" above). *Cost, stated honestly:* a `docker build` is
+     unscheduled use of a shared node and `docker` group ≈ root on that box (the
+     PI's own Q-003 caution).
 
-   - **Route A — native `singularity build` (DEMOTED — expected to fail).**
+     > **⚠️ "Off the GPUs" needs an explicit opt-out on banyan — it is not the
+     > default.** banyan's Docker daemon has `Default Runtime: nvidia`, and the
+     > `nvidia/cuda` base image sets `NVIDIA_VISIBLE_DEVICES=all`. Together, a
+     > **plain `docker run` with no `--gpus` flag at all** still gets the host
+     > driver injected and sees **both H100s** (`/dev/nvidia0`, `/dev/nvidia1`,
+     > `/dev/nvidiactl` present; `nvidia-smi -L` lists both cards; the container
+     > reports `CUDA driver: 13.20` against host driver 595.71.05). There is
+     > effectively no such thing as a casually "CPU-only" `docker run` on banyan.
+     > **`docker run -e NVIDIA_VISIBLE_DEVICES=void …` is what actually yields a
+     > device-free container** (no `/dev/nvidia*`, no `libcuda.so.1`, `CUDA
+     > driver: 0.0` — this is exactly the signature the build-time gate above
+     > shows, because `docker build` does not inject GPU devices the way `docker
+     > run` does). Given banyan GPU 0's known contention (report 10 §7), any
+     > interactive `docker run` on this box should pass that flag explicitly
+     > rather than relying on omission. `[observed 2026-07-29, sass_portability_audit leaf]`
+
+   - **Route A — native `singularity build` (DEAD BY OBSERVATION).**
      `singularity build gromacs.sif gromacs.def` on banyan. This *was* the
-     recommendation; it is demoted because `%post` needs root-in-container via
-     `--fakeroot` and there is **no `/etc/subuid`/`/etc/subgid` mapping for this
-     user on either cluster** `[source: report 10 §3]`. **Not an observed failure —
-     inference from a proved-missing mapping.** If someone is at a terminal, run it
-     once anyway: it is the cheapest possible experiment and it either restores
-     Route A or converts this expectation into a fact. Third option if Route A is
-     wanted for real: **ask the admins for a subuid range**.
+     original recommendation; it was demoted, then **run attended on
+     2026-07-29 and failed in seconds** with `FATAL: --remote, --fakeroot, or
+     the proot command are required to build this source as a non-root user`
+     (exit 255) — see "🚫 `--fakeroot` is NOT available" above for the full
+     capture. All three of the error's named alternatives are closed: no
+     subuid range, `proot` absent, `--remote` declined on principle. Only
+     remaining option if Route A is wanted for real: **ask the admins for a
+     subuid range**.
 
-   **Pre-flight, on banyan, immediately before building:**
-   - **Check free space and keep build scratch OFF the root filesystem.** banyan's
-     root disk fell from 586 G to **439 G free in 6 days**, and `/tmp` sits on the
-     root filesystem `[source: report 10 §5]`. A multi-GB container build plus a
-     `docker save` tarball writing scratch to `/tmp` is a real risk of filling `/`
-     on a shared node. Point build scratch at the shared home (13 TB free) instead:
+   **Pre-flight, on banyan, immediately before building — now with observed
+   values instead of assumptions:**
+   - **Free space held steady; the earlier drawdown looks like a one-off.**
+     banyan's root disk fell from 586 G to 439 G free between 2026-07-21 and
+     2026-07-27 `[source: report 10 §5]`, but then **held at 439 G free across
+     four further days**, and the build itself only consumed ~9 G net
+     `[source: R13 §6]`. This does not explain the original 147 G drop, but it
+     means `/` was not still actively draining as of the build. `/tmp` remains
+     confirmed on the same device as `/` (`/dev/nvme0n1p4`) — **this
+     contradicts a facility doc's claim of a separate NVMe scratch device** —
+     so the `TMPDIR`/`SINGULARITY_TMPDIR` redirection below stays warranted
+     regardless of the one-off framing:
      ```
      df -h / /tmp /home                       # re-check RIGHT before building
      export SINGULARITY_TMPDIR=/home/eliott/p53mdm2/tmp
@@ -282,19 +335,23 @@ an explicit PI "yes". They are sequential — do not skip ahead.
      mkdir -p "$SINGULARITY_TMPDIR" "$SINGULARITY_CACHEDIR"
      ```
      Write the `docker save` tarball to shared home too, and delete it once the
-     `.sif` exists.
+     `.sif` exists (still pending — see `sif_delivery/convert_verify_cleanup`).
    - **`TMPDIR` does NOT move `docker build`'s layer storage.** The redirection
      above catches `singularity build` and `docker save`, but a `docker build`
      writes its layers to the **daemon's** data-root, which the client cannot
-     redirect. Check it and clean up afterwards:
+     redirect. **This is now observed, not assumed:**
      ```
-     docker info | grep -i 'Docker Root Dir'   # default /var/lib/docker, i.e. on /
+     $ docker info | grep -i 'Docker Root Dir'
+     Docker Root Dir: /var/lib/docker
+     ```
+     `/var/lib/docker` sits on `/` and holds **213 G**, mostly other users'
+     pre-existing images — not ours to prune. Only an admin can move the
+     daemon's data-root; the client cannot redirect it. Clean-up (still
+     pending):
+     ```
      docker builder prune ; docker image rm gromacs-p53mdm2   # after the .sif exists
      ```
-     `[assumption: banyan's docker data-root was never inspected — the default
-     location is inferred, not observed. If it is on `/`, the Route B build is a
-     multi-GB write to the very filesystem that lost 147 G in 6 days, and only the
-     admin can move it.]`
+     `[source: __reports__/p53-mdm2/13-route_b_build_observed_v0.md §5]`
    - **Don't go looking for a CUDA 12.9 module.** banyan's module system tops out
      at `cuda/12.5.1` — there is no 12.9 module `[source: report 10 §8]`. This is
      **irrelevant** to the build: the container ships its own CUDA 12.9.1 from the
@@ -350,19 +407,21 @@ an explicit PI "yes". They are sequential — do not skip ahead.
   deliberate pin, *not* "the newest" — **2025.4 and 2026.x now exist upstream**
   (both appear as released versions in the Spack and EasyBuild GROMACS recipes). Confirm 2025.3,
   bump, or pin to a specific 2024.x if reproducibility with an existing study is wanted.
-- **(b) Which build route?** *(This is the gating technical question — filed as
-  topic **Q-007**.)* `--fakeroot` is unavailable, so the native
-  `singularity build` route is out unless the inference is wrong. Options:
-  1. **Route B via banyan's Docker daemon** — works today; cost is unscheduled
-     `docker build` on a shared node. **Recommended.**
-  2. **Ask the admins for an `/etc/subuid` range** — unlocks Route A properly,
-     but needs a human request and admin turnaround.
-  3. **Build off-cluster and upload the `.sif`** — avoids shared-node load
-     entirely, at the cost of a multi-GB upload over the (now-working, rsync
-     3.4.4) transfer path.
-  4. **Have an attended session try Route A once** to settle the inference
-     empirically before choosing. Cheap; do this first if someone is at a
-     terminal anyway.
+- **(b) Which build route? — RESOLVED, Route B.** *(Was the gating technical
+  question, filed as topic **Q-007**; now answered by observation.)*
+  `--fakeroot` is unavailable and Route A's native `singularity build` has been
+  attempted and observed to fail (see "🚫 `--fakeroot` is NOT available"
+  above) — option 4 below has already happened. **Route B was used and
+  succeeded** (gated step 1, job 30). The remaining options are recorded for
+  completeness, not because the choice is still open:
+  1. **Route B via banyan's Docker daemon** — used, succeeded. ~~Recommended~~ **Done.**
+  2. **Ask the admins for an `/etc/subuid` range** — would unlock Route A
+     properly; not pursued, since Route B already works.
+  3. **Build off-cluster and upload the `.sif`** — not needed now that Route B
+     has produced the image on-cluster.
+  4. ~~Have an attended session try Route A once to settle the inference
+     empirically before choosing.~~ **Done, 2026-07-29** — see the captured
+     `FATAL` error above.
 - **(c) Which cluster to smoke-test first.** Previously "banyan". Now genuinely
   open: banyan built the image and has the newer stack, **but its GPU 0 is
   contended by an unscheduled process** while dgx1 is fully idle *and* is the
@@ -375,14 +434,19 @@ an explicit PI "yes". They are sequential — do not skip ahead.
 
 - **GPU-generation portability.** Handled by CUDA 12.9 + `GMX_CUDA_TARGET_SM="70;90"`.
   If CUDA 13 is ever used, V100/dgx1 support is silently lost.
-- **SIF version skew (flagged in report 07).** The `.sif` is built under
-  **singularity-ce 4.2.2** (banyan) but must also run under **singularity 3.5.2**
-  (dgx1, a 2019 release). Newer squashfs compression (e.g. zstd) may not open on
-  3.5.2. **Mitigation:** smoke-test on dgx1 explicitly (gated step 3); if the
-  `.sif` fails to open there, either rebuild with an older-compatible compression
-  or maintain a per-cluster build. Building on the older runtime is harder because
-  dgx1 has **neither** Docker access **nor** fakeroot for this user
-  `[source: report 10 §3]` — hence banyan-first, dgx1-verify.
+- **SIF version skew (flagged in report 07) — ownership moved, not resolved.**
+  The `.sif` (once converted — still pending, see gated step 1) will be built
+  under **singularity-ce 4.2.2** (banyan) but must also run under
+  **singularity 3.5.2** (dgx1, a 2019 release). Newer squashfs compression
+  (e.g. zstd) may not open on 3.5.2. This is no longer an open risk owned by
+  this runbook: it is the explicit subject of
+  `sif_delivery/crosscluster_readonly/dgx1_sif_open_check`, which computes the
+  image digest from both clusters and attempts to open + exec the `.sif`
+  under 3.5.2 read-only, without a GPU. That leaf's own success gate rewrites
+  this entry again once it has run. Building on the older runtime remains
+  harder regardless, because dgx1 has **neither** Docker access **nor**
+  fakeroot for this user `[source: report 10 §3]` — hence banyan-first,
+  dgx1-verify.
 - **`docker` group ≈ root on a shared box.** Building with Docker on banyan is
   unscheduled use of a shared node. This risk is now **unavoidable on the
   recommended path** rather than something to route around — `--fakeroot` is
@@ -394,19 +458,26 @@ an explicit PI "yes". They are sequential — do not skip ahead.
   and not the other produces two silently different containers from one directory.
   **Mitigation is social:** change both in the same commit, and treat
   `gromacs.def` as the source of truth for pins and provenance.
-- **⚠️ No fakeroot ⇒ Route A expected to fail.** Documented in full above. The
-  residual risk is the inverse: this is an *inference*, so someone may burn a
-  session assuming Route A is dead when it isn't. One attended `singularity build`
-  attempt removes the ambiguity permanently.
+- **✅ No fakeroot ⇒ Route A fails — RESOLVED to an observation.** Documented in
+  full above, including the verbatim `FATAL` line. This is no longer a
+  residual-inference risk: the attended probe ran on 2026-07-29 and confirmed
+  it. The only way this reopens is an admin granting a subuid range, which
+  would need to be re-checked (`grep -c '^eliott:' /etc/subuid /etc/subgid`)
+  before assuming it still holds.
 - **⚠️ banyan GPU 0 occupancy is invisible to Slurm.** ~86 GB held by another
   user's process while Slurm says `IDLE` `[source: report 10 §7]`. Mitigation is
   the `nvidia-smi` pre-flight in gated step 3. Whether Slurm actually assigns
   GPU 0 was not determined.
-- **⚠️ banyan root-disk drawdown.** 586 G → **439 G free in 6 days**, cause
-  uninvestigated, and `/tmp` is on that filesystem `[source: report 10 §5]`. A
-  multi-GB build with default scratch paths could fill `/` on a shared node.
-  Mitigation is the `SINGULARITY_TMPDIR`/`TMPDIR` redirection in gated step 1,
-  plus a `df -h` immediately before building.
+- **banyan root-disk drawdown — reframed as a one-off, not a trend.** 586 G →
+  439 G free between 2026-07-21 and 2026-07-27 `[source: report 10 §5]`, but
+  `/` then **held at 439 G free across four further days**, and the actual
+  build only consumed ~9 G net `[source: R13 §6]`. The original 147 G drop's
+  cause remains uninvestigated, so this is not a root-cause finding — only
+  evidence that `/` was not still actively draining as of the build. `/tmp`
+  is confirmed on the same device as `/` (`/dev/nvme0n1p4`), contradicting a
+  facility doc's claim of separate NVMe scratch, so the
+  `SINGULARITY_TMPDIR`/`TMPDIR` redirection in gated step 1 stays warranted
+  regardless, plus a `df -h` immediately before any future build.
 - **Point-in-time reads.** Group memberships, GPU occupancy and free space are all
   snapshots from 2026-07-27. The GPU fact already changed once within 6 days.
   Re-run report 10's "Re-observation Steps" before acting on any of them.
@@ -432,3 +503,17 @@ translation of `gromacs.def` (same pins, both checksums, all `GMX_*` flags, no
 and in both files. Shell syntax of every `RUN` body was checked with `sh -n`;
 **no image was built** — nothing in this directory has been built, uploaded, or
 submitted.*
+*`__roadmap__/p53-mdm2-v2/p1b_container_runtime/recipe_evidence_corrections`,
+Step 2 (2026-07-30): this runbook now describes a built image, not scaffolding.
+An attended session on 2026-07-29 ran Route B end to end — Slurm job 30,
+COMPLETED, exit 0, 5m27s, `gromacs-p53mdm2:latest` (`70659e395c53`, 10.6 GB) —
+and separately ran the Route A probe that turned the `--fakeroot` finding from
+inference into an observed `FATAL` error. Full evidence in
+`__reports__/p53-mdm2/13-route_b_build_observed_v0.md` (R13). The docker
+data-root, the disk-drawdown trend, and the SIF-version-skew risk are
+corrected or reassigned above; the `BuildStatus` label/`%labels` entry is
+removed from both recipe files in this leaf's Step 3, together with the
+PTX-embedding and `libcuda.so.1` corrections below. **Still not built or run:**
+`gromacs.sif` does not exist, no GPU has executed the container, and the
+`sm_70`/`sm_90` SASS targets remain under independent audit
+(`sass_portability_audit`).*
