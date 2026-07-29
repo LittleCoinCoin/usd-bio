@@ -2,9 +2,16 @@
 # gromacs.def — Singularity/Apptainer definition for a GPU-enabled GROMACS
 # build, portable across the project's TWO clusters (banyan H100 + dgx1 V100).
 #
-# STATUS: reviewable SCAFFOLDING ONLY. Nothing here has been built, uploaded,
-#         or run on any cluster. Building a .sif and putting it on the shared
-#         home is a PI-GATED mutating step (see ./README.md).
+# STATUS: this FILE (Route A) has never itself been built — `singularity build
+#         gromacs.sif gromacs.def` was attempted attended on banyan 2026-07-29
+#         and failed in seconds (no /etc/subuid mapping; see ./README.md's
+#         fakeroot section for the captured FATAL error). ITS DOCKER TWIN HAS
+#         BEEN BUILT: `docker build` from ./Dockerfile (the SAME pins and
+#         %post steps, translated) succeeded the same day — Slurm job 30, exit
+#         0, `gromacs-p53mdm2:latest` (`70659e395c53`, 10.6 GB). No `.sif`
+#         exists yet either way; converting the Docker image and putting a
+#         `.sif` on shared home is still a PI-GATED mutating step (see
+#         ./README.md and __reports__/p53-mdm2/13-route_b_build_observed_v0.md).
 #
 # WHY SINGULARITY (not "docker run"): see __reports__/p53-mdm2/07-cluster_liveverify_v1.md.
 #   Singularity is the ONLY portable, non-root, Slurm-integrated run path across
@@ -13,13 +20,18 @@
 #   Slurm GPU isolation. submit_job wraps `singularity exec --nv` on GPU jobs.
 #
 # HOW TO BUILD (both PI-gated — do NOT run unattended):
-#   Route B (RECOMMENDED — Docker first, then convert): on banyan, which has the
-#       Docker daemon 29.4.3 with this user in the `docker` group:
+#   Route B (SUCCEEDED 2026-07-29 — Docker first, then convert): on banyan,
+#       which has the Docker daemon 29.4.3 with this user in the `docker` group:
 #         docker build -t gromacs-p53mdm2 .    # SAME base + %post steps
 #         docker save gromacs-p53mdm2 -o gromacs.tar
 #         singularity build gromacs.sif docker-archive://gromacs.tar
 #       The daemon builds as root, so %post's apt-get + compile just work.
-#   Route A (DEMOTED — expected to FAIL): native `singularity build gromacs.sif
+#       The FIRST of these three commands has run and succeeded (Slurm job 30,
+#       exit 0, 5m27s, `gromacs-p53mdm2:latest` id `70659e395c53`, 10.6 GB); the
+#       `docker save` + `singularity build docker-archive://` conversion has NOT
+#       yet run — that is `sif_delivery/convert_verify_cleanup`, a separate leaf.
+#         [source: __reports__/p53-mdm2/13-route_b_build_observed_v0.md §1-2]
+#   Route A (DEAD BY OBSERVATION): native `singularity build gromacs.sif
 #       gromacs.def` on banyan. banyan does have singularity-ce 4.2.2, BUT this
 #       user has NO /etc/subuid + /etc/subgid mapping on EITHER cluster (banyan
 #       lists only `user` and `test`; dgx1 only `lxd` and `root`), and the %post
@@ -29,10 +41,14 @@
 #       missing subuid range, not a kernel lockdown.
 #         [source: __reports__/p53-mdm2/10-cluster_state_refresh_v0.md §3
 #                  (read-only live refresh, cycle-006, commit c8f2cc2)]
-#       CAVEAT — this is INFERENCE, not an observed failure. The missing mapping
-#       is proved; no build was ever attempted (mutating + PI-gated). One attended
-#       command settles it:  singularity build gromacs.sif gromacs.def
-#       If it works, Route A is back and this note is void.
+#       CONFIRMED 2026-07-30 — this is now an OBSERVED failure, not inference.
+#       The attended command was run: `singularity build gromacs.sif gromacs.def`
+#       failed in seconds with `FATAL: --remote, --fakeroot, or the proot
+#       command are required to build this source as a non-root user` (exit
+#       255). `proot` is confirmed absent from banyan's PATH, and `--remote` is
+#       declined on principle (ships the recipe to a third-party cloud
+#       builder). All three of the error's named alternatives are closed.
+#         [source: __reports__/p53-mdm2/13-route_b_build_observed_v0.md §7-8]
 #       (Report 07's earlier claim that banyan "has fakeroot" was a
 #        capability-vs-entitlement conflation: the RUNTIME supports fakeroot; this
 #        USER is not entitled to it. That claim is hereby retracted.)
@@ -40,9 +56,14 @@
 #       `Rootless: true` [same source §3], but rootless podman builds normally
 #       need subuid ranges too, and this was never tested.
 #   Because home is one shared NFS (ts2:/export/home), a .sif built/staged once
-#   is visible from both clusters — stage-once, run-anywhere.
+#   is visible from both clusters — stage-once, run-anywhere (this specific claim
+#   is itself still untested pending a real .sif; see `sif_delivery`).
 #   Build scratch: keep it OFF banyan's root filesystem. `/tmp` is on `/`, which
-#   lost 147 G in 6 days (586 G -> 439 G free) [same source §5]. Export
+#   fell 586 G -> 439 G free between 2026-07-21 and 2026-07-27 [same source §5]
+#   but then HELD at 439 G free across four further days, and the 2026-07-29
+#   build itself only cost ~9 G net — a one-off event, not an ongoing drain,
+#   though its original cause is still uninvestigated
+#   [source: __reports__/p53-mdm2/13-route_b_build_observed_v0.md §6]. Export
 #   SINGULARITY_TMPDIR / SINGULARITY_CACHEDIR / TMPDIR under the shared home and
 #   re-check `df -h /` immediately before building. See ./README.md gated step 1.
 #
@@ -118,6 +139,14 @@ Bootstrap: docker
 # GROMACS. Slimming to a multi-stage -runtime image is a later optimization.
 From: nvidia/cuda:12.9.1-devel-ubuntu22.04
 
+# NOTE: no `BuildStatus` key here (removed 2026-07-30). A %labels entry is
+# baked into the image and carried into the .sif, so a literal value here
+# would become a PERMANENT, wrong provenance claim — `singularity inspect`
+# would forever report the not-yet-built status this key used to carry, even
+# after a real build (as this one now is via the Docker twin; see
+# ./README.md). Build status is per-build state, not a recipe constant. If
+# per-build status is ever wanted, the right mechanism is a build-time label
+# argument, not a literal baked in here.
 %labels
     Maintainer   usd-bio p53-mdm2 track
     Purpose      GPU-enabled GROMACS for p53-MDM2 self-run MD (p1b Step 2)
@@ -125,7 +154,6 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
     CudaToolkit  12.9.1
     CMakeVer     4.0.3
     TargetSM     70;90   # V100 (dgx1) + H100 (banyan)
-    BuildStatus  SCAFFOLDING-not-built
 
 %post
     # -------------------------------------------------------------------------
@@ -251,9 +279,20 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
     #                           like "120f" — see EasyBuild's
     #                           GROMACS-2025.3_retain_cuda_cc_suffix.patch. Our
     #                           plain "70;90" has no suffix, so it is unaffected.)
-    # GMX_CUDA_TARGET_COMPUTE : embed PTX for 90 so future/newer GPUs can JIT.
-    #                           (PTX for 70 is not embedded to keep the binary
-    #                           lean; the 70 SASS above covers V100 directly.)
+    # GMX_CUDA_TARGET_COMPUTE : intended to embed PTX for 90 only, so future/
+    #                           newer GPUs can JIT while the binary stays lean.
+    #                           CORRECTED 2026-07-30: this is NOT what the
+    #                           built image actually contains. `cuobjdump -lptx`
+    #                           on the real binary shows PTX embedded for BOTH
+    #                           70 and 90 (SM_ELF=sm_70;sm_90,
+    #                           SM_PTX=sm_70;sm_90, 98 ELF + 98 PTX records) —
+    #                           GROMACS' CMake evidently emits PTX for every SM
+    #                           target regardless of GMX_CUDA_TARGET_COMPUTE.
+    #                           This is functionally harmless (more PTX = more
+    #                           forward-portable, a marginally larger binary)
+    #                           and is a documentation correction only — the
+    #                           flag itself is UNCHANGED.
+    #                           [observed 2026-07-29 via cuobjdump -lptx, sass_portability_audit leaf]
     # GMX_DOUBLE=OFF          : single precision — the standard, GPU-supported build.
     # GMX_BUILD_OWN_FFTW=OFF  : use the distro libfftw3-dev installed above.
     #                           HONEST CAVEAT: upstream recommends the opposite —
@@ -368,6 +407,15 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
     # no GPU is present in a build sandbox, so this only proves the binary links
     # and reports its build config, NOT that GPU execution works. Real GPU
     # verification happens in the PI-gated smoke_submit.sbatch on a GPU node).
+    #
+    # This gate has the SAME exposure `./Dockerfile`'s equivalent RUN documents
+    # in full: a build sandbox has no NVIDIA driver, so `gmx --version` could in
+    # principle abort on a missing libcuda.so.1. RESOLVED 2026-07-30: it does
+    # not — the 2025.3 gmx binary's NEEDED list has no libcuda.so.1 entry
+    # (`readelf -d`: libgromacs.so.10, libstdc++.so.6, libgcc_s.so.1, libc.so.6
+    # only), and the 2026-07-29 Docker-twin build reached exit 0 against this
+    # exact gate with `CUDA driver: 0.0`. See ./Dockerfile's header for the full
+    # evidence; this is a shared risk closed by the same observation.
     set -e
     /opt/gromacs/bin/gmx --version
     # Confirm the binary was actually compiled with GPU support:
@@ -377,8 +425,10 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
 %help
     GPU-enabled GROMACS 2025.3 (CUDA 12.9.1) for the usd-bio p53-MDM2 self-run MD
     track. Built to run on BOTH banyan (H100/sm_90) and dgx1 (V100/sm_70) via
-    Singularity `--nv`. This .def is SCAFFOLDING — see ./README.md for the
-    ordered, PI-gated build/stage/smoke-test steps. Nothing has been run yet.
+    Singularity `--nv`. This exact .def has never been built directly (Route A
+    failed, observed — see below); its Docker twin ./Dockerfile HAS been built
+    (2026-07-29, Slurm job 30, exit 0) — see ./README.md for the ordered,
+    PI-gated build/stage/smoke-test steps and their current status.
 
     All pinned versions/hashes carry an inline source URL in this file, and NO
     value is left as an assumption — GMX_SIMD (the last one) resolved to
@@ -386,9 +436,10 @@ From: nvidia/cuda:12.9.1-devel-ubuntu22.04
     cluster CPU models were recorded. See the [verified] note by that flag.
 
     BUILD ROUTE: use Route B (docker build on banyan -> docker save ->
-    singularity build docker-archive://...). Native `singularity build` from this
-    .def is expected to FAIL — no /etc/subuid mapping for this user on either
-    cluster, so --fakeroot is unavailable. See the header for the full reasoning
+    singularity build docker-archive://...) — this succeeded on 2026-07-29.
+    Native `singularity build` from this .def FAILS, observed, not merely
+    expected — no /etc/subuid mapping for this user on either cluster, so
+    --fakeroot is unavailable. See the header for the full reasoning
     and the one command that would disprove it.
 
     Typical use once a gromacs.sif exists on the shared home:
