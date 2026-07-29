@@ -21,7 +21,7 @@ Run the full end-to-end p53–MDM2 demonstration across all four pipelines (MD/�
 - [x] PI decision on topic structure (Q-004): lead all four pipelines in this single topic, no split
 - [x] Q-006 answered (2026-07-29): container builds stay PI-attended; other clean work attempted unattended with escalation through the umbod question path
 - [x] Q-007 answered (2026-07-29): Route B (Docker build → `docker save` → `singularity build docker-archive://`) confirmed by observation; Route A dead
-- [ ] R12 migration audit signed off by the PI, gating retirement of `__roadmap__/p53-mdm2/`
+- [x] R12 migration audit signed off by the PI (2026-07-30); `__roadmap__/p53-mdm2/` retired behind a blocked banner and `MIGRATION.md`
 
 ## Success Gates
 - ✅ `examples/p53_mdm2/` package exists with no `/ABLComplex` literal and no dataset atom-count in library code (anti-chimera invariant, R00)
@@ -44,7 +44,7 @@ Run the full end-to-end p53–MDM2 demonstration across all four pipelines (MD/�
 ## Status
 ```mermaid
 graph TD
-    migration_verification[Roadmap Migration Verification]:::planned
+    migration_verification[Roadmap Migration Verification]:::done
     f1_scaffold[F1 Scaffold + Anti-Chimera Contracts]:::done
     p1_topology_from_1ycr[P1 MD to USD — Topology from 1YCR]:::done
     p1b_md_parameter_representation[P1b MD-Parameter Representation]:::inprogress
@@ -63,7 +63,7 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `migration_verification.md` | 📄 Leaf Task | ⬜ Planned |
+| `migration_verification.md` | 📄 Leaf Task | ✅ Done |
 | `f1_scaffold.md` | 📄 Leaf Task | ✅ Done |
 | `p1_topology_from_1ycr.md` | 📄 Leaf Task | ✅ Done |
 | `p1b_md_parameter_representation.md` | 📄 Leaf Task | 🔄 In Progress |
@@ -81,3 +81,11 @@ graph TD
 ## Progress
 | Node | Branch | Commits | Notes |
 |:-----|:-------|:--------|:------|
+| `migration_verification.md` | task/p53-mdm2-container-runtime | 3 | `c4f1d84` founding, `349f0f3` R12 audit, retirement commit. 15/15 old steps carried, counts preserved per leaf (2,3,2,2,2,2,2); 14/15 titles and commit messages byte-identical. PI signed off 2026-07-30. |
+| `f1_scaffold.md` | --- | --- | Carried from the retired campaign; landed cycle-002 (`3f25ad6`…`240570a`). Package scaffold + anti-chimera contracts. |
+| `p1_topology_from_1ycr.md` | --- | --- | Carried; landed cycle-002. Committed 1YCR topology `.usda` (`/p53_MDM2_complex`, 818 atoms); 9/9 read-back tests. |
+| `p1b_md_parameter_representation.md` | --- | --- | Carried; Step 1 landed cycle-003 (`6b1cde6`, `a1ae572`) — `bio:md:` schema, 17 CORE incl. PI-promoted ion-conc + protonation. Step 2 delegated to `p1b_container_runtime/`. |
+| `p2_ddg_pipeline.md` | --- | --- | Carried; landed cycle-003 (`4e96727`, `0db982c`), live ΔΔG cycle-006. Genotype VariantSet + rate-limited ddMut-PPI client. |
+| `p3_maboss_emit.md` | --- | --- | Carried; landed cycle-004 (`1f53e38`, `6cf3cb3`). ΔG↔param correlation + `.bnd`/`.cfg` emitter; 28/28 checks. |
+| `p4_maboss_readback.md` | --- | --- | Carried and **corrected to done** — landed cycle-006 per R11; the retired campaign could not record it. |
+| `p5_integrated_demo.md` | --- | --- | Carried and **corrected to done** — landed cycle-006 per R11; 39/39 checks, `usdchecker` RC=0. |
