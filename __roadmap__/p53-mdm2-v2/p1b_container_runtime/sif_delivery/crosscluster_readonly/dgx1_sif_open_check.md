@@ -2,14 +2,14 @@
 
 **Goal**: Establish that an image written by singularity-ce 4.2.2 on banyan opens and executes under dgx1's singularity 3.5.2, and that the shared home really does present the same bytes to both clusters — all without writing to dgx1 or touching a GPU.
 **Pre-conditions**:
-- [ ] `gromacs.sif` exists on the shared home, produced by `convert_verify_cleanup`
+- [x] `gromacs.sif` exists on the shared home, produced by `convert_verify_cleanup`
 - [x] One shared NFS home mounted identically on both clusters — asserted from free-space output since R07, never proven byte-for-byte
 - [x] Every action here is read-only, so this leaf is executable by an unattended cycle under the Q-006 policy
 **Success Gates**:
-- ⬜ `[run]` The image digest computed from banyan and from dgx1 are **equal**, giving the stage-once-run-anywhere claim its first actual test
-- ⬜ `[run]` `singularity inspect` exits 0 under singularity 3.5.2 and prints the GROMACS version label
-- ⬜ `[run]` `singularity exec` listing the install directory exits 0 and shows the `gmx` binary, proving the squashfs mounts and reads
-- ⬜ `[static]` The SIF-version-skew entry in the runbook's risk register is rewritten from open risk to observation
+- ✅ `[run]` The image digest computed from banyan and from dgx1 are **equal**, giving the stage-once-run-anywhere claim its first actual test
+- ✅ `[run]` `singularity inspect` exits 0 under singularity 3.5.2 and prints the GROMACS version label
+- ✅ `[run]` `singularity exec` listing the install directory exits 0 and shows the `gmx` binary, proving the squashfs mounts and reads
+- ✅ `[static]` The SIF-version-skew entry in the runbook's risk register is rewritten from open risk to observation
 **References**: [R07 cluster live verification](../../../../../__reports__/p53-mdm2/07-cluster_liveverify_v1.md) — where the version-skew risk and the shared-home claim were first recorded; [R10 cluster state refresh](../../../../../__reports__/p53-mdm2/10-cluster_state_refresh_v0.md) — the confirmed singularity versions on each cluster
 
 ## Step 1: Prove shared-home byte parity
