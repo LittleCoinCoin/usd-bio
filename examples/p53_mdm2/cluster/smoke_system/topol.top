@@ -1,0 +1,39 @@
+; ============================================================================
+; topol.top — minimal SPC water box for the GROMACS container smoke test.
+;
+; PURPOSE: give the container something real to compute so a GPU run can be
+; OBSERVED, without needing any external structure file and without pulling in
+; the p53-MDM2 system (real deck-building is out of scope here — see the
+; runbook's gated step 4).
+;
+; SELF-CONTAINED BY CONSTRUCTION: both includes and the coordinate source ship
+; inside GROMACS itself under share/gromacs/top, verified present in the image:
+;   oplsaa.ff/forcefield.itp, oplsaa.ff/spc.itp, spc216.gro
+; So make_box.sh needs no network and no repo data files.
+;
+; WHY OPLS-AA: arbitrary. Any force field carrying an SPC water definition
+; would do — this system exists to exercise nonbonded kernels and PME, not to
+; be physically meaningful. Do not read scientific intent into the choice.
+;
+; ⚠️ THE [ molecules ] SECTION IS DELIBERATELY EMPTY — DO NOT ADD `SOL 0`.
+; `gmx solvate -p` APPENDS a molecule line; it does NOT rewrite an existing one.
+; A placeholder `SOL 0` therefore survives and you end up with two blocks:
+;     SOL      0
+;     SOL    884
+; grompp then builds a zero-molecule molblock and SEGFAULTS while generating 1-4
+; interactions (observed 2026-07-30, job 31, GROMACS 2025.3 — it does not error
+; cleanly, it dumps core). Leave the section header alone and let solvate write
+; the only SOL line.
+;
+; make_box.sh copies this file into the run directory before solvating, so the
+; committed template is never mutated.
+; ============================================================================
+
+#include "oplsaa.ff/forcefield.itp"
+#include "oplsaa.ff/spc.itp"
+
+[ system ]
+SPC water box — GROMACS container smoke test
+
+[ molecules ]
+; Compound        #mols   <- gmx solvate -p appends the SOL line here

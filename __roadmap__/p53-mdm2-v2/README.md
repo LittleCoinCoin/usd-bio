@@ -52,7 +52,7 @@ graph TD
     p3_maboss_emit[P3 USD to MaBoSS — Correlation + Emit]:::done
     p4_maboss_readback[P4 MaBoSS to USD — Time-Sampled Attrs]:::done
     p5_integrated_demo[P5 Integrated Demonstration]:::done
-    p1b_container_runtime[P1b Container Runtime Validation]:::planned
+    p1b_container_runtime[P1b Container Runtime Validation]:::inprogress
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -71,7 +71,7 @@ graph TD
 | `p3_maboss_emit.md` | 📄 Leaf Task | ✅ Done |
 | `p4_maboss_readback.md` | 📄 Leaf Task | ✅ Done |
 | `p5_integrated_demo.md` | 📄 Leaf Task | ✅ Done |
-| `p1b_container_runtime/` | 📁 Directory | ⬜ Planned |
+| `p1b_container_runtime/` | 📁 Directory | 🔄 In Progress |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |

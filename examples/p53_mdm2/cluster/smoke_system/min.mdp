@@ -1,0 +1,38 @@
+; ============================================================================
+; min.mdp — steepest-descent energy minimisation. GROMPP WARM-UP ONLY.
+;
+; THIS IS NOT THE GPU PROOF. Read this before gating anything on it.
+; `integrator = steep` with `-nb gpu` does not reliably emit GROMACS' detected-
+; GPU block, and energy minimisation has documented GPU feature restrictions.
+; Its job here is to produce a sane starting configuration and a comparable
+; `Potential Energy` number for the docker-vs-.sif parity check. The actual
+; "does this container compute on a real GPU" evidence comes from md.mdp.
+;
+; define = -DFLEXIBLE switches spc.itp from rigid SETTLE water to flexible
+; bonds, which is the standard practice for minimising water — steepest descent
+; and constraint algorithms interact badly. md.mdp deliberately omits it so the
+; MD run uses rigid SETTLE water.
+; ============================================================================
+
+define                  = -DFLEXIBLE
+
+integrator              = steep
+nsteps                  = 200
+emtol                   = 1000.0
+emstep                  = 0.01
+
+; Verlet is required for GPU nonbondeds and is the 2025.x default; stated
+; explicitly so the intent survives a future default change.
+cutoff-scheme           = Verlet
+nstlist                 = 10
+pbc                     = xyz
+
+coulombtype             = PME
+rcoulomb                = 1.0
+rvdw                    = 1.0
+fourierspacing          = 0.12
+
+constraints             = none
+
+nstenergy               = 10
+nstlog                  = 10

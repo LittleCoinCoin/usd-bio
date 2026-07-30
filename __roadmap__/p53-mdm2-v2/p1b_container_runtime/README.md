@@ -19,12 +19,12 @@ Turn the built-but-unproven GROMACS Docker image into a verified, portable `grom
 - [ ] An attended session is available for every cluster-mutating step
 
 ## Success Gates
-- ⬜ `[run]` `gromacs.sif` exists on `ts2:/export/home` (never on `/`) and `singularity inspect` reports `GromacsVer 2025.3` and `TargetSM 70;90` with **no** `BuildStatus` key
-- ⬜ `[run]` GROMACS is observed executing on a real H100 — a non-zero `CUDA driver` version and a GPU-selection block in an `mdrun` log, captured verbatim
-- ⬜ `[run]` `cuobjdump` output names **both** `sm_70` and `sm_90`, so the cross-cluster portability claim is observed rather than asserted
-- ⬜ `[run]` the `.sif` and the Docker image agree on the GROMACS version, SIMD, CUDA runtime and GPU-support lines, and on minimisation energy to ≤ 1e-3 relative
-- ⬜ `[static]` nothing in `examples/p53_mdm2/cluster/` still claims the container was never built, and no `BuildStatus` label survives in either recipe
-- ⬜ `[run]` banyan's `/` returns to its pre-work free space; no `gromacs.tar` and no `gromacs-p53mdm2` image remain
+- ✅ `[run]` `gromacs.sif` exists on `ts2:/export/home` (never on `/`) and `singularity inspect` reports `GromacsVer 2025.3` and `TargetSM 70;90` with **no** `BuildStatus` key — job 33, sha256 `1fc04f8b…81ac`, 5750255616 bytes
+- ✅ `[run]` GROMACS is observed executing on a real H100 — `CUDA driver: 13.20` (was `0.0` at build) plus `Number of GPUs detected: 1` / `compute cap.: 9.0` / `1 GPU selected for this run`, captured verbatim in job 32 and again under `--nv` in job 33
+- ✅ `[run]` `cuobjdump` output names **both** `sm_70` and `sm_90` — `SM_ELF=sm_70;sm_90`, real SASS not PTX-only, so cross-cluster portability is observed
+- ✅ `[run]` the `.sif` and the Docker image agree on version/SIMD/CUDA-runtime/GPU-support and on minimisation energy — relative difference **1.39e-06**, three orders inside the 1e-3 tolerance
+- ✅ `[static]` nothing in `examples/p53_mdm2/cluster/` still claims the container was never built, and the `SCAFFOLDING-not-built` value survives in neither recipe
+- ⬜ `[run]` **Reworded, and the original is recorded as NOT met.** The original gate demanded that banyan's `/` return to its pre-work free space. It did not: `/` held at 430 G. Deleting the image moved ~10 GB from active to *reclaimable* (169.7 → 179.9 GB), but releasing it needs `docker image prune`, which would delete other users' dangling images across a store holding 52 of them — out of scope for this project. What IS achieved and verifiable: `gromacs.tar` deleted (9.9 GB off shared home), no `gromacs-p53mdm2` image rows remain, build cache pruned. Reclaiming the dangling layers is an admin/owner action.
 - ⬜ `[static]` `Dockerfile`↔`gromacs.def` pin agreement is enforced by a test in `run_tests.py`, not by convention
 
 ## Gotchas
@@ -39,9 +39,9 @@ Turn the built-but-unproven GROMACS Docker image into a verified, portable `grom
 ```mermaid
 graph TD
     recipe_evidence_corrections[Recipe + Runbook Corrections]:::done
-    sass_portability_audit[CUDA SASS Portability Audit]:::planned
-    docker_gpu_smoke[Docker GPU Smoke Test on banyan]:::planned
-    sif_delivery[SIF Delivery]:::planned
+    sass_portability_audit[CUDA SASS Portability Audit]:::inprogress
+    docker_gpu_smoke[Docker GPU Smoke Test on banyan]:::inprogress
+    sif_delivery[SIF Delivery]:::inprogress
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -53,9 +53,9 @@ graph TD
 | Node | Type | Status |
 |:-----|:-----|:-------|
 | `recipe_evidence_corrections.md` | 📄 Leaf Task | ✅ Done |
-| `sass_portability_audit.md` | 📄 Leaf Task | ⬜ Planned |
-| `docker_gpu_smoke.md` | 📄 Leaf Task | ⬜ Planned |
-| `sif_delivery/` | 📁 Directory | ⬜ Planned |
+| `sass_portability_audit.md` | 📄 Leaf Task | 🔄 In Progress |
+| `docker_gpu_smoke.md` | 📄 Leaf Task | 🔄 In Progress |
+| `sif_delivery/` | 📁 Directory | 🔄 In Progress |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |
@@ -66,3 +66,4 @@ graph TD
 |:-----|:-------|:--------|:------|
 | `recipe_evidence_corrections.md` | task/p53-mdm2-container-runtime | 3 | `2e20cbf` R13 observation, `6a4407c` runbook, `34595c9` recipe twins; merged `--no-ff` at `4df8da3` after rebase. `BuildStatus` label deleted from both recipes so it cannot reach the `.sif`. Also corrected the false PTX-for-90-only claim, resolved the `libcuda.so.1` DT_NEEDED assumption against real `readelf` output, and recorded banyan's `Default Runtime: nvidia`. 39/39 suite. |
 | `sass_portability_audit.md` | task/p53-mdm2-container-runtime | 2 | `d828f9c` audit script, `56536f2` captured evidence. Steps 1–2 done: `SM_ELF=sm_70;sm_90` both present as real SASS, `LIBCUDA_DT_NEEDED=no`, evidence byte-verified against the cluster (`ca3902cf`). Step 3 (the `container-evidence` test layer) still open. |
+| `docker_gpu_smoke.md` | task/p53-mdm2-container-runtime | 3 | `3247a9b` smoke system, `33641d4` Slurm-wrapped job, `77b4d71` captured evidence. Steps 1–3 done: job 32 exit 0, `CUDA driver: 13.20`, H100 detected at compute cap 9.0, ~76% of wall time in GPU activities. Job **31 failed first** — a `SOL 0` placeholder made `solvate` append a second molecule block, `grompp` segfaulted and dumped 1.4 GB of core onto shared home; four fixes landed. Steps 4–5 (test gates, smoke_submit update) still open. |
