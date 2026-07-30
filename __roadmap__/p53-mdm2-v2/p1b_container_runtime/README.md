@@ -25,7 +25,7 @@ Turn the built-but-unproven GROMACS Docker image into a verified, portable `grom
 - ✅ `[run]` the `.sif` and the Docker image agree on version/SIMD/CUDA-runtime/GPU-support and on minimisation energy — relative difference **1.39e-06**, three orders inside the 1e-3 tolerance
 - ✅ `[static]` nothing in `examples/p53_mdm2/cluster/` still claims the container was never built, and the `SCAFFOLDING-not-built` value survives in neither recipe
 - ⬜ `[run]` **Reworded, and the original is recorded as NOT met.** The original gate demanded that banyan's `/` return to its pre-work free space. It did not: `/` held at 430 G. Deleting the image moved ~10 GB from active to *reclaimable* (169.7 → 179.9 GB), but releasing it needs `docker image prune`, which would delete other users' dangling images across a store holding 52 of them — out of scope for this project. What IS achieved and verifiable: `gromacs.tar` deleted (9.9 GB off shared home), no `gromacs-p53mdm2` image rows remain, build cache pruned. Reclaiming the dangling layers is an admin/owner action.
-- ⬜ `[static]` `Dockerfile`↔`gromacs.def` pin agreement is enforced by a test in `run_tests.py`, not by convention
+- ✅ `[static]` `Dockerfile`↔`gromacs.def` pin agreement is enforced by a test in `run_tests.py`, not by convention
 
 ## Gotchas
 - **`docker build` and `docker run` are executed by the daemon, outside the job's cgroup.** Wrapping them in Slurm buys reservation and courtesy — it does **not** buy resource isolation, and `cancel_job` will not stop a running build. Say so plainly in any leaf that uses this pattern rather than implying containment.

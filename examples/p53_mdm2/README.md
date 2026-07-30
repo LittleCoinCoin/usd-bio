@@ -140,6 +140,6 @@ Runs under the forOUSD venv (`~/Documents/src/AOUSD/forOUSD/bin/python3`, Python
 
 ## Not yet done
 
-- **No MD trajectory.** The demo runs on a crystal structure. Payloads / Value Clips and the `ReplicaID` Ensemble VariantSet are the growth path once a real p53–MDM2 trajectory exists; the GROMACS route is scaffolded in `cluster/` but **nothing has been built, staged, or submitted** — every step there is PI-gated.
+- **No MD trajectory.** The demo runs on a crystal structure. Payloads / Value Clips and the `ReplicaID` Ensemble VariantSet are the growth path once a real p53–MDM2 trajectory exists. The GROMACS route is no longer scaffolding: `cluster/` has **a delivered runtime** — `/home/eliott/p53mdm2/gromacs.sif` (GROMACS 2025.3, `sm_70;sm_90`), observed executing on a banyan H100 and observed opening under dgx1's older Singularity — but **no p53–MDM2 MD simulation has ever run**, on any cluster. What has run is a smoke-test water box. See `cluster/README.md` for the delivered state and what remains PI-gated (the dgx1 GPU run, a cold-cache rebuild, the last of the build scratch).
 - **The ΔΔG→`S` correlation is a placeholder shape.** The logistic is monotone and invertible, which is all the mechanism needs, but `m` and `k` are not fitted to anything.
 - **No Review layer.** The design doc's fifth department (annotations, cameras, PI comments) is not authored.

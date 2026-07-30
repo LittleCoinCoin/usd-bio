@@ -7,7 +7,7 @@
 - [x] `/` observed at 439 G free on 2026-07-29 and unchanged four days later, so R10's 147 G drawdown was a one-off
 - [x] Route A failure and `proot` absence captured verbatim from an attended probe
 **Success Gates**:
-- ⬜ `[static]` No file under `examples/p53_mdm2/cluster/` still *asserts* the container was never built — quoting an old claim as explicitly superseded is correct and does not violate this gate, so check the assertion's status, never a bare string count
+- ✅ `[static]` No file under `examples/p53_mdm2/cluster/` still *asserts* the container was never built — quoting an old claim as explicitly superseded is correct and does not violate this gate, so check the assertion's status, never a bare string count
 - ✅ `[static]` The value `SCAFFOLDING-not-built` appears in neither `Dockerfile` nor `gromacs.def`, so no build-status label can reach the `.sif`
 - ✅ `[static]` No `[assumption]` remains for the docker data-root, the subuid mapping, or the `libcuda.so.1` DT_NEEDED question
 - ✅ `[run]` R13 exists with `type: observation` front-matter and is indexed in the reports README
