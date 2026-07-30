@@ -13,6 +13,8 @@ Layers (mirrors the v8 4-layer ladder; rebuilt for 1YCR topology-only):
     readback      -- fresh-open assertions vs. INDEPENDENT 1YCR re-derivation
     integrated-p5 -- the composed four-pipeline stage (demos/run_end_to_end.py)
     anti-chimera  -- static grep-gate for the ABL root literal / dataset counts
+    container-evidence -- offline gates over cluster/evidence + recipe pins
+                          (contributes zero rows when evidence is not captured)
 
 Exit code: 0 all pass, 1 any failure.
 """
@@ -101,6 +103,9 @@ def main() -> int:
 
     import test_anti_chimera
     all_rows += _rows_from("anti-chimera", test_anti_chimera.run())
+
+    import test_container_evidence
+    all_rows += _rows_from("container-evidence", test_container_evidence.run())
 
     # summary table
     print(f"\np53_mdm2 topology test harness")
