@@ -1,0 +1,319 @@
+=== dgx1 SIF open check ===
+roadmap_leaf: __roadmap__/p53-mdm2-v2/p1b_container_runtime/sif_delivery/crosscluster_readonly/dgx1_sif_open_check.md
+steps: 1 (shared-home byte parity) and 2 (open and read under singularity 3.5.2)
+captured_on: 2026-07-31T02:46:00Z
+agent: claude-opus-5 (unattended cycle-007)
+device_access: none - no --nv, no GPU request, no batch job, no write to either cluster
+
+Subject image: /home/eliott/p53mdm2/gromacs.sif
+Written on banyan by singularity-ce 4.2.2 from a docker-archive (see convert_verify_banyan.txt, manifest seq 3).
+
+All commands below are read-only. ANSI colour escapes present in the raw
+singularity output have been stripped; text is otherwise verbatim.
+
+--- SUMMARY ---
+SIF_SHA256_BANYAN=1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac
+SIF_SHA256_DGX1=1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac
+DIGEST_PARITY=match
+DGX1_SINGULARITY_VERSION=singularity version 3.5.2
+DGX1_INSPECT_RC=0
+DGX1_INSPECT_GROMACSVER=2025.3
+DGX1_EXEC_LS_RC=0
+DGX1_EXEC_GMX_PRESENT=yes
+--- END SUMMARY ---
+
+
+########## STEP 1: SHARED-HOME BYTE PARITY ##########
+
+--- MOUNT_BANYAN ---
+$ hostname
+banyan
+$ findmnt -T /home/eliott
+TARGET SOURCE           FSTYPE OPTIONS
+/home  ts2:/export/home nfs4   rw,relatime,vers=4.2,rsize=1048576,wsize=1048576,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=10.5.1.187,local_lock=none,addr=10.5.1.206
+$ mount | grep ' /home'
+ts2:/export/home on /home type nfs4 (rw,relatime,vers=4.2,rsize=1048576,wsize=1048576,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=10.5.1.187,local_lock=none,addr=10.5.1.206)
+$ df -h /home/eliott
+Filesystem        Size  Used Avail Use% Mounted on
+ts2:/export/home   29T   16T   13T  56% /home
+$ stat -c '%n %s %y' /home/eliott/p53mdm2/gromacs.sif
+/home/eliott/p53mdm2/gromacs.sif 5750255616 2026-07-31 01:41:15.654477760 +0900
+--- END MOUNT_BANYAN ---
+
+--- MOUNT_DGX1 ---
+$ hostname
+dgx1
+$ findmnt -T /home/eliott
+TARGET SOURCE           FSTYPE OPTIONS
+/home  ts2:/export/home nfs4   rw,relatime,vers=4.2,rsize=1048576,wsize=1048576,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=10.5.1.223,local_lock=none,addr=10.5.1.206
+$ mount | grep ' /home'
+ts2:/export/home on /home type nfs4 (rw,relatime,vers=4.2,rsize=1048576,wsize=1048576,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=10.5.1.223,local_lock=none,addr=10.5.1.206)
+$ df -h /home/eliott
+Filesystem        Size  Used Avail Use% Mounted on
+ts2:/export/home   29T   16T   13T  56% /home
+$ stat -c '%n %s %y' /home/eliott/p53mdm2/gromacs.sif
+/home/eliott/p53mdm2/gromacs.sif 5750255616 2026-07-31 01:41:15.654477760 +0900
+--- END MOUNT_DGX1 ---
+
+MOUNT INTERPRETATION
+Both hosts mount the same NFSv4 export `ts2:/export/home` from the same
+server address 10.5.1.206 at the same target `/home`. The `clientaddr`
+values differ (banyan 10.5.1.187, dgx1 10.5.1.223) exactly as expected --
+that field is the client's own address, not the server's. Size and mtime
+(nanosecond precision) are identical across hosts.
+
+--- DIGEST_BANYAN ---
+# dedicated MCP tool: mcp__plugin_banyan_banyan-hpc__fs_checksum
+1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac  /home/eliott/p53mdm2/gromacs.sif
+
+# independent shell command
+$ cd /home/eliott/p53mdm2 && sha256sum gromacs.sif; echo "rc=$?"
+1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac  gromacs.sif
+rc=0
+--- END DIGEST_BANYAN ---
+
+--- DIGEST_DGX1 ---
+# dedicated MCP tool: mcp__plugin_dgx1_dgx1-hpc__fs_checksum
+# TOOL ERROR (not a permission refusal), verbatim:
+#   Error executing tool fs_checksum: could not communicate with process
+# Fell back to the shell command below. The banyan fs_checksum call on the
+# same 5.75 GB path succeeded, so this is a dgx1-side endpoint failure and
+# not a property of the file.
+
+# independent shell command
+$ cd /home/eliott/p53mdm2 && sha256sum gromacs.sif
+1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac  gromacs.sif
+--- END DIGEST_DGX1 ---
+
+DIGEST INTERPRETATION
+The digest computed from banyan and the digest computed from dgx1 are equal,
+and both equal the value recorded at delivery time (manifest.jsonl seq 3,
+`artifact_delivered`). The stage-once-run-anywhere claim, asserted from
+matching `df` output since R07, is now tested byte-for-byte and holds.
+Byte size 5750255616 also matches the recorded value.
+
+
+########## STEP 2: OPEN AND READ UNDER SINGULARITY 3.5.2 ##########
+
+--- DGX1_RUNTIME_VERSION ---
+$ singularity --version; echo "VERSION_RC=$?"
+singularity version 3.5.2
+VERSION_RC=0
+$ command -v singularity
+/usr/local/bin/singularity
+
+# for contrast, the writing runtime on banyan:
+$ singularity --version
+singularity-ce version 4.2.2
+$ command -v singularity
+/opt/singularity/4.2.2/bin/singularity
+--- END DGX1_RUNTIME_VERSION ---
+
+--- DGX1_INSPECT ---
+$ singularity inspect /home/eliott/p53mdm2/gromacs.sif 2>&1; echo "INSPECT_RC=$?"
+WARNING: No SIF metadata partition, searching in container...
+CMakeVer: 4.0.3
+CudaToolkit: 12.9.1
+GromacsVer: 2025.3
+Maintainer: usd-bio p53-mdm2 track
+Purpose: GPU-enabled GROMACS for p53-MDM2 self-run MD (p1b Step 2)
+SyncWith: ./gromacs.def (parallel implementation - keep in sync)
+TargetSM: 70;90
+maintainer: NVIDIA CORPORATION <cudatools@nvidia.com>
+org.label-schema.build-arch: amd64
+org.label-schema.build-date: Friday_31_July_2026_1:38:27_JST
+org.label-schema.schema-version: 1.0
+org.label-schema.usage.singularity.deffile.bootstrap: docker-archive
+org.label-schema.usage.singularity.deffile.from: /home/eliott/p53mdm2/gromacs.tar
+org.label-schema.usage.singularity.version: 4.2.2
+org.opencontainers.image.ref.name: ubuntu
+org.opencontainers.image.version: 22.04
+INSPECT_RC=0
+--- END DGX1_INSPECT ---
+
+INSPECT INTERPRETATION
+Exit 0. `GromacsVer: 2025.3` and `TargetSM: 70;90` are both present as
+expected, and there is no `BuildStatus` key -- the label removal recorded in
+convert_verify_banyan.txt survives the round trip and is visible to the older
+runtime.
+
+The `No SIF metadata partition` warning is a real 3.5.2-vs-4.2.2 difference in
+where labels are looked up, and it resolved benignly: 3.5.2 did not find the
+metadata layout it expected and fell back to reading labels from inside the
+container image, which is why the labels still printed. The fallback target
+exists and is observable:
+
+$ singularity exec /home/eliott/p53mdm2/gromacs.sif ls -la /.singularity.d/
+total 9
+drwxr-xr-x 5 root   root          127 Jul 31 01:38 .
+drwxr-xr-x 1 eliott Domain Users   80 Jul 31 02:46 ..
+-rw-r--r-- 1 root   root           66 Jul 31 01:38 Singularity
+drwxr-xr-x 2 root   root         4096 Apr  9  2020 actions
+drwxr-xr-x 2 root   root          173 Jul 31 01:38 env
+-rw-r--r-- 1 root   root          818 Jul 31 01:38 labels.json
+drwxr-xr-x 2 root   root            3 Jul 31 01:38 libs
+-rwxr-xr-x 1 root   root         2468 Jul 31 01:38 runscript
+-rwxr-xr-x 1 root   root           10 Jul 31 01:38 startscript
+
+`/.singularity.d/labels.json` (818 bytes) is present -- that this specific file
+is what 3.5.2 read is an inference from the warning text plus the file's
+presence, not a directly observed read.
+
+--- DGX1_EXEC_LS ---
+$ singularity exec /home/eliott/p53mdm2/gromacs.sif ls -la /opt/gromacs/bin 2>&1; echo "EXEC_LS_RC=$?"
+total 282
+drwxr-xr-x 2 root root    185 Jul 29 23:31 .
+drwxr-xr-x 6 root root     89 Jul 29 23:31 ..
+-rwxr-xr-x 1 root root    554 Jul 29 23:30 GMXRC
+-rwxr-xr-x 1 root root   3284 Jul 29 23:30 GMXRC.bash
+-rwxr-xr-x 1 root root   3035 Jul 29 23:30 GMXRC.csh
+-rwxr-xr-x 1 root root    112 Jul 29 23:30 GMXRC.zsh
+-rwxr-xr-x 1 root root   3397 Aug 29  2025 demux.pl
+-rwxr-xr-x 1 root root 120984 Jul 29 23:31 gmx
+-rw-r--r-- 1 root root     37 Jul 29 23:30 gmx-completion-gmx.bash
+-rw-r--r-- 1 root root 145136 Aug 29  2025 gmx-completion.bash
+-rwxr-xr-x 1 root root   9023 Aug 29  2025 xplor2gmx.pl
+EXEC_LS_RC=0
+--- END DGX1_EXEC_LS ---
+
+EXEC INTERPRETATION
+This is the decisive test of the leaf, and it passed. `inspect` only reads
+metadata, but `exec` must actually mount the squashfs and read through it --
+a too-new compression algorithm would have failed here specifically. Exit 0,
+and the `gmx` binary is present at /opt/gromacs/bin/gmx (120984 bytes).
+A 2019 runtime mounts and reads an image written by a 2024 one.
+
+--- SIF_STRUCTURE ---
+# read identically by both runtimes; confirms neither host sees a different image
+$ singularity sif list /home/eliott/p53mdm2/gromacs.sif    # on dgx1 (3.5.2)
+Container id: e0d9907e-05ee-4677-8813-c50c904542fb
+Created on:   2026-07-31 01:41:09 +0900 JST
+Modified on:  2026-07-31 01:41:09 +0900 JST
+----------------------------------------------------
+Descriptor list:
+ID   |GROUP   |LINK    |SIF POSITION (start-end)  |TYPE
+------------------------------------------------------------------------------
+1    |1       |NONE    |32176-32242               |Def.FILE
+2    |1       |NONE    |32242-41823               |JSON.Generic
+3    |1       |NONE    |41823-46723               |JSON.Generic
+4    |1       |NONE    |49152-5750255616          |FS (Squashfs/*System/amd64)
+
+$ singularity sif list /home/eliott/p53mdm2/gromacs.sif    # on banyan (4.2.2)
+------------------------------------------------------------------------------
+ID   |GROUP   |LINK    |SIF POSITION (start-end)  |TYPE
+------------------------------------------------------------------------------
+1    |1       |NONE    |32176-32242               |Def.FILE
+2    |1       |NONE    |32242-41823               |JSON.Generic
+3    |1       |NONE    |41823-46723               |JSON.Generic
+4    |1       |NONE    |49152-5750255616          |FS (Squashfs/*System/amd64)
+
+$ singularity sif header /home/eliott/p53mdm2/gromacs.sif  # on dgx1 (3.5.2)
+Launch:   #!/usr/bin/env run-singularity
+
+Magic:    SIF_MAGIC
+Version:  01
+Arch:     amd64
+ID:       e0d9907e-05ee-4677-8813-c50c904542fb
+Ctime:    2026-07-31 01:41:09 +0900 JST
+Mtime:    2026-07-31 01:41:09 +0900 JST
+Dfree:    44
+Dtotal:   48
+Descoff:  4096
+Descrlen: 27KB
+Dataoff:  32176
+Datalen:  5GB
+--- END SIF_STRUCTURE ---
+
+--- SQUASHFS_COMPRESSION ---
+# The leaf asks for this only if the mount fails. The mount did not fail, but
+# recording it anyway converts "it happened to work" into "it works because".
+$ unsquashfs -v | head -2
+unsquashfs version 4.6.1 (2023/03/25)
+copyright (C) 2023 Phillip Lougher <phillip@squashfs.org.uk>
+$ unsquashfs -s -o 49152 /home/eliott/p53mdm2/gromacs.sif | head -12
+Found a valid SQUASHFS 4:0 superblock on /home/eliott/p53mdm2/gromacs.sif.
+Creation or last append time Fri Jul 31 01:40:58 2026
+Filesystem size 5750203297 bytes (5615432.91 Kbytes / 5483.82 Mbytes)
+Compression gzip
+Block size 131072
+Filesystem is exportable via NFS
+Inodes are compressed
+Data is compressed
+Uids/Gids (Id table) are compressed
+Fragments are compressed
+Always-use-fragments option is not specified
+Xattrs are compressed
+--- END SQUASHFS_COMPRESSION ---
+
+COMPRESSION INTERPRETATION
+squashfs 4.0 with `gzip` compression and a 128 KiB block size. gzip is the
+oldest and most universally supported squashfs compressor, which is the
+mechanical reason the 3.5.2 mount succeeded: singularity-ce 4.2.2 did not
+default to a newer compressor (zstd or lz4) that a 2019 kernel/runtime pairing
+might not decode. No older-compatible rebuild and no per-cluster image is
+needed. Note this is a property of the current builder's default, not a
+guarantee contracted anywhere -- a future builder or an explicit
+`--compress` change could reintroduce the risk.
+
+--- DGX1_EXEC_GMX_VERSION ---
+$ singularity exec /home/eliott/p53mdm2/gromacs.sif gmx --version 2>&1 | head -40
+                         :-) GROMACS - gmx, 2025.3 (-:
+
+Executable:   /opt/gromacs/bin/gmx
+Data prefix:  /opt/gromacs
+Working dir:  /home/eliott
+Command line:
+  gmx --version
+
+GROMACS version:     2025.3
+Precision:           mixed
+Memory model:        64 bit
+MPI library:         thread_mpi
+OpenMP support:      enabled (GMX_OPENMP_MAX_THREADS = 128)
+GPU support:         CUDA
+NBNxM GPU setup:     super-cluster 2x2x2 / cluster 8 (cluster-pair splitting on)
+SIMD instructions:   AVX2_256
+CPU FFT library:     fftw-3.3.8-sse2-avx
+GPU FFT library:     cuFFT
+Multi-GPU FFT:       none
+RDTSCP usage:        enabled
+TNG support:         enabled
+Hwloc support:       disabled
+Tracing support:     disabled
+C compiler:          /usr/bin/cc GNU 11.4.0
+C compiler flags:    -fexcess-precision=fast -funroll-all-loops -mavx2 -mfma -Wno-missing-field-initializers -O3 -DNDEBUG
+C++ compiler:        /usr/bin/c++ GNU 11.4.0
+C++ compiler flags:  -fexcess-precision=fast -funroll-all-loops -mavx2 -mfma -Wno-missing-field-initializers -Wno-cast-function-type-strict SHELL:-fopenmp -O3 -DNDEBUG
+BLAS library:        External - detected on the system
+LAPACK library:      External - detected on the system
+CUDA compiler:       /usr/local/cuda/bin/nvcc nvcc: NVIDIA (R) Cuda compiler driver;Copyright (c) 2005-2025 NVIDIA Corporation;Built on Tue_May_27_02:21:03_PDT_2025;Cuda compilation tools, release 12.9, V12.9.86;Build cuda_12.9.r12.9/compiler.36037853_0
+CUDA compiler flags: -O3 -DNDEBUG
+CUDA driver:         0.0
+CUDA runtime:        12.90
+PIPE_STATUS=0
+
+$ singularity exec /home/eliott/p53mdm2/gromacs.sif ldd /opt/gromacs/bin/gmx 2>&1 | grep -E 'not found|libcuda' || echo "(no missing-lib or libcuda lines)"
+(no missing-lib or libcuda lines)
+--- END DGX1_EXEC_GMX_VERSION ---
+
+GMX VERSION-QUERY INTERPRETATION
+The leaf anticipated that this query might fail naming `libcuda.so.1`, and
+instructed that such a failure be read as the absence of GPU passthrough
+rather than as version skew. In the event it did not fail at all: exit 0,
+full version banner, no missing-library diagnostic.
+
+The reason is that `gmx` does not link the CUDA driver library at all --
+`ldd` inside the container reports no `libcuda` entry and nothing `not found`.
+This agrees with the banyan SASS audit, which recorded `LIBCUDA_DT_NEEDED=no`
+(sass_audit_banyan.txt). GROMACS resolves the driver lazily at the point it
+actually wants a device, so a driverless invocation prints `CUDA driver: 0.0`
+and exits cleanly instead of erroring.
+
+`CUDA driver: 0.0` is therefore the expected reading of a run with no GPU
+bound in, and carries no information about version skew in either direction.
+It is NOT evidence that the image can use a dgx1 GPU: that remains untested
+here by construction, since this leaf takes no `--nv` flag and requests no
+device. The GPU smoke test on dgx1 stays PI-attended per the Q-006 policy.
+
+RESULT: PASS -- digests match across banyan and dgx1; inspect (rc 0) and exec
+(rc 0) both succeed under singularity 3.5.2; gmx present and runnable.

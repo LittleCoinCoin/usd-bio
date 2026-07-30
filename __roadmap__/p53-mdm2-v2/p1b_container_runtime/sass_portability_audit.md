@@ -6,10 +6,10 @@
 - [x] The image was configured with `GMX_CUDA_TARGET_SM="70;90"` and `GMX_CUDA_TARGET_COMPUTE="90"` per both recipes
 - [ ] An attended session, since even a short `docker run --rm` is a cluster-mutating action under Q-006
 **Success Gates**:
-- ⬜ `[run]` `cuobjdump -lelf` output in the committed evidence names **both** `sm_70` and `sm_90`, proving real SASS rather than JIT-only PTX
+- ✅ `[run]` `cuobjdump -lelf` output in the committed evidence names **both** `sm_70` and `sm_90`, proving real SASS rather than JIT-only PTX
 - ⬜ `[run]` `cuobjdump -lptx` shows `sm_90` only, matching `GMX_CUDA_TARGET_COMPUTE="90"` — recorded as the intended asymmetry, not reported as a defect
-- ⬜ `[static]` `ldd` and `readelf -d` output for the `gmx` binary is captured, settling whether it carries a direct `libcuda.so.1` dependency
-- ⬜ `[static]` Every evidence file is tracked by git, verified with `git check-ignore`, since `.gitignore` swallows `*.log`
+- ✅ `[static]` `ldd` and `readelf -d` output for the `gmx` binary is captured, settling whether it carries a direct `libcuda.so.1` dependency
+- ✅ `[static]` Every evidence file is tracked by git, verified with `git check-ignore`, since `.gitignore` swallows `*.log`
 **References**: [R10 cluster state refresh](../../../__reports__/p53-mdm2/10-cluster_state_refresh_v0.md) — the GPU architectures the SM targets must cover; [R01 MD reproducibility survey](../../../__reports__/p53-mdm2/01-md_reproducibility_survey_v0.md) — why a build's actual compiled targets are a reproducibility datum, not a detail
 
 ## Step 1: Write the audit script

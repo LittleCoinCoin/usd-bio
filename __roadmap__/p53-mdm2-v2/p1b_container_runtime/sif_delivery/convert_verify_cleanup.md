@@ -9,9 +9,9 @@
 - [ ] An attended session, per Q-006
 **Success Gates**:
 - ⬜ `[run]` The rebuilt image's SASS summary and version block are identical to the pre-correction capture, giving the campaign its first build-reproducibility datum
-- ⬜ `[run]` `gromacs.sif` exists on the shared home with the digests of both the intermediate archive and the image recorded
-- ⬜ `[run]` `singularity inspect` reports `GromacsVer 2025.3` and `TargetSM 70;90`, and **no** `BuildStatus` key reaches the delivered artifact
-- ⬜ `[run]` The image and the container agree on the GROMACS version, SIMD, CUDA runtime and GPU-support lines, and on minimisation potential energy to within one part in a thousand
+- ✅ `[run]` `gromacs.sif` exists on the shared home with the digests of both the intermediate archive and the image recorded
+- ✅ `[run]` `singularity inspect` reports `GromacsVer 2025.3` and `TargetSM 70;90`, and **no** `BuildStatus` key reaches the delivered artifact
+- ✅ `[run]` The image and the container agree on the GROMACS version, SIMD, CUDA runtime and GPU-support lines, and on minimisation potential energy to within one part in a thousand
 - ⬜ `[run]` No archive and no `gromacs-p53mdm2` image remain, and `/` free space is recorded before and after
 **References**: [R10 cluster state refresh](../../../../__reports__/p53-mdm2/10-cluster_state_refresh_v0.md) — disk headroom and the scratch-redirection requirement; [R01 MD reproducibility survey](../../../../__reports__/p53-mdm2/01-md_reproducibility_survey_v0.md) — why rebuild equivalence is a reproducibility claim worth capturing
 

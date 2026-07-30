@@ -7,12 +7,12 @@
 - [x] `/home/eliott/p53mdm2/` staged with `tmp/` and `cache/` so no scratch lands on `/`
 - [ ] An attended session, per Q-006
 **Success Gates**:
-- ⬜ `[run]` Captured `gmx --version` reports a **non-zero** `CUDA driver` version, falsifying the build-time `CUDA driver: 0.0`
-- ⬜ `[run]` The MD log carries the detected-GPU block including compute capability 9.0 and a GPU selected for the run
-- ⬜ `[run]` The MD log carries a nonbonded GPU kernel timing entry, showing nonbondeds ran on the device rather than falling back to CPU
+- ✅ `[run]` Captured `gmx --version` reports a **non-zero** `CUDA driver` version, falsifying the build-time `CUDA driver: 0.0`
+- ✅ `[run]` The MD log carries the detected-GPU block including compute capability 9.0 and a GPU selected for the run
+- ✅ `[run]` The MD log carries a nonbonded GPU kernel timing entry, showing nonbondeds ran on the device rather than falling back to CPU
 - ⬜ `[run]` `mdrun` exit status 0 recorded in the manifest
-- ⬜ `[static]` The submit script resolves the device from `SLURM_JOB_GPUS`, never from `CUDA_VISIBLE_DEVICES` alone
-- ⬜ `[run]` `docker ps -a` shows no container left behind on the shared node
+- ✅ `[static]` The submit script resolves the device from `SLURM_JOB_GPUS`, never from `CUDA_VISIBLE_DEVICES` alone
+- ✅ `[run]` `docker ps -a` shows no container left behind on the shared node
 **References**: [R10 cluster state refresh](../../../__reports__/p53-mdm2/10-cluster_state_refresh_v0.md) — GPU occupancy invisible to Slurm, and why an `nvidia-smi` pre-flight is mandatory; [R07 cluster live verification](../../../__reports__/p53-mdm2/07-cluster_liveverify_v1.md) — Slurm version and GRES conventions on banyan
 
 ## Step 1: Build the minimal water-box system

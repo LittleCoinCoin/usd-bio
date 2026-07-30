@@ -4,24 +4,52 @@
 **GROMACS** (PI's engine choice, INBOX 2026-07-23) inside a portable container on
 the two shared clusters.
 
-> ## ✅ THE DOCKER IMAGE IS BUILT — THE `.sif` IS NOT
+> ## ✅ THE `.sif` IS DELIVERED, HAS RUN ON AN H100, AND OPENS ON dgx1
 > **Slurm job 30 on banyan COMPLETED, exit 0, in 5m27s (2026-07-29).** It
 > produced `gromacs-p53mdm2:latest` (image id `70659e395c53`, 10.6 GB),
 > independently corroborated by the `/home/eliott/p53mdm2/BUILD_STATUS`
 > sentinel (`stage=docker_build exit=0 finished=2026-07-29T23:31:29+09:00`).
 > Full evidence: `__reports__/p53-mdm2/13-route_b_build_observed_v0.md` (R13).
 >
-> **Still true — do not read past this line as "done":** no `gromacs.sif`
-> exists yet, no GPU has executed the container (the build-time gate reported
-> `CUDA driver: 0.0` — no NVIDIA driver was present in the CPU-only build
-> sandbox, which is expected there and proves nothing about GPU execution),
-> the `sm_70`/`sm_90` SASS targets are independently under audit, and the
-> build's own layers have not been cleaned up on banyan yet. Those four gaps
-> are exactly the four sibling nodes under
-> `__roadmap__/p53-mdm2-v2/p1b_container_runtime/`
-> (`recipe_evidence_corrections` — this leaf; `sass_portability_audit`;
-> `docker_gpu_smoke`; `sif_delivery`). Every remaining cluster-mutating action
-> stays **PI-gated** and attended.
+> **Two further attended jobs then closed the gaps this banner used to list.**
+> **Job 32** (COMPLETED, exit 0, 6s, 2026-07-30) ran `gmx` on a real **H100 NVL**
+> through banyan's Docker daemon: `CUDA driver: 13.20`, `Number of GPUs
+> detected: 1`, PME and the nonbonded kernels both on device
+> `[source: evidence/docker_gpu_smoke_banyan.txt]`. **Job 33** (COMPLETED,
+> exit 0, 17m03s, finished 2026-07-31 01:42 JST) delivered
+> **`/home/eliott/p53mdm2/gromacs.sif`** — 5750255616 bytes, sha256
+> `1fc04f8b…d20c81ac` — to the shared home, re-ran the identical smoke system
+> through `singularity exec --nv` on the same H100, and gated docker-vs-`.sif`
+> parity at a relative minimisation-energy difference of **1.39e-06**; `inspect`
+> on the delivered artifact carries `GromacsVer 2025.3`, `TargetSM 70;90` and
+> **no** `BuildStatus` key `[source: evidence/convert_verify_banyan.txt]`. The
+> SASS audit has also run — `SM_ELF=sm_70;sm_90`, 98 ELF records, re-checked
+> byte-identically against the rebuilt image
+> `[source: evidence/sass_audit_banyan.txt]`. And the image is **observed to
+> open and exec under dgx1's singularity 3.5.2**, read-only and without a GPU
+> `[source: evidence/dgx1_sif_open.txt, commit a46515b]`.
+>
+> **Still true — do not read past this line as "everything is done":**
+> - **No dgx1 GPU has run this image.** Every GPU observation above is
+>   banyan/H100 (`sm_90`). The V100 (`sm_70`) path has been compiled and
+>   inspected, never executed; the cross-cluster check that did run took no
+>   `--nv` flag and requested no device *by construction*. A dgx1 GPU run
+>   stays **PI-attended** under Q-006.
+> - **Build reproducibility is NOT established.** Job 33's equivalence check
+>   ran against a **cached** compile layer (`#7 CACHED`, `#8 CACHED`), so what
+>   it proves is that removing the `BuildStatus` label altered no compiled
+>   content — *not* that the build reproduces from a cold cache
+>   `[source: evidence/convert_verify_banyan.txt "STEP 1a"; evidence/manifest.jsonl seq 3 caveat]`.
+> - **The build scratch is only partly reclaimed.** The 9.9 GB archive is gone
+>   from shared home, no `gromacs-p53mdm2` image rows remain and the builder
+>   cache is pruned — but `/` **did not** return to its pre-work free space
+>   (430 G before, 430 G after). Releasing the last ~10 GB, now merely
+>   *reclaimable*, needs `docker image prune`, which would delete other users'
+>   dangling images from a store holding 52 of them. Left undone deliberately
+>   `[source: evidence/convert_verify_banyan.txt "STEP 5 CLEANUP"]`.
+>
+> The open steps live under `__roadmap__/p53-mdm2-v2/p1b_container_runtime/`.
+> Every remaining cluster-mutating action stays **PI-gated** and attended.
 >
 > ### The gate was tooling; it is resolved for attended sessions
 > **Q-006 is answered.** Container builds — the mutating, shared-node-costly
@@ -41,7 +69,7 @@ the two shared clusters.
 |---|---|
 | `gromacs.def` | Singularity/Apptainer definition: GPU-enabled **GROMACS 2025.3** on a **CUDA 12.9.1 / Ubuntu 22.04** base, built for both V100 (sm_70) and H100 (sm_90). Every pin carries an inline source URL. Drives **Route A**, which is dead by observation (see below) — this file's `%post` has never itself been executed by `singularity build`, though its Docker twin has. |
 | `Dockerfile` | **Route B** (the path that was actually used) build recipe — a *faithful translation* of `gromacs.def`: same base tag, same tarball URL, same md5 **and** sha256, same pinned CMake 4.0.3, same `GMX_*` flags. Single-stage, no `ENTRYPOINT`. ⚠️ **Parallel implementation of `gromacs.def` — the two must be kept in sync.** **Built 2026-07-29** — Slurm job 30, exit 0, `gromacs-p53mdm2:latest` (`70659e395c53`, 10.6 GB). See gated step 1 and R13. |
-| `smoke_submit.sbatch` | Slurm template for a **1-GPU** smoke test (`gmx --version` on the GPU node + a trivial energy minimization) via `singularity exec --nv`. Not yet submitted — depends on `sif_delivery` producing a `.sif` first. |
+| `smoke_submit.sbatch` | Slurm template for a **1-GPU** smoke test (`gmx --version` on the GPU node + a trivial energy minimization) via `singularity exec --nv`. **Still never submitted** — the `.sif` it needs now exists, and the banyan-side equivalent was performed inside job 33's own script (`convert_verify.sh`, step 3), so this template's remaining use is the **dgx1** run, which is PI-attended. |
 | `README.md` | This runbook. |
 
 ## Why this shape (grounded in the live recon)
@@ -54,7 +82,15 @@ choice (GROMACS) is the PI's.
 
 - **One shared NFS home** (`ts2:/export/home`, ~13 TB free) mounted identically on
   both clusters → **stage the `.sif` once, run on either cluster** (no re-upload).
-  Confirmed still 13 TB free `[source: report 10 §5]`.
+  Confirmed still 13 TB free `[source: report 10 §5]`. **This is no longer an
+  inference from matching `df` output.** Both hosts are observed mounting the same
+  NFSv4 export `ts2:/export/home` from the same server address `10.5.1.206` at the
+  same target `/home`, and `sha256sum` of the staged `gromacs.sif` computed *on
+  banyan* and again *on dgx1* returns the identical
+  `1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac` at the
+  identical size 5750255616 — the same digest recorded at delivery time. Stage-once-
+  run-anywhere is therefore byte-proven for this artifact, not argued from free
+  space `[source: evidence/dgx1_sif_open.txt, commit a46515b]`.
 - **Singularity is the only portable, non-root, Slurm-integrated *run* path** across
   both machines. Docker works interactively on **banyan** (user in `docker` group,
   daemon 29.4.3 answering `[source: report 10 §3]`) but does **not** exist for this
@@ -231,8 +267,8 @@ generations.
 Each step mutates a shared resource (the shared home or the scheduler) and needs
 an explicit PI "yes". They are sequential — do not skip ahead.
 
-1. **✅ Build the image → Docker image done; `.sif` conversion still pending.**
-   *(writes a multi-GB `.sif` to shared home once conversion runs)*
+1. **✅ Build the image → done, converted to `gromacs.sif`, and verified on a GPU.**
+   *(wrote a 5.75 GB `.sif` to shared home; job 33, 2026-07-31)*
 
    All `gromacs.def` values were resolved before the build — base-image tag,
    tarball URL, md5 + sha256, CMake version/hash, every `GMX_*` flag including
@@ -258,10 +294,35 @@ an explicit PI "yes". They are sequential — do not skip ahead.
      actual tarball. Full evidence:
      `__reports__/p53-mdm2/13-route_b_build_observed_v0.md` (R13).
 
-     The **third `singularity build docker-archive://…` line above has not yet
-     run** — the Docker image exists, the `.sif` does not. That conversion,
-     verification and cleanup is `sif_delivery/convert_verify_cleanup`, a
-     separate roadmap leaf.
+     The **third `singularity build docker-archive://…` line above has since
+     run too.** An attended **job 33** (COMPLETED, exit 0, 17m03s, finished
+     2026-07-31 01:42 JST) rebuilt from the corrected recipe, saved a
+     10593997824-byte archive to shared home, converted it, and delivered
+     `/home/eliott/p53mdm2/gromacs.sif` — **5750255616 bytes, sha256
+     `1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac`**.
+     `singularity inspect` on the delivered artifact reports `GromacsVer:
+     2025.3`, `TargetSM: 70;90` and **no** `BuildStatus` key, so the recipe
+     correction reached the artifact; the same smoke system re-run through
+     `singularity exec --nv` detected one **H100 NVL (compute cap 9.0)** and
+     agreed with the Docker run's minimisation potential energy to
+     **1.39e-06** relative (gate tolerance 1e-3)
+     `[source: evidence/convert_verify_banyan.txt]`. Conversion from a
+     `docker-archive://` executes no `%post`, which is why it needed neither
+     root nor `--fakeroot`.
+
+     **Two things that job did NOT establish — do not upgrade them when
+     citing it:**
+     - *Not a cold-cache reproduction.* The rebuild's equivalence check
+       (SASS summary and version block identical to the pre-correction
+       capture) ran with `#7 CACHED` and `#8 CACHED`, i.e. the expensive
+       compile layer was reused. It proves the `BuildStatus` removal altered
+       no compiled content; it does **not** show the build reproduces from a
+       clean cache, and that gate of `convert_verify_cleanup` stays open
+       `[source: evidence/convert_verify_banyan.txt "STEP 1a";
+       evidence/manifest.jsonl seq 3 caveat]`.
+     - *Cleanup is partial.* See the `docker builder prune` note below —
+       `/` did not return to its pre-work free space and that gate is
+       recorded as not met rather than ticked.
 
      `./Dockerfile` is a **faithful translation** of `gromacs.def` — identical base
      image tag, GROMACS tarball URL, md5 **and** sha256 checks (md5 trusted first),
@@ -335,7 +396,10 @@ an explicit PI "yes". They are sequential — do not skip ahead.
      mkdir -p "$SINGULARITY_TMPDIR" "$SINGULARITY_CACHEDIR"
      ```
      Write the `docker save` tarball to shared home too, and delete it once the
-     `.sif` exists (still pending — see `sif_delivery/convert_verify_cleanup`).
+     `.sif` exists. **Job 33 did exactly this:** pre-flight showed 430 G free on
+     `/` and 13 T on `/home`, the 9.9 GB tarball went to shared home, and it was
+     removed after the `.sif` verified (`tar present: no`)
+     `[source: evidence/convert_verify_banyan.txt]`.
    - **`TMPDIR` does NOT move `docker build`'s layer storage.** The redirection
      above catches `singularity build` and `docker save`, but a `docker build`
      writes its layers to the **daemon's** data-root, which the client cannot
@@ -346,31 +410,56 @@ an explicit PI "yes". They are sequential — do not skip ahead.
      ```
      `/var/lib/docker` sits on `/` and holds **213 G**, mostly other users'
      pre-existing images — not ours to prune. Only an admin can move the
-     daemon's data-root; the client cannot redirect it. Clean-up (still
-     pending):
+     daemon's data-root; the client cannot redirect it. Clean-up, **run at the
+     end of job 33**:
      ```
      docker builder prune ; docker image rm gromacs-p53mdm2   # after the .sif exists
      ```
      `[source: __reports__/p53-mdm2/13-route_b_build_observed_v0.md §5]`
+
+     > **⚠️ The clean-up gate is NOT met, and was reworded rather than ticked.**
+     > What did happen: the archive was deleted, `gromacs-p53mdm2:latest` was
+     > untagged and its image `2846bd6447df` deleted, the builder cache went
+     > from 16.46 GB with 34.3 kB reclaimable to 0 B reclaimable, and no
+     > `gromacs-p53mdm2` rows remain. What did **not** happen: `/` free space
+     > moved not at all — **430 G before, 430 G after** — because deleting the
+     > image only shifted ~10 GB from *active* to *reclaimable* (image store
+     > 213.3 GB with 169.7 GB → 179.9 GB reclaimable, 53 → 52 images).
+     > Releasing it needs `docker image prune`, which on this shared daemon
+     > would take **other users' dangling images**, so it was deliberately not
+     > run. Treat "the node is as clean as we found it" as **false**: ~10 GB of
+     > our layers is still resident, awaiting either an admin or a
+     > sufficiently narrow prune `[source: evidence/convert_verify_banyan.txt
+     > "STEP 5 CLEANUP"]`.
    - **Don't go looking for a CUDA 12.9 module.** banyan's module system tops out
      at `cuda/12.5.1` — there is no 12.9 module `[source: report 10 §8]`. This is
      **irrelevant** to the build: the container ships its own CUDA 12.9.1 from the
      base image. It only rules out a *host-side* 12.9 build. Noted so nobody
      wastes time hunting for it.
 
-2. **⛔ Stage the `.sif` + a tiny test system into shared home.**
-   `fs_mkdir /home/eliott/p53mdm2/{,smoke/in,smoke/out}` then `fs_upload` the
-   `.sif` (and, if doing Step 2 of the smoke test, a tiny `conf.gro`/`topol.top`/`min.mdp`).
-   *(If built on banyan — Route B or A — write the `.sif` straight to shared home
-   and it is visible from dgx1 too: no upload needed, just the smoke-input dir.
-   An upload is only needed for the off-cluster build option, sub-decision (b3).)*
+2. **✅ Stage the `.sif` + a tiny test system into shared home — done, no upload
+   needed.** Job 33 wrote the `.sif` straight to `/home/eliott/p53mdm2/` on the
+   shared home, and the smoke system (`smoke_system/make_box.sh` → 884 solvated
+   molecules, 2652 atoms, with `min.mdp`/`md.mdp`/`topol.top`) was built and run
+   there `[source: evidence/convert_verify_banyan.txt]`. Because banyan and dgx1
+   mount the same export, **the artifact is already visible from dgx1** — and that
+   is now byte-proven rather than assumed (see the shared-NFS bullet above, and
+   `evidence/dgx1_sif_open.txt`). `fs_upload` is only relevant to the off-cluster
+   build option, sub-decision (b3), which was not taken.
 
-3. **⛔ Submit the 1-GPU smoke test.** Edit the placeholders in
-   `smoke_submit.sbatch` (SIF path, WORKDIR, partition/account if ever needed),
-   then `submit_job` / `sbatch smoke_submit.sbatch`. Run it on **both** clusters
-   in the end — one of them proves the stack, the other proves portability. Which
-   goes first is now an open call: see sub-decision (c), and read the pre-flight
-   below before choosing banyan. *(mutates shared Slurm + GPU state on a beta node)*
+3. **◐ Submit the 1-GPU smoke test — banyan half DONE, dgx1 half ⛔ still gated.**
+   The banyan half happened twice, both attended and both exit 0: job 32 under
+   Docker and job 33's step 3 under `singularity exec --nv`, each detecting one
+   H100 NVL at compute cap 9.0 with PME on device
+   `[source: evidence/docker_gpu_smoke_banyan.txt, evidence/convert_verify_banyan.txt]`.
+   **The dgx1 half has not run and is the remaining portability evidence.** What
+   exists for dgx1 is read-only: `inspect` and `exec` both exit 0 under
+   singularity 3.5.2, which proves the image *opens and reads* there but takes no
+   `--nv` and requests no device `[source: evidence/dgx1_sif_open.txt]`. To do it:
+   edit the placeholders in `smoke_submit.sbatch` (SIF path, WORKDIR,
+   partition/account if ever needed), then `submit_job` / `sbatch
+   smoke_submit.sbatch` on dgx1. *(mutates shared Slurm + GPU state; PI-attended
+   per Q-006)*
 
    **⚠️ Pre-flight on banyan: Slurm's view of the GPUs and reality diverge.**
    At the last refresh, **GPU 0 held another user's vLLM process consuming
@@ -389,10 +478,16 @@ an explicit PI "yes". They are sequential — do not skip ahead.
      Slurm's GPU isolation here is soft), or smoke-test on **dgx1** instead —
      it was fully idle with 8 free V100s, and it is also the *harder* portability
      target (singularity 3.5.2), so going there first front-loads the real risk.
-   - **Unresolved:** report 10 **could not determine whether Slurm actually hands
-     out GPU 0.** No job was submitted to see which device it assigns, and it is
-     unknown whether the site has any out-of-band GRES exclusion for GPU 0. Treat
-     the `nvidia-smi` check as mandatory rather than assuming either way.
+   - **Resolved, and the answer is the unwelcome one: Slurm DOES hand out GPU 0.**
+     Report 10 could not determine this because no job had been submitted. Jobs 32
+     and 33 both received `SLURM_JOB_GPUS=0` and the job script itself logged
+     `WARNING: Slurm allocated GPU 0 but it already holds 86061 MiB from an
+     unscheduled process` — so there is **no** out-of-band GRES exclusion for the
+     contended card `[source: evidence/docker_gpu_smoke_banyan.txt]`. Both runs
+     still completed exit 0, because the smoke system is tiny; a real MD deck has
+     no such margin. **The `nvidia-smi` pre-flight is therefore mandatory, not
+     precautionary**, and a job that needs the full card should pin the free one
+     explicitly.
 
 4. **⛔ (Downstream, NOT covered here) Build the real p53-MDM2 decks and run.**
    Solvation, ions, protonation, parameterization, and the production `.mdp`
@@ -422,31 +517,62 @@ an explicit PI "yes". They are sequential — do not skip ahead.
   4. ~~Have an attended session try Route A once to settle the inference
      empirically before choosing.~~ **Done, 2026-07-29** — see the captured
      `FATAL` error above.
-- **(c) Which cluster to smoke-test first.** Previously "banyan". Now genuinely
-  open: banyan built the image and has the newer stack, **but its GPU 0 is
-  contended by an unscheduled process** while dgx1 is fully idle *and* is the
-  harder portability target (singularity 3.5.2). Arguments both ways — banyan
-  first is the shorter path to a green result; dgx1 first finds the SIF-skew
-  problem sooner, when it is cheapest to fix.
+- **(c) Which cluster to smoke-test first — SETTLED BY EVENTS, banyan went
+  first.** Jobs 32 and 33 both ran on banyan's H100, on the contended GPU 0 as
+  it happens (Slurm allocated it while another user's process held ~86 GB; the
+  runs still completed, exit 0)
+  `[source: evidence/docker_gpu_smoke_banyan.txt]`. The argument for dgx1-first
+  was that it would find the SIF-skew problem sooner — that problem has since
+  been looked for directly and **not found** (see the risk register below), so
+  the ordering cost nothing. **The remaining open call is narrower:** whether the
+  dgx1 *GPU* run is worth an attended session now, or waits until the real
+  p53-MDM2 decks exist.
 - **(d) Real simulation decks are downstream.** As in gated step 4 — out of scope here.
 
 ## Known risks (encoded honestly, not hidden)
 
 - **GPU-generation portability.** Handled by CUDA 12.9 + `GMX_CUDA_TARGET_SM="70;90"`.
-  If CUDA 13 is ever used, V100/dgx1 support is silently lost.
-- **SIF version skew (flagged in report 07) — ownership moved, not resolved.**
-  The `.sif` (once converted — still pending, see gated step 1) will be built
-  under **singularity-ce 4.2.2** (banyan) but must also run under
-  **singularity 3.5.2** (dgx1, a 2019 release). Newer squashfs compression
-  (e.g. zstd) may not open on 3.5.2. This is no longer an open risk owned by
-  this runbook: it is the explicit subject of
-  `sif_delivery/crosscluster_readonly/dgx1_sif_open_check`, which computes the
-  image digest from both clusters and attempts to open + exec the `.sif`
-  under 3.5.2 read-only, without a GPU. That leaf's own success gate rewrites
-  this entry again once it has run. Building on the older runtime remains
-  harder regardless, because dgx1 has **neither** Docker access **nor**
-  fakeroot for this user `[source: report 10 §3]` — hence banyan-first,
-  dgx1-verify.
+  If CUDA 13 is ever used, V100/dgx1 support is silently lost. **Now partly
+  observed rather than trusted:** the compiled `libgromacs.so.10.0.0` carries real
+  SASS for both targets — `SM_ELF=sm_70;sm_90` over 98 ELF records — and the same
+  summary came back byte-identical from the rebuilt image in job 33
+  `[source: evidence/sass_audit_banyan.txt; evidence/convert_verify_banyan.txt
+  "STEP 1b"]`. **The `sm_70` half has still never been executed** — no V100 has
+  run this image — so this is a compile-time observation, not a run-time one. The
+  audit's own remaining questions belong to `sass_portability_audit`.
+- **✅ SIF version skew (flagged in report 07) — RESOLVED TO AN OBSERVATION, with
+  one caveat that stops it being a guarantee.** The delivered `.sif` was written on
+  banyan by **singularity-ce 4.2.2** and has now been **opened and executed under
+  dgx1's singularity 3.5.2** (a 2019 release), read-only and with no GPU:
+  `singularity inspect` exits **0** and prints `GromacsVer: 2025.3` and `TargetSM:
+  70;90` with **no** `BuildStatus` key, and `singularity exec … ls
+  /opt/gromacs/bin` exits **0** and shows `gmx` (120984 bytes). The `exec` is the
+  decisive half — `inspect` only reads metadata, whereas `exec` must actually mount
+  and read through the squashfs, which is exactly where a too-new compressor would
+  have failed `[source: evidence/dgx1_sif_open.txt, commit a46515b]`.
+  - **Why it mounted — a mechanism, not luck.** The payload is squashfs 4.0 with
+    **gzip** compression at a 128 KiB block size. gzip is the oldest and most
+    universally supported squashfs compressor, so 4.2.2 never reached for zstd or
+    lz4, which is what the 2019 runtime could have failed to decode
+    `[source: same file, SQUASHFS_COMPRESSION]`. No older-compatible rebuild and
+    no per-cluster image is needed.
+  - **⚠️ Caveat — this is a builder *default*, not a contracted guarantee.** Nothing
+    promises that singularity-ce keeps defaulting to gzip, and an explicit
+    `--compress` choice would reintroduce precisely this risk
+    `[assumption: no source consulted here contracts gzip as a stable default; the
+    observation covers this image, built by this builder, on this host]`. So
+    **re-run the open check after any change of build host, singularity version, or
+    compression flag** — it is cheap and read-only: `singularity inspect` then
+    `singularity exec <sif> ls /opt/gromacs/bin` on dgx1.
+  - **What this does NOT establish:** that the image can drive a dgx1 **GPU**. The
+    check took no `--nv` flag and requested no device, so `gmx --version` printing
+    `CUDA driver: 0.0` there is the expected reading of a driverless run — `gmx`
+    carries no `libcuda.so.1` `DT_NEEDED` entry and resolves the driver lazily —
+    and it says nothing about skew in either direction. A dgx1 GPU run remains
+    untested and PI-attended per Q-006.
+  - Building *on* the older runtime remains harder regardless, because dgx1 has
+    **neither** Docker access **nor** fakeroot for this user
+    `[source: report 10 §3]` — hence banyan-build, dgx1-verify.
 - **`docker` group ≈ root on a shared box.** Building with Docker on banyan is
   unscheduled use of a shared node. This risk is now **unavoidable on the
   recommended path** rather than something to route around — `--fakeroot` is
@@ -464,10 +590,14 @@ an explicit PI "yes". They are sequential — do not skip ahead.
   it. The only way this reopens is an admin granting a subuid range, which
   would need to be re-checked (`grep -c '^eliott:' /etc/subuid /etc/subgid`)
   before assuming it still holds.
-- **⚠️ banyan GPU 0 occupancy is invisible to Slurm.** ~86 GB held by another
-  user's process while Slurm says `IDLE` `[source: report 10 §7]`. Mitigation is
-  the `nvidia-smi` pre-flight in gated step 3. Whether Slurm actually assigns
-  GPU 0 was not determined.
+- **⚠️ banyan GPU 0 occupancy is invisible to Slurm — and Slurm allocates it
+  anyway.** ~86 GB held by another user's process while Slurm says `IDLE`
+  `[source: report 10 §7]`. The open half of this risk is now closed by
+  observation: jobs 32 and 33 were both **handed GPU 0** (`SLURM_JOB_GPUS=0`)
+  with that process still resident, so there is no out-of-band GRES exclusion
+  `[source: evidence/docker_gpu_smoke_banyan.txt]`. Both completed only because
+  the smoke system is small. Mitigation remains the `nvidia-smi` pre-flight in
+  gated step 3, now mandatory rather than advisory.
 - **banyan root-disk drawdown — reframed as a one-off, not a trend.** 586 G →
   439 G free between 2026-07-21 and 2026-07-27 `[source: report 10 §5]`, but
   `/` then **held at 439 G free across four further days**, and the actual
@@ -513,7 +643,34 @@ inference into an observed `FATAL` error. Full evidence in
 data-root, the disk-drawdown trend, and the SIF-version-skew risk are
 corrected or reassigned above; the `BuildStatus` label/`%labels` entry is
 removed from both recipe files in this leaf's Step 3, together with the
-PTX-embedding and `libcuda.so.1` corrections below. **Still not built or run:**
-`gromacs.sif` does not exist, no GPU has executed the container, and the
-`sm_70`/`sm_90` SASS targets remain under independent audit
-(`sass_portability_audit`).*
+`libcuda.so.1` correction (the `docker run` note in gated step 1 — the SASS and
+PTX captures themselves live in `evidence/sass_audit_banyan.txt` and their
+write-up belongs to `sass_portability_audit`, not to this footer). **As recorded
+on that date and superseded the next day:** `gromacs.sif` did not yet exist, no
+GPU had executed the container, and the `sm_70`/`sm_90` SASS targets were still
+under audit — see the 2026-07-31 entry below, which is the live state.*
+*`sif_delivery/crosscluster_readonly/dgx1_sif_open_check`, Step 3 (2026-07-31):
+**all three "still not built or run" clauses of the entry above are now false**,
+and this runbook describes a delivered, GPU-exercised, cross-cluster-readable
+image. Attended **job 32** (2026-07-30, exit 0) ran GROMACS on a real H100 under
+Docker — `CUDA driver: 13.20`, one GPU detected, PME on device. Attended **job
+33** (finished 2026-07-31 01:42 JST, exit 0, 17m03s) delivered
+`/home/eliott/p53mdm2/gromacs.sif` (5750255616 bytes, sha256
+`1fc04f8b…d20c81ac`), re-ran the identical smoke system under `singularity exec
+--nv` on that H100 with docker-vs-`.sif` minimisation energy agreeing to
+1.39e-06 relative, and confirmed `inspect` carries no `BuildStatus`. The SASS
+audit is captured — `SM_ELF=sm_70;sm_90` — and re-verified against the rebuilt
+image. This unattended cycle-007 pass added the read-only cross-cluster
+observation (one digest computed on both clusters, `inspect` and `exec` both
+exit 0 under dgx1's singularity 3.5.2, payload squashfs/gzip) and rewrote the
+SIF-version-skew risk from an open risk to an observation carrying its
+gzip-is-only-a-default caveat. Evidence, all indexed in
+`evidence/manifest.jsonl`: `evidence/docker_gpu_smoke_banyan.txt`,
+`evidence/convert_verify_banyan.txt`, `evidence/sass_audit_banyan.txt`,
+`evidence/dgx1_sif_open.txt` (commit `a46515b`). **Still not true, and not
+claimed anywhere above:** no dgx1 GPU has run the image (that check took no
+`--nv` and requested no device, by construction); build equivalence was measured
+against a **cached** compile layer (`#7`/`#8 CACHED`) so it is not a cold-cache
+reproduction; and the cleanup gate asking `/` to return to its pre-work free
+space is **not met** — 430 G before and after, the last ~10 GB releasable only
+by a `docker image prune` that would take other users' dangling images.*
