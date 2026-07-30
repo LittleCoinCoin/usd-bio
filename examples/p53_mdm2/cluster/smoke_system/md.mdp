@@ -1,0 +1,55 @@
+; ============================================================================
+; md.mdp — short leap-frog MD. THIS IS THE GPU PROOF.
+;
+; WHY THIS FILE EXISTS SEPARATELY FROM min.mdp: only a real MD run makes
+; GROMACS print the block we actually need as evidence —
+;   "Number of GPUs detected", "compute cap.: 9.0",
+;   "1 GPU selected for this run", and per-kernel GPU timings in the log tail.
+; Energy minimisation does not reliably produce those, so gating a GPU claim on
+; minimisation would be gating on the wrong artifact.
+;
+; 2000 steps x 2 fs = 4 ps. Deliberately tiny: this proves the execution path,
+; not any physics. Nothing here should be reused for production MD — the real
+; p53-MDM2 decks (solvation, ions, protonation, production parameters) are a
+; separate, later concern.
+;
+; No `define = -DFLEXIBLE` here, unlike min.mdp: the MD run uses rigid SETTLE
+; water, which is what a real run would do.
+;
+; nstlist = 20 rather than the CPU-typical 10 because GPU nonbonded kernels
+; amortise better over a longer neighbour-list lifetime; GROMACS may still tune
+; it upward at runtime and will say so in the log.
+; ============================================================================
+
+integrator              = md
+nsteps                  = 2000
+dt                      = 0.002
+
+cutoff-scheme           = Verlet
+nstlist                 = 20
+ns-type                 = grid
+pbc                     = xyz
+
+coulombtype             = PME
+rcoulomb                = 1.0
+rvdw                    = 1.0
+fourierspacing          = 0.12
+
+; Rigid SPC water via SETTLE (from spc.itp, no -DFLEXIBLE) — so no additional
+; constraint machinery is requested here.
+constraints             = none
+
+tcoupl                  = v-rescale
+tc-grps                 = System
+tau-t                   = 0.1
+ref-t                   = 300
+pcoupl                  = no
+
+gen-vel                 = yes
+gen-temp                = 300
+gen-seed                = 20260730
+
+nstenergy               = 100
+nstlog                  = 100
+nstxout                 = 0
+nstvout                 = 0

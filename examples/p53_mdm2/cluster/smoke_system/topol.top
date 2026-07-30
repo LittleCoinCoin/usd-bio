@@ -1,0 +1,31 @@
+; ============================================================================
+; topol.top — minimal SPC water box for the GROMACS container smoke test.
+;
+; PURPOSE: give the container something real to compute so a GPU run can be
+; OBSERVED, without needing any external structure file and without pulling in
+; the p53-MDM2 system (real deck-building is out of scope here — see the
+; runbook's gated step 4).
+;
+; SELF-CONTAINED BY CONSTRUCTION: both includes and the coordinate source ship
+; inside GROMACS itself under share/gromacs/top, verified present in the image:
+;   oplsaa.ff/forcefield.itp, oplsaa.ff/spc.itp, spc216.gro
+; So make_box.sh needs no network and no repo data files.
+;
+; WHY OPLS-AA: arbitrary. Any force field carrying an SPC water definition
+; would do — this system exists to exercise nonbonded kernels and PME, not to
+; be physically meaningful. Do not read scientific intent into the choice.
+;
+; The molecule count below is left at 0 deliberately: `gmx solvate -p` rewrites
+; it to the number of waters it actually placed. make_box.sh copies this file
+; into the run directory first, so the committed template is never mutated.
+; ============================================================================
+
+#include "oplsaa.ff/forcefield.itp"
+#include "oplsaa.ff/spc.itp"
+
+[ system ]
+SPC water box — GROMACS container smoke test
+
+[ molecules ]
+; Compound        #mols   <- gmx solvate -p rewrites this count
+SOL                   0
