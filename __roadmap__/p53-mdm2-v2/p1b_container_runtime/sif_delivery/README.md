@@ -27,7 +27,7 @@ Convert the verified Docker image into `gromacs.sif` on the shared home, prove t
 ## Status
 ```mermaid
 graph TD
-    convert_verify_cleanup[Convert, Verify, Cleanup]:::planned
+    convert_verify_cleanup[Convert, Verify, Cleanup]:::inprogress
     crosscluster_readonly[Cross-Cluster Read-Only Checks]:::planned
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
@@ -39,7 +39,7 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `convert_verify_cleanup.md` | 📄 Leaf Task | ⬜ Planned |
+| `convert_verify_cleanup.md` | 📄 Leaf Task | 🔄 In Progress |
 | `crosscluster_readonly/` | 📁 Directory | ⬜ Planned |
 
 ## Amendment Log
@@ -49,3 +49,4 @@ graph TD
 ## Progress
 | Node | Branch | Commits | Notes |
 |:-----|:-------|:--------|:------|
+| `convert_verify_cleanup.md` | task/p53-mdm2-container-runtime | 1 | `2a1ffcf` convert+verify script; job 33 exit 0 in 17 min. Steps 1,2,3,5 done. **`gromacs.sif` delivered** on shared home, sha256 `1fc04f8b…81ac`, 5.4 GiB, labels truthful (no `BuildStatus`). Docker↔sif parity 1.39e-06. Cleanup reclaimed the 9.9 GB tar and deleted the image; `/` did not drop because releasing dangling layers needs a prune that would touch other users' images. Step 4 (parity assertions in `run_tests.py`) still open. Caveat: build equivalence was measured against a CACHED compile layer, so it shows the label removal changed no compiled content — NOT a cold-cache reproduction. |

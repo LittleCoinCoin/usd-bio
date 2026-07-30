@@ -25,7 +25,6 @@ emstep                  = 0.01
 ; explicitly so the intent survives a future default change.
 cutoff-scheme           = Verlet
 nstlist                 = 10
-ns-type                 = grid
 pbc                     = xyz
 
 coulombtype             = PME

@@ -49,10 +49,27 @@ echo "gmx: $GMX"
 # Fail loudly rather than handing grompp an empty system: a zero count here
 # means solvate silently placed nothing, which would otherwise surface as a
 # confusing grompp error much later.
-SOL_COUNT="$(awk '/^\[ *molecules *\]/{f=1;next} f && /^[[:space:]]*SOL/{print $2; exit}' topol.top)"
-echo "solvated_molecules: ${SOL_COUNT:-0}"
-if [ -z "${SOL_COUNT:-}" ] || [ "$SOL_COUNT" -le 0 ]; then
-    echo "FATAL: solvate placed no water (SOL count = ${SOL_COUNT:-unset})" >&2
+#
+# SUM every SOL line rather than taking the first. Reading only the first is how
+# job 31 reported 0 while solvate had actually placed 884: `solvate -p` APPENDS
+# a molecule line instead of rewriting one, so any pre-existing entry stays
+# ahead of the real count. The template no longer carries a placeholder, but
+# summing is the defensive read either way.
+SOL_COUNT="$(awk '/^\[ *molecules *\]/{f=1;next} f && /^[[:space:]]*SOL[[:space:]]/{n+=$2} END{print n+0}' topol.top)"
+SOL_LINES="$(awk '/^\[ *molecules *\]/{f=1;next} f && /^[[:space:]]*SOL[[:space:]]/{n++} END{print n+0}' topol.top)"
+echo "solvated_molecules: $SOL_COUNT"
+echo "sol_lines: $SOL_LINES"
+if [ "$SOL_COUNT" -le 0 ]; then
+    echo "FATAL: solvate placed no water (summed SOL count = $SOL_COUNT)" >&2
+    exit 1
+fi
+# More than one SOL line means a placeholder leaked back into the template.
+# grompp segfaults on a zero-count molblock, so refuse rather than pass it on.
+if [ "$SOL_LINES" -ne 1 ]; then
+    echo "FATAL: expected exactly 1 SOL line in [ molecules ], found $SOL_LINES." >&2
+    echo "       A placeholder in topol.top will produce a zero-molecule block and" >&2
+    echo "       segfault grompp. Remove it from the template." >&2
+    sed -n '/^\[ *molecules *\]/,$p' topol.top >&2
     exit 1
 fi
 
