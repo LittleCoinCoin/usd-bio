@@ -8,10 +8,10 @@
 - [x] Route A failure and `proot` absence captured verbatim from an attended probe
 **Success Gates**:
 - ⬜ `[static]` No file under `examples/p53_mdm2/cluster/` still *asserts* the container was never built — quoting an old claim as explicitly superseded is correct and does not violate this gate, so check the assertion's status, never a bare string count
-- ⬜ `[static]` The value `SCAFFOLDING-not-built` appears in neither `Dockerfile` nor `gromacs.def`, so no build-status label can reach the `.sif`
-- ⬜ `[static]` No `[assumption]` remains for the docker data-root, the subuid mapping, or the `libcuda.so.1` DT_NEEDED question
-- ⬜ `[run]` R13 exists with `type: observation` front-matter and is indexed in the reports README
-- ⬜ `[static]` The commit touching pins changes `Dockerfile` and `gromacs.def` together, mechanising a sync obligation the runbook admits is otherwise only social
+- ✅ `[static]` The value `SCAFFOLDING-not-built` appears in neither `Dockerfile` nor `gromacs.def`, so no build-status label can reach the `.sif`
+- ✅ `[static]` No `[assumption]` remains for the docker data-root, the subuid mapping, or the `libcuda.so.1` DT_NEEDED question
+- ✅ `[run]` R13 exists with `type: observation` front-matter and is indexed in the reports README
+- ✅ `[static]` The commit touching pins changes `Dockerfile` and `gromacs.def` together, mechanising a sync obligation the runbook admits is otherwise only social
 **References**: [R10 cluster state refresh](../../../__reports__/p53-mdm2/10-cluster_state_refresh_v0.md) — the observations being promoted from inference to fact; [R07 cluster live verification](../../../__reports__/p53-mdm2/07-cluster_liveverify_v1.md) — the superseded fakeroot claim this corrects
 
 ## Step 1: File R13 as the observation of record
