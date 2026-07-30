@@ -1,0 +1,138 @@
+### JOB RECORD
+job_id: 32
+state: COMPLETED exit_code=0 elapsed=00:00:06
+submitted_via: banyan submit_job (JobSpec: gpus_per_node=1, cpu_cores_per_process=8, duration=00:30:00)
+
+### SENTINEL (/home/eliott/p53mdm2/SMOKE_STATUS)
+stage=docker_gpu_smoke
+exit=0
+gpu_index=0
+mdrun_exit=0
+finished=2026-07-30T12:36:08+09:00
+
+### JOB STDOUT (slurm-32.out)
+=== docker_gpu_smoke.sh starting 2026-07-30T12:36:02+09:00 ===
+slurm_job_id: 32
+host: banyan
+device_source: SLURM_JOB_GPUS=0
+resolved_global_gpu: 0
+=== pre-flight nvidia-smi (host view) ===
+0, NVIDIA H100 NVL, 86061 MiB, 95830 MiB, 0 %
+1, NVIDIA H100 NVL, 0 MiB, 95830 MiB, 0 %
+=== pre-flight df ===
+/dev/nvme0n1p4    900G  471G  430G  53% /
+ts2:/export/home   29T   16T   13T  56% /home
+target_gpu_0_used_mib: 86061
+WARNING: Slurm allocated GPU 0 but it already holds 86061 MiB from an unscheduled process.
+         Continuing — the smoke system is tiny — but a real run should not share this card.
+=== gmx --version (expect a NON-ZERO CUDA driver, unlike the build-time 0.0) ===
+GROMACS version:     2025.3
+Precision:           mixed
+GPU support:         CUDA
+SIMD instructions:   AVX2_256
+CUDA driver:         13.20
+CUDA runtime:        12.90
+=== make_box.sh ===
+Density                :     979.448 (g/l)
+Number of solvent molecules:    884   
+
+Processing topology
+
+Back Off! I just backed up topol.top to ./#topol.top.1#
+
+GROMACS reminds you: "The public have an insatiable curiosity to know everything, except what is worth knowing." (Oscar Wilde)
+
+Adding line for 884 solvent molecules with resname (SOL) to topology file (topol.top)
+solvated_molecules: 884
+sol_lines: 1
+atoms_in_conf: 2652
+RESULT: box built OK
+=== grompp + mdrun: energy minimisation ===
+
+
+NOTE: The number of threads is not equal to the number of (logical) cpus
+      and the -pin option is set to auto: will not pin threads to cpus.
+      This can lead to significant performance degradation.
+      Consider using -pin on (and -pinoffset in case you run multiple jobs).
+
+Steepest Descents:
+   Tolerance (Fmax)   =  1.00000e+03
+   Number of steps    =          200
+
+writing lowest energy coordinates.
+
+Steepest Descents converged to Fmax < 1000 in 87 steps
+Potential Energy  = -4.1674004e+04
+Maximum force     =  9.7474036e+02 on atom 52
+Norm of force     =  8.3050675e+01
+
+GROMACS reminds you: "In science it often happens that scientists say, 'You know that's a really good argument; my position is mistaken,' and then they would actually change their minds and you never hear that old view from them again. They really do it. It doesn't happen as often as it should, because scientists are human and change is sometimes painful. But it happens every day. I cannot recall the last time something like that happened in politics or religion." (Carl Sagan)
+
+Steepest Descents converged to Fmax < 1000 in 87 steps
+Potential Energy  = -4.1674004e+04
+=== grompp + mdrun: short MD — THIS is the GPU evidence ===
+Using 1 MPI thread
+Using 8 OpenMP threads 
+
+
+NOTE: The number of threads is not equal to the number of (logical) cpus
+      and the -pin option is set to auto: will not pin threads to cpus.
+      This can lead to significant performance degradation.
+      Consider using -pin on (and -pinoffset in case you run multiple jobs).
+starting mdrun 'SPC water box — GROMACS container smoke test'
+2000 steps,      4.0 ps.
+
+Writing final coordinates.
+
+               Core t (s)   Wall t (s)        (%)
+       Time:        1.577        0.199      794.2
+                 (ns/day)    (hour/ns)
+Performance:     1741.116        0.014
+
+GROMACS reminds you: "Contemplating answers that could break my bonds." (Peter Hammill)
+
+=== GPU detection block from md.log ===
+    Number of GPUs detected: 1
+    #0: NVIDIA NVIDIA H100 NVL, compute cap.: 9.0, ECC: yes, stat: compatible
+1 GPU selected for this run.
+=== leftover containers on the shared node (expect none) ===
+=== RESULT: rc_overall=0 (sentinel written to /home/eliott/p53mdm2/SMOKE_STATUS) ===
+
+### md.log — GPU KERNEL SELECTION
+    Number of GPUs detected: 1
+    #0: NVIDIA NVIDIA H100 NVL, compute cap.: 9.0, ECC: yes, stat: compatible
+1 GPU selected for this run.
+PME tasks will do all aspects on the GPU
+Using GPU 8x4 nonbonded short-range kernels
+
+### md.log — REAL CYCLE AND TIME ACCOUNTING
+      R E A L   C Y C L E   A N D   T I M E   A C C O U N T I N G
+
+On 1 MPI rank, each using 8 OpenMP threads
+
+ Activity:              Num   Num      Call    Wall time         Giga-Cycles
+                        Ranks Threads  Count      (s)         total sum    %
+--------------------------------------------------------------------------------
+ Neighbor search           1    8         21       0.011          0.184   5.5
+ Launch PP GPU ops.        1    8       3981       0.061          1.030  30.9
+ Force                     1    8       2001       0.001          0.013   0.4
+ PME GPU mesh              1    8       2001       0.090          1.508  45.2
+ Wait GPU NB local         1    8       2001       0.000          0.002   0.1
+ Wait GPU state copy       1    8        503       0.005          0.087   2.6
+ NB X/F buffer ops.        1    8         21       0.000          0.005   0.1
+ Write traj.               1    8          1       0.019          0.312   9.4
+ Constraints               1    8          2       0.000          0.001   0.0
+ GPU constr. setup         1    8          1       0.000          0.001   0.0
+ Kinetic energy            1    8        401       0.005          0.079   2.4
+ Rest                                              0.007          0.114   3.4
+--------------------------------------------------------------------------------
+ Total                                             0.199          3.336 100.0
+
+### md.log — PME BREAKDOWN
+ Breakdown of PME mesh activities
+--------------------------------------------------------------------------------
+ Wait PME GPU gather       1    8       2001       0.000          0.002   0.1
+ Reduce GPU PME F          1    8       2001       0.000          0.004   0.1
+ Launch PME GPU ops.       1    8      16009       0.088          1.477  44.3
+--------------------------------------------------------------------------------
+
