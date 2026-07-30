@@ -14,9 +14,14 @@
 #    to a version, URL, checksum, apt package, or `GMX_*` flag must land in
 #    BOTH ./gromacs.def and ./Dockerfile in the same commit.
 #
-# STATUS: reviewable SCAFFOLDING ONLY. Nothing here has been built, uploaded, or
-#         run. `docker build` on banyan is a PI-GATED mutating step (shared node,
-#         `docker` group ≈ root there) — see ./README.md gated step 1.
+# STATUS: BUILT. `docker build` ran attended on banyan 2026-07-29 (Slurm job 30,
+#         exit 0, 5m27s) and produced `gromacs-p53mdm2:latest`
+#         (`70659e395c53`, 10.6 GB) — see ./README.md gated step 1 and
+#         __reports__/p53-mdm2/13-route_b_build_observed_v0.md. Still not done:
+#         no `.sif` conversion, no GPU execution, no SASS verification, no
+#         cleanup — those are the sibling roadmap leaves. Any FUTURE
+#         `docker build` on banyan remains a PI-GATED mutating step (shared
+#         node, `docker` group ≈ root there).
 #
 # WHY THIS FILE EXISTS (Route B):
 #   ./README.md's Route B says `docker build -t gromacs-p53mdm2 .`, which needs a
@@ -36,8 +41,12 @@
 #   result; `docker build -t gromacs-p53mdm2 - < Dockerfile` also works and
 #   uploads nothing to the daemon.
 #
-# DISK-SPACE CONSTRAINT (banyan): the root filesystem fell 586 G -> 439 G free in
-#   6 days and `/tmp` is on `/` [same source §5]. Layer hygiene below is therefore
+# DISK-SPACE CONSTRAINT (banyan): the root filesystem fell 586 G -> 439 G free
+#   between 2026-07-21 and 2026-07-27, but then HELD at 439 G free across four
+#   further days, and the 2026-07-29 build itself only cost ~9 G net — read as
+#   a one-off event, not an ongoing drain, though its original cause remains
+#   uninvestigated [source: __reports__/p53-mdm2/13-route_b_build_observed_v0.md
+#   §6]. `/tmp` is on `/` [report 10 §5]. Layer hygiene below is therefore
 #   load-bearing, not cosmetic: apt lists are dropped, the CMake tarball is
 #   deleted in the layer that created it, and the GROMACS source+build tree is
 #   fetched, compiled, installed and deleted inside ONE `RUN` so the removal
@@ -45,10 +54,14 @@
 #   ⚠️ Note what this does NOT fix: `docker build` writes its layers to the
 #   DAEMON's data-root, not to `$TMPDIR`. The README's SINGULARITY_TMPDIR/TMPDIR
 #   redirection does not move them.
-#     [assumption: banyan's docker data-root was never inspected; the default is
-#      /var/lib/docker, i.e. on `/`. Check `docker info | grep -i "Docker Root Dir"`
-#      and `df -h /` before building, and `docker image rm` + `docker builder
-#      prune` afterwards.]
+#     OBSERVED 2026-07-29 (was an assumption, now confirmed):
+#       $ docker info | grep -i 'Docker Root Dir'
+#       Docker Root Dir: /var/lib/docker
+#     `/var/lib/docker` is on `/`, holding 213 G (mostly other users'
+#     pre-existing images — not ours to prune). Only an admin can move the
+#     daemon's data-root; the client cannot redirect it. `docker image rm` +
+#     `docker builder prune` after the `.sif` exists is still pending.
+#     [source: __reports__/p53-mdm2/13-route_b_build_observed_v0.md §5]
 #
 # SINGLE-STAGE, DELIBERATELY (this was the one design call available here):
 #   ./gromacs.def already decided it — "`-devel` (not `-runtime`) is required: it
@@ -127,13 +140,21 @@ FROM nvidia/cuda:12.9.1-devel-ubuntu22.04
 # `singularity build docker-archive://...` carries these into the SIF's labels,
 # so `singularity inspect gromacs.sif` shows them the same way it would for a
 # native build from the .def.
+# NOTE: no `BuildStatus` key here (removed 2026-07-30). A LABEL is baked into
+# the image and carried into the .sif by `singularity build docker-archive://`,
+# so a literal value here would become a PERMANENT, wrong provenance claim —
+# `singularity inspect` would forever report the not-yet-built status this key
+# used to carry, even after a real build (as this one now is; see
+# ./README.md). Build status is per-build state, not a recipe constant. If
+# per-build status is ever wanted,
+# the right mechanism is a build-time `--label BuildStatus=...` argument to
+# `docker build`, not a literal baked in here.
 LABEL Maintainer="usd-bio p53-mdm2 track" \
       Purpose="GPU-enabled GROMACS for p53-MDM2 self-run MD (p1b Step 2)" \
       GromacsVer="2025.3" \
       CudaToolkit="12.9.1" \
       CMakeVer="4.0.3" \
       TargetSM="70;90" \
-      BuildStatus="SCAFFOLDING-not-built" \
       SyncWith="./gromacs.def (parallel implementation — keep in sync)"
 
 # Build-time only, so it is NOT baked into the image environment. This is the
@@ -235,9 +256,21 @@ RUN set -eu; \
 #                             like "120f" — see EasyBuild's
 #                             GROMACS-2025.3_retain_cuda_cc_suffix.patch. Plain
 #                             "70;90" has no suffix, so it is unaffected.)
-#   GMX_CUDA_TARGET_COMPUTE : embed PTX for 90 so newer GPUs can JIT. PTX for 70
-#                             is deliberately not embedded (the 70 SASS above
-#                             covers V100 directly); keeps the binary lean.
+#   GMX_CUDA_TARGET_COMPUTE : intended to embed PTX for 90 only, so newer GPUs
+#                             can JIT while the binary stays lean; PTX for 70
+#                             was meant to be omitted since the 70 SASS above
+#                             already covers V100 directly.
+#                             CORRECTED 2026-07-30: this is NOT what the built
+#                             image actually contains. `cuobjdump -lptx` on the
+#                             real binary shows PTX embedded for BOTH 70 and 90
+#                             (SM_ELF=sm_70;sm_90, SM_PTX=sm_70;sm_90, 98 ELF +
+#                             98 PTX records) — GROMACS' CMake evidently emits
+#                             PTX for every SM target regardless of
+#                             GMX_CUDA_TARGET_COMPUTE. Functionally harmless
+#                             (more PTX = more forward-portable, a marginally
+#                             larger binary); documentation correction only,
+#                             the flag itself is UNCHANGED.
+#                             [observed 2026-07-29 via cuobjdump -lptx, sass_portability_audit leaf]
 #   GMX_DOUBLE=OFF          : single precision — the standard, GPU-supported build.
 #   GMX_BUILD_OWN_FFTW=OFF  : use the distro libfftw3-dev installed above.
 #                             HONEST CAVEAT: upstream recommends the OPPOSITE —
@@ -352,10 +385,24 @@ RUN set -eu; \
 #   DRIVER-LIBRARY absence in the build sandbox, NOT a broken GROMACS — the
 #   `-devel` base ships libcuda only as a link-time stub under
 #   /usr/local/cuda/lib64/stubs, which is not on the loader path.
-#     [assumption: whether the 2025.3 gmx binary has a direct DT_NEEDED on
-#      libcuda.so.1 was NOT determined — nothing was built this cycle, so no
-#      `ldd $(which gmx)` output exists. gromacs.def's %test has exactly the same
-#      exposure, so this is a shared risk, not one Route B introduces.]
+#     RESOLVED 2026-07-30, with hard evidence, not inference. Two independent
+#     signals now confirm the 2025.3 gmx binary has NO direct DT_NEEDED on
+#     libcuda.so.1:
+#       (1) the 2026-07-29 build itself reached exit 0 with this exact RUN as a
+#           hard gate, in a sandbox with no NVIDIA driver — the build-time
+#           version block printed `CUDA driver: 0.0`, precisely the signature
+#           of "gate passed without a driver present"
+#           [source: __reports__/p53-mdm2/13-route_b_build_observed_v0.md §4, §8].
+#       (2) `readelf -d $(which gmx)` on the built image lists the NEEDED
+#           entries exactly as: libgromacs.so.10, libstdc++.so.6, libgcc_s.so.1,
+#           libc.so.6 — no libcuda.so.1 anywhere in the list. The binary also
+#           carries RUNPATH `$ORIGIN/../lib`, which independently corroborates
+#           the choice below not to inject LD_LIBRARY_PATH: the binary already
+#           resolves its own libs relative to its install prefix.
+#           [observed 2026-07-29 via readelf -d, sass_portability_audit leaf]
+#     gromacs.def's %test has the same exposure and is resolved the same way —
+#     this was always a shared risk, not one Route B introduced, and it is now
+#     closed for both files by the same evidence.
 #   If it happens: the expensive compile above is already a cached layer, so the
 #   retry is cheap. Delete/relax THIS RUN in both files and verify GPU support on
 #   a GPU node instead (`singularity exec --nv gromacs.sif gmx --version`).

@@ -1,5 +1,31 @@
 # p53_mdm2
 
+> # 🚫 BLOCKED — RETIRED, SUPERSEDED BY `../p53-mdm2-v2/`
+>
+> **Do not execute, update, or amend this campaign.** It is kept only as the
+> evidence base that [R12](../../__reports__/p53-mdm2/12-roadmap_migration_audit_v0.md)
+> audits against. Every node and every step here was carried into
+> [`__roadmap__/p53-mdm2-v2/`](../p53-mdm2-v2/README.md); go there for live work.
+>
+> **Why retired rather than repaired.** All 8 files in this campaign fail
+> `dirtree-rdm validate`, so every mutating command aborts on pre-flight — this
+> graph has been frozen since before cycle-005. A grammar repair alone would not
+> have been enough: `dirtree-rdm update` resolves a node by matching its Mermaid
+> ID against the filesystem stem, and **6 of the 7 IDs below are abbreviations**
+> (`p1_topology` vs `p1_topology_from_1ycr`, `p1b_mdparams` vs
+> `p1b_md_parameter_representation`, …), so the statuses could never have been
+> corrected in place. The forbidden sibling `-->` edges were themselves a symptom:
+> the grammar treats siblings as parallel, so this flat 7-leaf graph asserts all
+> seven pipelines run at once, and the arrows were an attempt to say otherwise.
+>
+> **Known-stale content below — read it as history, not state.** `p4_maboss_readback`
+> and `p5_integrated_demo` are marked planned but both landed in cycle-006 (39/39
+> checks, see R11); they are `done` in the successor. `p1b`'s Step 2 asserts
+> "dgx1/banyan have no Singularity; use Docker", which Q-005 and Q-007 reversed —
+> Docker *builds*, Singularity *runs*.
+>
+> Retired 2026-07-30 on PI sign-off of R12. See [`MIGRATION.md`](MIGRATION.md).
+
 ## Context
 This campaign builds the runnable, multi-scale **p53–MDM2 demonstration** in which OpenUSD is the shared representation tying molecular dynamics to systems-biology (MaBoSS Boolean-network) modelling, across the four pipelines defined in `__threads__/p53-mdm2/INTENT.md`. New work lands under a fresh `examples/p53_mdm2/`; `foundation_demo_v8/` is inspiration, **not** a copy source. The roadmap is driven by the cycle-000 reuse map and reshaped by the PI's cycle-000 review (answers to Q-001/Q-002): MD trajectories are **not** a hard prerequisite — the MD datum the demo needs is **ΔG**; if the project runs its own MD (dgx1/banyan), the MD **setup parameters** become a greenfield USDBio representation concern; and the ΔG→node "threshold" is replaced by a **ΔG↔MaBoSS-parameter correlation** (ΔG as the inverse of the model's tuned parameters).
 

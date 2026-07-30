@@ -1,0 +1,150 @@
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.9.1
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+WARNING: The NVIDIA Driver was not detected.  GPU functionality will not be available.
+   Use the NVIDIA Container Toolkit to start this container with GPU support; see
+   https://docs.nvidia.com/datacenter/cloud-native/ .
+
+=== sass_audit.sh ===
+audit_utc: 2026-07-29T23:40:15Z
+container_id: 69c475a5d6f0
+
+library: /opt/gromacs/lib/libgromacs.so.10.0.0
+library_bytes: 48044896
+
+cuobjdump: /usr/local/cuda/bin/cuobjdump
+
+--- SUMMARY ---
+SM_ELF=sm_70;sm_90
+SM_PTX=sm_70;sm_90
+ELF_RECORDS=98
+PTX_RECORDS=98
+LIBCUDA_DT_NEEDED=no
+CHECK_sm_70_ELF=present
+CHECK_sm_90_ELF=present
+--- END SUMMARY ---
+
+--- GMX_VERSION_BLOCK ---
+                         :-) GROMACS - gmx, 2025.3 (-:
+
+Executable:   /opt/gromacs/bin/gmx
+Data prefix:  /opt/gromacs
+Working dir:  /
+Command line:
+  gmx --version
+
+GROMACS version:     2025.3
+Precision:           mixed
+Memory model:        64 bit
+MPI library:         thread_mpi
+OpenMP support:      enabled (GMX_OPENMP_MAX_THREADS = 128)
+GPU support:         CUDA
+NBNxM GPU setup:     super-cluster 2x2x2 / cluster 8 (cluster-pair splitting on)
+SIMD instructions:   AVX2_256
+CPU FFT library:     fftw-3.3.8-sse2-avx
+GPU FFT library:     cuFFT
+Multi-GPU FFT:       none
+RDTSCP usage:        enabled
+TNG support:         enabled
+Hwloc support:       disabled
+Tracing support:     disabled
+C compiler:          /usr/bin/cc GNU 11.4.0
+C compiler flags:    -fexcess-precision=fast -funroll-all-loops -mavx2 -mfma -Wno-missing-field-initializers -O3 -DNDEBUG
+C++ compiler:        /usr/bin/c++ GNU 11.4.0
+C++ compiler flags:  -fexcess-precision=fast -funroll-all-loops -mavx2 -mfma -Wno-missing-field-initializers -Wno-cast-function-type-strict SHELL:-fopenmp -O3 -DNDEBUG
+BLAS library:        External - detected on the system
+LAPACK library:      External - detected on the system
+CUDA compiler:       /usr/local/cuda/bin/nvcc nvcc: NVIDIA (R) Cuda compiler driver;Copyright (c) 2005-2025 NVIDIA Corporation;Built on Tue_May_27_02:21:03_PDT_2025;Cuda compilation tools, release 12.9, V12.9.86;Build cuda_12.9.r12.9/compiler.36037853_0
+CUDA compiler flags: -O3 -DNDEBUG
+CUDA driver:         0.0
+CUDA runtime:        12.90
+
+--- END GMX_VERSION_BLOCK ---
+
+--- LDD_GMX ---
+	linux-vdso.so.1 (0x00007ffee3755000)
+	libgromacs.so.10 => /opt/gromacs/bin/../lib/libgromacs.so.10 (0x000071f07d49b000)
+	libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x000071f07d26a000)
+	libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x000071f07d24a000)
+	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x000071f07d021000)
+	libcufft.so.11 => /usr/local/cuda/lib64/libcufft.so.11 (0x000071f06b200000)
+	libfftw3f.so.3 => /lib/x86_64-linux-gnu/libfftw3f.so.3 (0x000071f06afce000)
+	libopenblas.so.0 => /lib/x86_64-linux-gnu/libopenblas.so.0 (0x000071f068b78000)
+	libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x000071f07cf38000)
+	libgomp.so.1 => /lib/x86_64-linux-gnu/libgomp.so.1 (0x000071f07ceee000)
+	libmuparser.so.2 => /opt/gromacs/bin/../lib/../lib/libmuparser.so.2 (0x000071f07ce8f000)
+	/lib64/ld-linux-x86-64.so.2 (0x000071f07ffe1000)
+	libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x000071f07ce88000)
+	libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x000071f07ce83000)
+	librt.so.1 => /lib/x86_64-linux-gnu/librt.so.1 (0x000071f07ce7e000)
+	libgfortran.so.5 => /lib/x86_64-linux-gnu/libgfortran.so.5 (0x000071f06889d000)
+	libquadmath.so.0 => /lib/x86_64-linux-gnu/libquadmath.so.0 (0x000071f07ce36000)
+--- END LDD_GMX ---
+
+--- READELF_NEEDED ---
+ 0x0000000000000001 (NEEDED)             Shared library: [libgromacs.so.10]
+ 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x000000000000001d (RUNPATH)            Library runpath: [$ORIGIN/../lib]
+--- END READELF_NEEDED ---
+
+--- CUOBJDUMP_ELF_HEAD ---
+ELF file    1: libgromacs.so.10.0.1.sm_70.cubin
+ELF file    2: libgromacs.so.10.0.2.sm_90.cubin
+ELF file    3: libgromacs.so.10.0.3.sm_70.cubin
+ELF file    4: libgromacs.so.10.0.4.sm_90.cubin
+ELF file    5: libgromacs.so.10.0.5.sm_70.cubin
+ELF file    6: libgromacs.so.10.0.6.sm_90.cubin
+ELF file    7: libgromacs.so.10.0.7.sm_70.cubin
+ELF file    8: libgromacs.so.10.0.8.sm_90.cubin
+ELF file    9: libgromacs.so.10.0.9.sm_70.cubin
+ELF file   10: libgromacs.so.10.0.10.sm_90.cubin
+ELF file   11: libgromacs.so.10.0.11.sm_70.cubin
+ELF file   12: libgromacs.so.10.0.12.sm_90.cubin
+ELF file   13: libgromacs.so.10.0.13.sm_70.cubin
+ELF file   14: libgromacs.so.10.0.14.sm_90.cubin
+ELF file   15: libgromacs.so.10.0.15.sm_70.cubin
+ELF file   16: libgromacs.so.10.0.16.sm_90.cubin
+ELF file   17: libgromacs.so.10.0.17.sm_70.cubin
+ELF file   18: libgromacs.so.10.0.18.sm_90.cubin
+ELF file   19: libgromacs.so.10.0.19.sm_70.cubin
+ELF file   20: libgromacs.so.10.0.20.sm_90.cubin
+--- END CUOBJDUMP_ELF_HEAD ---
+
+--- CUOBJDUMP_PTX_HEAD ---
+PTX file    1: libgromacs.so.10.0.1.sm_70.ptx
+PTX file    2: libgromacs.so.10.0.2.sm_90.ptx
+PTX file    3: libgromacs.so.10.0.3.sm_70.ptx
+PTX file    4: libgromacs.so.10.0.4.sm_90.ptx
+PTX file    5: libgromacs.so.10.0.5.sm_70.ptx
+PTX file    6: libgromacs.so.10.0.6.sm_90.ptx
+PTX file    7: libgromacs.so.10.0.7.sm_70.ptx
+PTX file    8: libgromacs.so.10.0.8.sm_90.ptx
+PTX file    9: libgromacs.so.10.0.9.sm_70.ptx
+PTX file   10: libgromacs.so.10.0.10.sm_90.ptx
+PTX file   11: libgromacs.so.10.0.11.sm_70.ptx
+PTX file   12: libgromacs.so.10.0.12.sm_90.ptx
+PTX file   13: libgromacs.so.10.0.13.sm_70.ptx
+PTX file   14: libgromacs.so.10.0.14.sm_90.ptx
+PTX file   15: libgromacs.so.10.0.15.sm_70.ptx
+PTX file   16: libgromacs.so.10.0.16.sm_90.ptx
+PTX file   17: libgromacs.so.10.0.17.sm_70.ptx
+PTX file   18: libgromacs.so.10.0.18.sm_90.ptx
+PTX file   19: libgromacs.so.10.0.19.sm_70.ptx
+PTX file   20: libgromacs.so.10.0.20.sm_90.ptx
+--- END CUOBJDUMP_PTX_HEAD ---
+
+RESULT: PASS — both sm_70 and sm_90 present as real SASS.
