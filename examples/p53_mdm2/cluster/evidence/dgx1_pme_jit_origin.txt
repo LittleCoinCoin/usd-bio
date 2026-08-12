@@ -1,0 +1,106 @@
+
+======== dgx1_sass_vs_jit_probe.sh starting 2026-08-13T02:13:30+09:00  job=31 ========
+host: dgx1
+singularity: singularity-ce version 4.5.0-noble
+sif_sha256: 1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac
+real_cache_untouched: /home/eliott/.nv/ComputeCache (never read, written or cleared by this probe)
+real_cache_size_before: 192K
+
+======== RUN A: CUDA_CACHE_PATH=/home/eliott/p53mdm2/tmp/jitprobe_default CUDA_FORCE_PTX_JIT=0 ========
+cache_files_before: 0
+in_container_CUDA_CACHE_PATH=/home/eliott/p53mdm2/tmp/jitprobe_default
+in_container_CUDA_FORCE_PTX_JIT=0
+1 GPU selected for this run.
+Steepest Descents converged to Fmax < 1000 in 87 steps
+Potential Energy  = -4.1673996e+04
+run_exit: 0
+cache_files_after: 0
+cache_bytes_after: 0
+
+======== RUN B: CUDA_CACHE_PATH=/home/eliott/p53mdm2/tmp/jitprobe_forced CUDA_FORCE_PTX_JIT=1 ========
+cache_files_before: 0
+in_container_CUDA_CACHE_PATH=/home/eliott/p53mdm2/tmp/jitprobe_forced
+in_container_CUDA_FORCE_PTX_JIT=1
+1 GPU selected for this run.
+Steepest Descents converged to Fmax < 1000 in 87 steps
+Potential Energy  = -4.1673953e+04
+run_exit: 0
+cache_files_after: 9
+cache_bytes_after: 13486671
+
+======== RUN C: FULL min+md sequence (matches job 28), CUDA_CACHE_PATH=/home/eliott/p53mdm2/tmp/jitprobe_fullrun ========
+cache_files_before: 0
+in_container_CUDA_CACHE_PATH=/home/eliott/p53mdm2/tmp/jitprobe_fullrun
+1 GPU selected for this run.
+Steepest Descents converged to Fmax < 1000 in 87 steps
+Potential Energy  = -4.1673961e+04
+1 GPU selected for this run.
+PME tasks will do all aspects on the GPU
+2000 steps,      4.0 ps.
+run_exit: 0
+cache_files_after: 4
+cache_bytes_after: 47471
+md_log_pme_on_gpu_lines: 1
+
+======== RUN D: FULL min+md with -pme cpu (PME off the GPU), CUDA_CACHE_PATH=/home/eliott/p53mdm2/tmp/jitprobe_pmecpu CUDA_FORCE_PTX_JIT=0 ========
+cache_files_before: 0
+in_container_CUDA_CACHE_PATH=/home/eliott/p53mdm2/tmp/jitprobe_pmecpu
+in_container_CUDA_FORCE_PTX_JIT=0
+Estimate for the relative computational load of the PME mesh part: 0.22
+1 GPU selected for this run.
+Steepest Descents converged to Fmax < 1000 in 87 steps
+Potential Energy  = -4.1674027e+04
+Estimate for the relative computational load of the PME mesh part: 0.24
+1 GPU selected for this run.
+2000 steps,      4.0 ps.
+run_exit: 0
+cache_files_after: 0
+cache_bytes_after: 0
+md_log_pme_on_gpu_lines: 0
+
+======== RUN E: FULL min+md with -pme cpu (PME off the GPU), CUDA_CACHE_PATH=/home/eliott/p53mdm2/tmp/jitprobe_pmecpu_forced CUDA_FORCE_PTX_JIT=1 ========
+cache_files_before: 0
+in_container_CUDA_CACHE_PATH=/home/eliott/p53mdm2/tmp/jitprobe_pmecpu_forced
+in_container_CUDA_FORCE_PTX_JIT=1
+Estimate for the relative computational load of the PME mesh part: 0.22
+1 GPU selected for this run.
+Steepest Descents converged to Fmax < 1000 in 87 steps
+Potential Energy  = -4.1673941e+04
+Estimate for the relative computational load of the PME mesh part: 0.24
+1 GPU selected for this run.
+2000 steps,      4.0 ps.
+run_exit: 0
+cache_files_after: 13
+cache_bytes_after: 13767931
+md_log_pme_on_gpu_lines: 0
+
+======== SUMMARY ========
+real_cache_size_after: 192K
+--- SUMMARY ---
+CLUSTER=dgx1
+GPU_NAME=Tesla V100-SXM2-16GB
+DEFAULT_RUN_EXIT=0
+DEFAULT_RUN_JIT_FILES=0
+DEFAULT_RUN_JIT_BYTES=0
+FORCED_JIT_RUN_EXIT=0
+FORCED_JIT_RUN_JIT_FILES=9
+FORCED_JIT_RUN_JIT_BYTES=13486671
+FULLRUN_EXIT=0
+FULLRUN_JIT_FILES=4
+FULLRUN_JIT_BYTES=47471
+FULLRUN_PME_ON_GPU_LINES=1
+PMECPU_RUN_EXIT=0
+PMECPU_RUN_JIT_FILES=0
+PMECPU_RUN_JIT_BYTES=0
+PMECPU_RUN_PME_ON_GPU_LINES=0
+PMECPU_CONTROL_EXIT=0
+PMECPU_CONTROL_JIT_FILES=13
+PMECPU_CONTROL_JIT_BYTES=13767931
+SASS_OR_JIT_VERDICT=MIXED - minimisation loaded from SASS but the full min+md run wrote 4 JIT cache entries, so the md/PME path compiles at least one module from PTX
+PME_JIT_ORIGIN_VERDICT=PME_PATH - the 4 JIT entries vanish when PME is moved off the GPU (control wrote 13 files), so they belong to the PME/cuFFT path and NOT to libgromacs
+SIF_SHA256=1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac
+--- END SUMMARY ---
+
+======== RESULT: verdict=MIXED - minimisation loaded from SASS but the full min+md run wrote 4 JIT cache entries, so the md/PME path compiles at least one module from PTX ========
+
+======== RESULT: pme_jit_origin=PME_PATH - the 4 JIT entries vanish when PME is moved off the GPU (control wrote 13 files), so they belong to the PME/cuFFT path and NOT to libgromacs ========

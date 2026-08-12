@@ -1,0 +1,44 @@
+--- SUMMARY ---
+DGX1_SINGULARITY_DEFAULT=singularity-ce version 4.5.0-noble
+DGX1_SINGULARITY_PATH=/usr/bin/singularity
+DGX1_SINGULARITY_DPKG=singularity-ce 4.5.0-noble amd64
+DGX1_OPT_SINGULARITY_PRESENT=no
+DGX1_3_5_2_REACHABLE=no
+DGX1_MODULEFILES_PRESENT=no
+DGX1_MODULE_COMMAND_UNDER_LOGIN_SHELL=not found
+DGX1_ALTERNATE_RUNTIME_BINARIES=none
+DGX1_APPTAINER_PRESENT=no
+DGX1_OS=Ubuntu 24.04.4 LTS
+DGX1_KERNEL=6.8.0-137-generic
+BANYAN_CONTRAST_OPT_4_2_2_SURVIVES=yes (see banyan_post_upgrade.txt, manifest seq 9)
+CONSEQUENCE=the singularity 3.5.2 read path recorded in seq 5 is NOT reproducible on dgx1
+--- END SUMMARY ---
+
+Every line of the SUMMARY above is transcribed from the verbatim capture below;
+nothing is inferred. The CONSEQUENCE line restates the two observations
+(default is 4.5.0; no 3.5.2 binary exists anywhere probed) and does not add to them.
+
+--- VERBATIM CAPTURE ---
+2026-08-12T17:33:11Z
+
+### default singularity
+/usr/bin/singularity
+singularity-ce version 4.5.0-noble
+
+### is any older runtime kept under /opt (as banyan keeps 4.2.2)?
+ls: cannot access '/opt/singularity*': No such file or directory
+ls: cannot access '/opt/singularity/3.5.2/bin/singularity': No such file or directory
+
+### modulefiles
+ls: cannot access '/opt/modulefiles': No such file or directory
+bash: line 1: module: command not found
+
+### any other singularity/apptainer binary on the box
+ls: cannot access '/usr/local/bin/singularity': No such file or directory
+ls: cannot access '/usr/local/bin/apptainer': No such file or directory
+ls: cannot access '/usr/bin/apptainer': No such file or directory
+ii  singularity-ce                             4.5.0-noble                                      amd64        SingularityCE is the Community Edition of Singularity, an
+
+### os
+Ubuntu 24.04.4 LTS
+6.8.0-137-generic

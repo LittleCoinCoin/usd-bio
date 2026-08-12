@@ -1,0 +1,836 @@
+=== banyan post-upgrade read-only state capture ===
+context: PI attended session 2026-08-12 recorded banyan UNREACHABLE mid Ubuntu 22->24
+         upgrade (INBOX item 8). This capture re-establishes ground truth after the
+         upgrade completed, and answers the gzip-guard question as far as a
+         non-mutating probe can.
+captured_on: 2026-08-12T17:15:00Z  (2026-08-13 02:15 JST)
+agent: claude-opus-5 (unattended cycle-008, Unit A)
+transport: plain `ssh banyan '<cmd>'` from the local shell, plus three banyan MCP
+         tool calls recorded in the TOOLING section
+device_access: none - no --nv, no GPU request, no batch job
+mutations: NONE. No build, no install, no docker pull/prune/rm, no job submission,
+         no file written on either cluster. Every command below is read-only.
+         Cluster-mutating work remains PI-attended per Q-006.
+
+--- SUMMARY ---
+BANYAN_OS_PRETTY=Ubuntu 24.04.4 LTS
+BANYAN_OS_CODENAME=noble
+BANYAN_KERNEL=6.8.0-137-generic
+BANYAN_OPENSSH=OpenSSH_9.6p1 Ubuntu-3ubuntu13.18
+BANYAN_OPENSSL=OpenSSL 3.0.13 30 Jan 2024
+SINGULARITY_DEFAULT_PATH=/usr/bin/singularity
+SINGULARITY_DEFAULT_VERSION=singularity-ce version 4.5.0-noble
+SINGULARITY_DEFAULT_PROVENANCE=dpkg package singularity-ce 4.5.0-noble
+SINGULARITY_422_STILL_PRESENT=yes
+SINGULARITY_422_PATH=/opt/singularity/4.2.2/bin/singularity
+SINGULARITY_422_MODULE=singularity/4.2.2 in /opt/modulefiles
+APPTAINER_PRESENT=no
+MKSQUASHFS_PATH=/usr/bin/mksquashfs
+MKSQUASHFS_VERSION=4.6.1 (2023/03/25)
+SQUASHFS_TOOLS_PKG=1:4.6.1-1build1
+SINGULARITY_CONF_HAS_COMPRESSOR_KEY=no
+BUILD_HELP_HAS_COMPRESS_FLAG=no
+DEFAULT_NATIVE_SIF_COMPRESSOR=UNDETERMINED_READ_ONLY
+SIF_PATH=/home/eliott/p53mdm2/gromacs.sif
+SIF_SHA256=1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac
+SIF_BYTES=5750255616
+SIF_MTIME=2026-07-31 01:41:15.654477760 +0900
+SIF_INSPECT_RC=0
+SIF_INSPECT_GROMACSVER=2025.3
+SIF_INSPECT_TARGETSM=70;90
+SIF_EXEC_LS_RC=0
+SIF_SQUASHFS_COMPRESSION=gzip
+SIF_SQUASHFS_BLOCKSIZE=131072
+DOCKER_CLIENT_VERSION=29.7.2
+DOCKER_SERVER_VERSION=29.7.2
+DOCKER_STORAGE_DRIVER=overlay2
+DOCKER_IMAGES_TOTAL=52
+DOCKER_IMAGES_DANGLING=29
+DOCKER_IMAGES_SIZE=213.3GB
+DOCKER_IMAGES_RECLAIMABLE=179.9GB
+DOCKER_BUILD_CACHE_RECORDS=108
+DOCKER_BUILD_CACHE_SIZE=16.46GB
+DOCKER_STATE_SURVIVED_UPGRADE=yes
+GROMACS_P53MDM2_IMAGE_PRESENT=no
+NVIDIA_CUDA_BASE_IMAGES_PRESENT=yes (12.0.0-base-ubuntu22.04, 12.9.0-base-ubuntu22.04)
+ROOT_FS=/dev/nvme1n1p4 900G total, 463G used, 438G avail, 52%
+HOME_FS=ts2:/export/home 29T total, 16T used, 13T avail, 56%
+NFS_HOME_MOUNTED=yes (ts2:/export/home on /home, nfs4, vers=4.2)
+NVIDIA_SMI_DRIVER=610.57.04
+SLURM_VERSION=slurm-wlm 23.11.4
+SUBUID_FOR_ELIOTT=absent
+PROOT_PRESENT=no
+APPARMOR_RESTRICT_UNPRIV_USERNS=1
+--- END SUMMARY ---
+
+
+########## SECTION 1: OS, KERNEL, SSH ##########
+
+--- OS_KERNEL_SSH ---
+$ hostname
+banyan
+$ cat /etc/os-release
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.4 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+$ lsb_release -a
+Distributor ID:	Ubuntu
+Description:	Ubuntu 24.04.4 LTS
+Release:	24.04
+Codename:	noble
+$ uname -a
+Linux banyan 6.8.0-137-generic #137-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 17 20:28:23 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+$ ssh -V
+OpenSSH_9.6p1 Ubuntu-3ubuntu13.18, OpenSSL 3.0.13 30 Jan 2024
+$ uptime
+ 02:06:56 up  1:16,  1 user,  load average: 0.47, 4.69, 7.86
+--- END OS_KERNEL_SSH ---
+
+OS INTERPRETATION
+The upgrade landed. banyan is Ubuntu 24.04.4 LTS (noble) on kernel 6.8.0-137,
+where the campaign's prior records describe 22.04. Uptime 1h16m at capture time
+places the last boot at roughly 2026-08-13 00:50 JST, consistent with a reboot
+into the new kernel a few hours before this capture rather than a long-settled
+system. The ssh outage the PI recorded on 2026-08-12 is over; every command in
+this file was carried by an ordinary `ssh banyan` session.
+
+
+########## SECTION 2: SINGULARITY -- THE GZIP-GUARD QUESTION ##########
+
+--- SINGULARITY_VERSION ---
+$ command -v singularity
+/usr/bin/singularity
+rc=0
+$ singularity --version
+singularity-ce version 4.5.0-noble
+rc=0
+$ command -v apptainer
+rc=127
+$ apptainer --version
+sh: 1: apptainer: not found
+rc=127
+--- END SINGULARITY_VERSION ---
+
+--- SINGULARITY_PROVENANCE ---
+$ dpkg -l | grep -i -E "singularity|apptainer|squashfs"
+ii  libsquashfs1:amd64          1.2.0-1              amd64  New set of tools for working with SquashFS images - shared library
+ii  singularity-ce              4.5.0-noble          amd64  SingularityCE is the Community Edition of Singularity, an
+ii  squashfs-tools              1:4.6.1-1build1      amd64  Tool to create and append to squashfs filesystems
+ii  squashfs-tools-ng           1.2.0-1              amd64  New set of tools for working with SquashFS images
+$ singularity buildcfg
+PACKAGE_NAME=singularity-ce
+PACKAGE_VERSION=4.5.0-noble
+BUILDDIR=/root/project/_build/src/singularity-ce/builddir
+PREFIX=/usr
+EXECPREFIX=/usr
+BINDIR=/usr/bin
+SBINDIR=/usr/sbin
+LIBEXECDIR=/usr/lib/x86_64-linux-gnu
+DATAROOTDIR=/usr/share
+DATADIR=/usr/share
+SYSCONFDIR=/etc
+SHAREDSTATEDIR=/usr/com
+LOCALSTATEDIR=/var/lib
+RUNSTATEDIR=/var/lib/run
+INCLUDEDIR=/usr/include
+DOCDIR=/usr/share/doc/singularity-ce
+INFODIR=/usr/share/info
+LIBDIR=/usr/lib
+LOCALEDIR=/usr/share/locale
+MANDIR=/usr/share/man
+SINGULARITY_CONFDIR=/etc/singularity
+SESSIONDIR=/var/lib/singularity/mnt/session
+PLUGIN_ROOTDIR=/usr/lib/x86_64-linux-gnu/singularity/plugin
+SINGULARITY_CONF_FILE=/etc/singularity/singularity.conf
+SINGULARITY_SUID_INSTALL=1
+--- END SINGULARITY_PROVENANCE ---
+
+--- SINGULARITY_4_2_2_STILL_AVAILABLE ---
+# `module` is a shell function and is absent from a non-login sh:
+$ module avail singularity          # via ssh banyan '<cmd>'  (sh, non-login)
+sh: 1: module: not found
+
+# under a login bash it is present:
+$ bash -lc "module avail singularity; module list; type module"
+------------------------------- /opt/modulefiles -------------------------------
+singularity/4.2.2
+MODRC=0
+No Modulefiles Currently Loaded.
+module is a function
+module ()
+{
+$ ls -la /opt/singularity/
+total 0
+drwxr-xr-x  3 root root  19 Feb 25  2025 .
+drwxr-xr-x 24 root root 316 Feb  6  2026 ..
+drwxr-xr-x  7 root root  67 Dec 21  2024 4.2.2
+$ ls -la /opt/singularity/4.2.2/bin/
+total 62824
+drwxr-xr-x 2 root root       62 Dec 21  2024 .
+drwxr-xr-x 7 root root       67 Dec 21  2024 ..
+-rwxr-xr-x 1 root root      255 May 10  2021 di2sif
+-rwxr-xr-x 1 root root     1217 Dec 21  2024 run-singularity
+-rwxr-xr-x 1 root root 64321552 Dec 21  2024 singularity
+$ bash -lc "module load singularity/4.2.2 && command -v singularity && singularity --version"
+/opt/singularity/4.2.2/bin/singularity
+singularity-ce version 4.2.2
+--- END SINGULARITY_4_2_2_STILL_AVAILABLE ---
+
+SINGULARITY INTERPRETATION
+Two things changed and one thing did not.
+
+Changed (1): the runtime resolved by a bare `singularity` is no longer the
+4.2.2 module build under /opt but a distro package, singularity-ce
+4.5.0-noble at /usr/bin/singularity. `dpkg -l` shows it as an installed
+package and `buildcfg` reports PREFIX=/usr, so this is the noble package and
+not a hand-built tree. The campaign's delivered gromacs.sif was written by
+4.2.2 (its own label records
+org.label-schema.usage.singularity.version: 4.2.2), so any rebuild started
+today from a default PATH would use a DIFFERENT writer than the one whose
+output dgx1 has been verified against.
+
+Changed (2): `module` no longer loads anything by default. The prior campaign
+record describes 4.2.2 as a default-loaded module; here `module list` reports
+"No Modulefiles Currently Loaded" and the module is not visible at all from a
+non-login sh, which is the shell an `ssh banyan '<cmd>'` invocation gets.
+
+Not changed: /opt/singularity/4.2.2 survived the upgrade intact and
+`module load singularity/4.2.2` still resolves to it and still reports
+"singularity-ce version 4.2.2". The exact writer that produced the verified
+artifact is therefore still available on the machine. This is the cheapest
+possible mitigation for the gzip guard and it requires no build to confirm --
+only that a rebuild explicitly load the module instead of trusting PATH.
+
+--- COMPRESSOR_EVIDENCE_SEARCH ---
+# What the tooling exposes about the default squashfs compressor, read-only.
+
+$ grep -n -i -E "mksquashfs|compress|squashfs" /etc/singularity/singularity.conf
+259:allow container squashfs = yes
+263:# ALLOW KERNEL SQUASHFS: [BOOL]
+265:# If set to no, Singularity will not perform any kernel mounts of squashfs filesystems.
+266:# Instead, for SIF / SquashFS containers, a squashfuse mount will be attempted, with
+269:allow kernel squashfs = yes
+411:# MKSQUASHFS PATH: [STRING]
+413:# Path to the mksquashfs executable, used to create SIF and SquashFS containers.
+416:# mksquashfs path =
+417:mksquashfs path = /usr/bin/mksquashfs
+419:# MKSQUASHFS PROCS: [UINT]
+421:# This allows the administrator to specify the number of CPUs for mksquashfs
+424:# mksquashfs procs = 0
+425:mksquashfs procs = 0
+427:# MKSQUASHFS MEM: [STRING]
+431:# can have a major impact on the time it takes mksquashfs to create the image.
+432:# NOTE: This functionality did not exist in squashfs-tools prior to version 4.3
+434:# mksquashfs mem = 1G
+445:# UNSQUASHFS PATH: [STRING]
+447:# Path to the unsquashfs executable, used to extract SIF and SquashFS containers
+450:# unsquashfs path =
+451:unsquashfs path = /usr/bin/unsquashfs
+rc=0
+
+$ ls -la /etc/singularity/
+total 56
+drwxr-xr-x   5 root root  4096 Aug 13 00:35 .
+drwxr-xr-x 189 root root 12288 Aug 13 01:49 ..
+-rw-r--r--   1 root root     0 Nov 24  2021 capability.json
+drwxr-xr-x   2 root root    26 Aug 13 00:35 cgroups
+-rw-r--r--   1 root root  1990 Nov 24  2021 ecl.toml
+-rw-r--r--   1 root root     0 Nov 24  2021 global-pgp-public
+drwxr-xr-x   2 root root   136 Aug 13 00:35 network
+-rw-r--r--   1 root root  1383 Nov 24  2021 nvliblist.conf
+-rw-r--r--   1 root root   107 Nov 24  2021 remote.yaml
+-rw-r--r--   1 root root   954 Nov 24  2021 rocmliblist.conf
+drwxr-xr-x   2 root root    26 Aug 13 00:35 seccomp-profiles
+-rw-r--r--   1 root root 18731 Nov 24  2021 singularity.conf
+
+$ singularity build --help | grep -n -i -E "compress|squash"
+12:      default:    The compressed Singularity read only image format (default)
+75:                                not squash to a single layer.
+grep_rc=0
+
+$ man singularity-build | col -b | grep -n -i -E "compress|squashfs|zstd|gzip|lz4|xz"
+15:	 default:    The compressed Singularity read only image format (default)
+rc=0
+
+$ env | grep -i singularity
+(no output -- no SINGULARITY_* environment variable is set)
+
+$ mksquashfs -version | head -3
+mksquashfs version 4.6.1 (2023/03/25)
+copyright (C) 2023 Phillip Lougher <phillip@squashfs.org.uk>
+$ command -v mksquashfs
+/usr/bin/mksquashfs
+$ unsquashfs -v | head -2
+unsquashfs version 4.6.1 (2023/03/25)
+copyright (C) 2023 Phillip Lougher <phillip@squashfs.org.uk>
+
+# Last resort: look for the compressor argument inside the Go binary. Go packs
+# string literals into one unseparated blob, so this yields context windows,
+# not clean tokens.
+$ strings -n 4 /usr/bin/singularity | grep -o -E ".{0,30}mksquashfs.{0,50}" | sort -u | head -25
+directive:"mksquashfs mem"
+directive:"mksquashfs path"
+{{ if ne .MksquashfsMem "" }}mksquashfs mem = {{ .MksquashfsMem }}{{ end }}
+{{ if ne .MksquashfsPath "" }}mksquashfs path = {{ .MksquashfsPath }}{{ end }}
+internal/pkg/util/fs/squashfs/mksquashfs_singularity.go
+# mksquashfs mem = 1G
+# mksquashfs path =
+# mksquashfs procs = 0
+mksquashfs procs = {{ .MksquashfsProcs }}
+# Path to the mksquashfs executable, used to create SIF and SquashFS conta
+pecify the number of CPUs for mksquashfs
+r impact on the time it takes mksquashfs to create the image.
+-root-modelayer.sqfssquashfusemksquashfs-wildcardsgrant_type<redacted>-no-xattrsCAP_SETGID
+sProcs(default:"0" directive:"mksquashfs procs"
+*squashfs.mksquashfsOpts
+
+$ strings -n 4 /usr/bin/singularity | grep -o -E ".{0,45}(gzip|zstd|lz4|lzo).{0,45}" | sort -u | head -40
+# (abridged -- 40 lines returned; every hit falls into one of three classes,
+#  representative lines quoted verbatim:)
+#
+# class A, vendored Go compression libraries (not the squashfs path):
+$*func(zstd.byteBuffer, uint64) error
+2github.com/klauspost/compress/zstd/internal/xxhash
+*chan pgzip.read
+*struct { F uintptr; X0 *gzip.Reader; X1 io.ReadCloser }
+#
+# class B, OCI image-layer media types and the OCI-SIF blob compressor
+# (this is the --oci / OCI-SIF path, NOT native SIF squashfs):
+00expected a number like 1469104727.871937272gzip blobcompress: could not close pipe: %vzstd b
+application/vnd.docker.image.rootfs.diff.tar.gzipa platform cannot be provided when getting a
+application/vnd.docker.image.rootfs.diff.tar.zstdList all parameters current build target supp
+*blobcompress.gzipAlgo
+*blobcompress.zstdAlgo
+close gzip writer: %wclose zstd writer: %w
+#
+# class C, an unlabelled run of compressor names in a mixed string blob:
+badpc=  GKiBMiBGiBTiB:// %sprelz4lzo%#x1.0-extag386armAPIuribin%d
+
+$ strings -n 4 /usr/bin/singularity | grep -o -E ".{0,20}-comp.{0,40}" | sort -u | head -25
+# (abridged; the only two hits that plausibly bear on squashfs:)
+all: %w.wh..wh..opq--compressor%s lost race-user-xattrs/dev/nvidi
+errorfataluser.%s %s-compPANFSlower%d:%dgid=5.yamlimap2imap3imaps
+--- END COMPRESSOR_EVIDENCE_SEARCH ---
+
+COMPRESSOR EVIDENCE INTERPRETATION -- READ HONESTLY
+What is [observed]:
+  * singularity-ce 4.5.0-noble is the default runtime, and it calls out to the
+    system /usr/bin/mksquashfs 4.6.1 rather than compressing in-process.
+  * /etc/singularity/singularity.conf exposes mksquashfs path, procs and mem.
+    It exposes NO compressor or algorithm key. An administrator cannot pin the
+    compressor from this config file.
+  * `singularity build --help` and `man singularity-build` expose no
+    --compress / --compression flag and document no default algorithm. The
+    only occurrence of the word is the prose "The compressed Singularity read
+    only image format (default)", which names a format, not an algorithm.
+  * No SINGULARITY_* environment variable is set that could override it.
+  * The `-comp` literal and the compressor names lz4/lzo do exist inside the
+    4.5.0 binary, and a source path
+    internal/pkg/util/fs/squashfs/mksquashfs_singularity.go is named in it.
+
+What is NOT observed, and must not be reported as if it were:
+  * The DEFAULT COMPRESSOR FOR A NATIVE SIF BUILD IS UNDETERMINED BY THIS
+    CAPTURE. The `-comp` token and the algorithm names appear in the binary
+    but never adjacent to one another, because Go concatenates string
+    literals; nothing here shows which value 4.5.0 passes to mksquashfs, nor
+    whether it passes `-comp` at all rather than accepting the mksquashfs
+    built-in default. The gzip/zstd hits that DO carry clear context all
+    belong either to vendored Go libraries or to the OCI-SIF blob compressor
+    (blobcompress.gzipAlgo / blobcompress.zstdAlgo), which is the --oci code
+    path and not the native squashfs path this campaign uses.
+  * Reading a compressor off the version number alone would be inference, not
+    observation, and is deliberately not done here.
+
+The only way to settle it is to build one small image and run `unsquashfs -s`
+on it. That is a mutation and is therefore PI-attended under Q-006; this unit
+stops here by design.
+
+GZIP GUARD STATUS: STILL LIVE, and its premise is now confirmed rather than
+speculative. The writer HAS changed (4.2.2 -> 4.5.0-noble) while the dgx1
+reader is unchanged at 3.5.2, which is exactly the skew the guard was written
+to catch. What has ALSO changed is the cost of failure: because
+/opt/singularity/4.2.2 survived and its modulefile still loads, a rebuild can
+simply pin the old writer if the new one turns out to emit something dgx1
+cannot mount. The guard is a check to run, not a risk to fear.
+
+
+########## SECTION 3: THE DELIVERED ARTIFACT ##########
+
+--- SIF_IDENTITY ---
+$ cd /home/eliott/p53mdm2 && ls -la gromacs.sif
+-rwxr-xr-x 1 eliott Domain Users 5750255616 Jul 31 01:41 gromacs.sif
+$ stat -c '%n %s %y' gromacs.sif
+gromacs.sif 5750255616 2026-07-31 01:41:15.654477760 +0900
+$ sha256sum gromacs.sif
+1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac  gromacs.sif
+SHA_RC=0
+--- END SIF_IDENTITY ---
+
+IDENTITY INTERPRETATION
+Digest, byte count and nanosecond mtime are all identical to the values
+recorded at delivery (manifest seq 3) and re-verified from dgx1 on 2026-07-31
+(manifest seq 4, dgx1_sif_open.txt). The upgrade did not touch the artifact --
+expected, since it lives on the NFS export and not on banyan's root filesystem,
+but now checked rather than assumed.
+
+--- SIF_INSPECT_UNDER_4_5_0 ---
+$ singularity inspect gromacs.sif; echo "INSPECT_RC=$?"
+CMakeVer: 4.0.3
+CudaToolkit: 12.9.1
+GromacsVer: 2025.3
+Maintainer: usd-bio p53-mdm2 track
+Purpose: GPU-enabled GROMACS for p53-MDM2 self-run MD (p1b Step 2)
+SyncWith: ./gromacs.def (parallel implementation — keep in sync)
+TargetSM: 70;90
+maintainer: NVIDIA CORPORATION <cudatools@nvidia.com>
+org.label-schema.build-arch: amd64
+org.label-schema.build-date: Friday_31_July_2026_1:38:27_JST
+org.label-schema.schema-version: 1.0
+org.label-schema.usage.singularity.deffile.bootstrap: docker-archive
+org.label-schema.usage.singularity.deffile.from: /home/eliott/p53mdm2/gromacs.tar
+org.label-schema.usage.singularity.version: 4.2.2
+org.opencontainers.image.ref.name: ubuntu
+org.opencontainers.image.version: 22.04
+INSPECT_RC=0
+
+$ singularity sif list gromacs.sif; echo "SIFLIST_RC=$?"
+------------------------------------------------------------------------------
+ID   |GROUP   |LINK    |SIF POSITION (start-end)  |TYPE
+------------------------------------------------------------------------------
+1    |1       |NONE    |32176-32242               |Def.FILE
+2    |1       |NONE    |32242-41823               |JSON.Generic
+3    |1       |NONE    |41823-46723               |JSON.Generic
+4    |1       |NONE    |49152-5750255616          |FS (Squashfs/*System/amd64)
+SIFLIST_RC=0
+--- END SIF_INSPECT_UNDER_4_5_0 ---
+
+INSPECT INTERPRETATION
+Exit 0. GromacsVer 2025.3 and TargetSM 70;90 both present, as required. The
+descriptor table is byte-identical in its offsets to the one both 3.5.2 and
+4.2.2 printed on 2026-07-31, so the new runtime is reading the same image and
+not a re-derived view of it. Two incidental differences from the dgx1 3.5.2
+capture, neither substantive: 4.5.0 emits no "No SIF metadata partition"
+warning (it finds the metadata layout 3.5.2 fell back from), and the SyncWith
+label renders its dash as U+2014 where the 3.5.2 output showed an ASCII
+hyphen -- a display/encoding difference in the older reader, not a change to
+the image, whose digest is unchanged.
+
+--- SIF_EXEC_READ_UNDER_4_5_0 ---
+# read-only: no --nv, no device requested, nothing written into the container
+$ singularity exec gromacs.sif ls -la /opt/gromacs/bin; echo "EXEC_LS_RC=$?"
+total 282
+drwxr-xr-x 2 root root    185 Jul 29 23:31 .
+drwxr-xr-x 6 root root     89 Jul 29 23:31 ..
+-rwxr-xr-x 1 root root    554 Jul 29 23:30 GMXRC
+-rwxr-xr-x 1 root root   3284 Jul 29 23:30 GMXRC.bash
+-rwxr-xr-x 1 root root   3035 Jul 29 23:30 GMXRC.csh
+-rwxr-xr-x 1 root root    112 Jul 29 23:30 GMXRC.zsh
+-rwxr-xr-x 1 root root   3397 Aug 29  2025 demux.pl
+-rwxr-xr-x 1 root root 120984 Jul 29 23:31 gmx
+-rw-r--r-- 1 root root     37 Jul 29 23:30 gmx-completion-gmx.bash
+-rw-r--r-- 1 root root 145136 Aug 29  2025 gmx-completion.bash
+-rwxr-xr-x 1 root root   9023 Aug 29  2025 xplor2gmx.pl
+EXEC_LS_RC=0
+--- END SIF_EXEC_READ_UNDER_4_5_0 ---
+
+EXEC INTERPRETATION
+`inspect` only reads metadata; `exec` must mount the squashfs and read through
+it. Exit 0 on the new 24.04 kernel (6.8.0-137) under the new runtime (4.5.0),
+with gmx present at 120984 bytes exactly as before. The existing image is
+readable across the upgrade. This says nothing about what 4.5.0 WRITES -- see
+Section 2.
+
+--- SIF_SQUASHFS_COMPRESSION ---
+$ unsquashfs -s -o 49152 gromacs.sif | head -14; echo "UNSQ_RC=$?"
+Found a valid SQUASHFS 4:0 superblock on gromacs.sif.
+Creation or last append time Fri Jul 31 01:40:58 2026
+Filesystem size 5750203297 bytes (5615432.91 Kbytes / 5483.82 Mbytes)
+Compression gzip
+Block size 131072
+Filesystem is exportable via NFS
+Inodes are compressed
+Data is compressed
+Uids/Gids (Id table) are compressed
+Fragments are compressed
+Always-use-fragments option is not specified
+Xattrs are compressed
+Duplicates are removed
+Number of fragments 1542
+UNSQ_RC=0
+--- END SIF_SQUASHFS_COMPRESSION ---
+
+COMPRESSION INTERPRETATION
+The EXISTING image is still squashfs 4.0 / gzip / 128 KiB blocks, identical to
+the 2026-07-31 reading. gzip is a property written into the file at build
+time and cannot change without a rebuild, so this is a consistency check
+rather than news -- but it pins the baseline the guard compares against: the
+delivered artifact is gzip, and any replacement that is not gzip is the event
+the guard exists to detect.
+
+
+########## SECTION 4: DOCKER STATE ##########
+
+--- DOCKER_VERSION ---
+$ docker version; echo "VERSION_RC=$?"
+Client: Docker Engine - Community
+ Version:           29.7.2
+ API version:       1.55
+ Go version:        go1.26.5
+ Git commit:        a7dcaa6
+ Built:             Wed Aug  5 18:28:48 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server: Docker Engine - Community
+ Engine:
+  Version:          29.7.2
+  API version:      1.55 (minimum version 1.40)
+  Go version:       go1.26.5
+  Git commit:       6a43e3d
+  Built:            Wed Aug  5 18:28:48 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.3.3
+  GitCommit:        aad11006b869517fcd3009450b6f82da282e1a9b
+ nvidia:
+  Version:          1.4.3
+  GitCommit:        v1.4.3-0-gbb14dabe
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+VERSION_RC=0
+--- END DOCKER_VERSION ---
+
+--- DOCKER_INFO ---
+$ docker info | head -45; echo "INFO_RC=$?"
+Client: Docker Engine - Community
+ Version:    29.7.2
+ Context:    default
+ Debug Mode: false
+ Plugins:
+  buildx: Docker Buildx (Docker Inc.)
+    Version:  v0.36.1
+    Path:     /usr/libexec/docker/cli-plugins/docker-buildx
+  compose: Docker Compose (Docker Inc.)
+    Version:  v5.4.0
+    Path:     /usr/libexec/docker/cli-plugins/docker-compose
+
+Server:
+ Containers: 16
+  Running: 11
+  Paused: 0
+  Stopped: 5
+ Images: 52
+ Server Version: 29.7.2
+ Storage Driver: overlay2
+  Backing Filesystem: xfs
+  Supports d_type: true
+  Using metacopy: false
+  Native Overlay Diff: true
+  userxattr: false
+ Logging Driver: json-file
+ Cgroup Driver: systemd
+ Cgroup Version: 2
+ Plugins:
+  Volume: local
+  Network: bridge host ipvlan macvlan null overlay
+  Log: awslogs fluentd gcplogs gelf journald json-file local splunk syslog
+ CDI spec directories:
+  /etc/cdi
+  /run/cdi
+ Discovered Devices:
+  cdi: nvidia.com/gpu=0
+  cdi: nvidia.com/gpu=1
+  cdi: nvidia.com/gpu=GPU-75b0cd2f-8f77-8b8c-1827-a56cf1d146cc
+  cdi: nvidia.com/gpu=GPU-b2fe7dc0-e430-fea3-74a8-cbccac0b846e
+  cdi: nvidia.com/gpu=all
+ Swarm: active
+  NodeID: uck3o50ck9n7oi2ogppb2weux
+  Is Manager: true
+  ClusterID: t38j16jd2ei8etw0shwwndj4f
+INFO_RC=0
+--- END DOCKER_INFO ---
+
+--- DOCKER_IMAGES_AND_CACHE ---
+$ docker images | wc -l
+24
+$ docker images -a | wc -l
+53
+$ docker images | head -20
+IMAGE                                                  ID             DISK USAGE   CONTENT SIZE   EXTRA
+alpine:latest                                          a40c03cbb81c       8.44MB             0B
+busybox:latest                                         08ef35a1c3f0       4.43MB             0B
+clickhouse/clickhouse-server:latest                    b43f833f599e        866MB             0B   U
+continuumio/miniconda3:latest                          13e6f97c5021        657MB             0B
+curlimages/curl:latest                                 8b6d9746a2db       22.7MB             0B
+evo2:latest                                            de5fff1987e3       24.9GB             0B
+ghcr.io/berriai/litellm-non_root:main-v1.77.7-stable   f208cf7c2079       2.25GB             0B
+ghcr.io/open-webui/open-webui:v0.6.40                  cd39b76e558e       4.32GB             0B   U
+langfuse/langfuse-worker:3.119.1                       689c17b11828       1.48GB             0B   U
+langfuse/langfuse:3.119.1                              5e91c3c81203        839MB             0B   U
+litellm/litellm:v1.81.14-stable                        fdf751b53a5f       1.88GB             0B   U
+minio/minio:latest                                     69b2ec208575        175MB             0B   U
+mistralllm/vllm-ms4:latest                             e1b2d248b5e2       28.1GB             0B
+nginx:stable-alpine-slim                               db00fe2a2c36       12.6MB             0B   U
+nvidia/cuda:12.0.0-base-ubuntu22.04                    ed4307630298        237MB             0B
+nvidia/cuda:12.9.0-base-ubuntu22.04                    a9431233262f        336MB             0B
+postgres:17                                            3128c457f17a        453MB             0B   U
+python:3.10-slim                                       f708d86fc35f        122MB             0B
+rust:1.78                                              79cde1389f0f       1.42GB             0B
+$ docker images -f dangling=true -q | wc -l
+29
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          52        11        213.3GB   179.9GB (84%)
+Containers      16        11        56.42MB   126B (0%)
+Local Volumes   1         0         0B        0B
+Build Cache     108       0         16.46GB   0B
+$ docker system df -v | tail -20        # build-cache records, oldest shown last
+k119y16d8rbh   regular      0B        4 months ago   4 months ago   1         true
+tns74ty08wwp   regular      41.2MB    4 months ago   4 months ago   1         true
+wckucu0bslos   regular      227MB     4 months ago   4 months ago   1         true
+9mxh8jn2izuc   regular      0B        4 months ago   4 months ago   1         true
+umyu5qdxlubt   regular      0B        4 months ago   4 months ago   1         true
+ezgvqb5s7fx0   regular      0B        2 weeks ago    2 weeks ago    1         true
+tdhorobhi0ay   regular      0B        2 weeks ago    2 weeks ago    1         true
+hmdkvcc497va   regular      0B        2 weeks ago    2 weeks ago    1         true
+sp3qq5lx20kz   regular      0B        2 weeks ago    2 weeks ago    1         true
+y3ldqqephu0l   regular      0B        2 weeks ago    2 weeks ago    1         true
+9h5mzu98mvz2   regular      0B        2 weeks ago    2 weeks ago    1         true
+ea846p2usifa   regular      0B        2 weeks ago    2 weeks ago    1         true
+ddrdd783dcvq   regular      0B        2 weeks ago    2 weeks ago    1         true
+x2kns1gp2a0p   regular      0B        2 weeks ago    2 weeks ago    1         true
+ugjzv5nnj41k   regular      0B        2 weeks ago    2 weeks ago    1         true
+8on7i45wwlrn   regular      178MB     2 weeks ago    2 weeks ago    1         true
+3f80rpj9sda9   regular      0B        2 weeks ago    2 weeks ago    1         true
+pvqvzzklb4sf   regular      57.5MB    2 weeks ago    2 weeks ago    1         true
+v1ds68z0dlwc   regular      161MB     2 weeks ago    2 weeks ago    1         true
+pmkos6fi0y8s   regular      0B        2 weeks ago    13 days ago    2         true
+$ docker images | grep -i gromacs
+grep_rc=1                                # no match: no gromacs image present
+$ docker images | grep -i "nvidia/cuda"
+nvidia/cuda:12.0.0-base-ubuntu22.04                    ed4307630298        237MB             0B
+nvidia/cuda:12.9.0-base-ubuntu22.04                    a9431233262f        336MB             0B
+--- END DOCKER_IMAGES_AND_CACHE ---
+
+DOCKER INTERPRETATION -- THE COLD-CACHE GATE
+The PI's hypothesis that a rebuilt /var/lib/docker would have taken the image
+and cache state with it is FALSIFIED. `docker system df` reports 52 images
+totalling 213.3 GB and 108 build-cache records totalling 16.46 GB -- the same
+16.46 GB figure recorded before the upgrade. Cache records are dated "4 months
+ago" and "2 weeks ago", i.e. they predate the upgrade. /var/lib/docker survived.
+
+Consequences for the cold-cache rebuild gate:
+  * The gate is NOT free. A rebuild started today would still hit a warm
+    cache, so a genuine cold-cache rebuild must force it explicitly
+    (--no-cache, or a scratch DOCKER_* root) rather than relying on the
+    upgrade having cleared it. The caveat on manifest seq 3 -- that build
+    equivalence was measured against CACHED compile layers -- therefore still
+    stands unresolved.
+  * The 179.9 GB reclaimable is unchanged and remains available, which is why
+    the root filesystem is still at 52% (Section 6). No disk-pressure reason
+    to prune, and pruning is a mutation this unit does not perform.
+  * The gromacs-p53mdm2 image itself is absent, consistent with its deletion
+    in convert_verify step 5 (manifest seq 3) rather than with any upgrade
+    effect. Both nvidia/cuda base images are still cached.
+
+Docker itself was upgraded alongside the OS: engine 29.7.2 built 2026-08-05,
+containerd v2.3.3, nvidia runtime 1.4.3, storage driver overlay2 on xfs. The
+`docker images` output format also changed in this CLI generation (DISK
+USAGE / CONTENT SIZE columns), which is why `docker images | wc -l` (24, tagged
+only, plus header) and `docker system df` Images (52, all) disagree; `docker
+images -a | wc -l` is 53 = 52 + header, and 29 of the 52 are dangling.
+
+
+########## SECTION 5: NFS HOME MOUNT ##########
+
+--- NFS_MOUNT ---
+$ findmnt -t nfs,nfs4
+TARGET SOURCE           FSTYPE OPTIONS
+/home  ts2:/export/home nfs4   rw,relatime,vers=4.2,rsize=1048576,wsize=1048576,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=10.5.1.187,local_lock=none,addr=10.5.1.206
+$ mount | grep -i nfs
+ts2:/export/home on /home type nfs4 (rw,relatime,vers=4.2,rsize=1048576,wsize=1048576,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=10.5.1.187,local_lock=none,addr=10.5.1.206)
+nfsd on /proc/fs/nfsd type nfsd (rw,relatime)
+--- END NFS_MOUNT ---
+
+NFS INTERPRETATION
+The shared export is mounted and readable: same server 10.5.1.206, same export
+ts2:/export/home, same target /home, same nfs4 vers=4.2 options, and the same
+clientaddr 10.5.1.187 recorded on 2026-07-31. Everything in Section 3 was read
+through this mount, so readability is demonstrated and not merely asserted.
+This is consistent with -- but does not prove -- the PI's leading hypothesis
+that the 2026-08-12 ssh outage was an unreadable authorized_keys on a down NFS
+mount: the mount being up now and ssh working now are compatible with that
+story, and equally compatible with several others. No log evidence for the
+outage window was gathered.
+
+
+########## SECTION 6: DISK ##########
+
+--- DISK ---
+$ df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme1n1p4  900G  463G  438G  52% /
+$ df -h ~
+Filesystem        Size  Used Avail Use% Mounted on
+ts2:/export/home   29T   16T   13T  56% /home
+$ df -h /var/lib/docker
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme1n1p4  900G  463G  438G  52% /
+--- END DISK ---
+
+DISK INTERPRETATION
+Root is 438 G free at 52% used, against 439 G / 53% recorded before the
+upgrade -- a 1 G difference, i.e. materially unchanged. /var/lib/docker is on
+that same root filesystem, which is the mechanical reason the 16.46 GB build
+cache and 179.9 GB of reclaimable images still show up in the root figure.
+Home is unchanged at 13 T free / 56%.
+
+
+########## SECTION 7: INCIDENTAL STATE (not requested, recorded for the next unit) ##########
+
+--- GPU_AND_SCHEDULER ---
+$ nvidia-smi | head -12
+Thu Aug 13 02:11:22 2026
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 610.57.04              KMD Version: 610.57.04     CUDA UMD Version: 13.3     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA H100 NVL                On  |   00000000:27:00.0 Off |                    0 |
+| N/A   39C    P0             63W /  400W |       0MiB /  95830MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+$ sinfo
+PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
+all*         up 5-00:00:00      1   idle localhost
+$ sinfo --version
+slurm-wlm 23.11.4
+--- END GPU_AND_SCHEDULER ---
+
+--- ROUTE_A_PRECONDITIONS_RECHECK ---
+# Q-007 declared Route A (rootless build on banyan) dead on 2026-07-29 for lack
+# of subuid and proot. An OS upgrade could in principle have changed that, so
+# it is re-read here. It did not.
+$ cat /etc/subuid
+user:100000:65536
+test:165536:65536
+$ cat /etc/subgid
+user:100000:65536
+test:165536:65536
+$ grep eliott /etc/subuid
+rc=1                                     # no subuid range for eliott
+$ sysctl kernel.unprivileged_userns_clone
+kernel.unprivileged_userns_clone = 1
+$ sysctl user.max_user_namespaces
+user.max_user_namespaces = 4125423
+$ sysctl kernel.apparmor_restrict_unprivileged_userns
+kernel.apparmor_restrict_unprivileged_userns = 1
+$ command -v proot
+rc=127
+--- END ROUTE_A_PRECONDITIONS_RECHECK ---
+
+ROUTE A INTERPRETATION
+Unchanged and still dead. No subuid/subgid range for eliott and no proot, which
+were the two grounds on which Q-007 settled. 24.04 additionally sets
+kernel.apparmor_restrict_unprivileged_userns = 1, a noble hardening default
+absent from 22.04, which constrains unprivileged user namespaces further. Route
+B (Docker -> sif) remains the path.
+
+--- CONCURRENT_WRITER_ON_SHARED_HOME ---
+# Noticed while listing the campaign directory. Recorded because it means this
+# capture was NOT taken against a quiescent machine.
+$ ls -la /home/eliott/p53mdm2 | grep dgx1_sass_vs_jit_probe
+-rw-r--r--  1 eliott Domain Users      14852 Aug 13 02:13 dgx1_sass_vs_jit_probe.sh
+$ stat /home/eliott/p53mdm2/dgx1_sass_vs_jit_probe.sh
+  File: /home/eliott/p53mdm2/dgx1_sass_vs_jit_probe.sh
+  Size: 14852     	Blocks: 32         IO Block: 1048576 regular file
+Device: 0,59	Inode: 53907125    Links: 1
+Access: (0644/-rw-r--r--)  Uid: (1000011/  eliott)   Gid: (1000000/  Domain Users)
+Access: 2026-08-12 15:49:17.290062668 +0900
+Modify: 2026-08-13 02:13:02.161054217 +0900
+Change: 2026-08-13 02:13:02.161054217 +0900
+ Birth: -
+$ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-08-12T17:13:18Z
+--- END CONCURRENT_WRITER_ON_SHARED_HOME ---
+
+CONCURRENT WRITER INTERPRETATION
+dgx1_sass_vs_jit_probe.sh was modified at 2026-08-13 02:13:02 JST =
+2026-08-12 17:13:02 UTC, sixteen seconds before the `date` above, i.e. WHILE
+this capture was running. This unit performed no writes on either cluster, so
+the writer is some other agent or session with access to the shared home.
+Nothing this unit measured was affected -- gromacs.sif's mtime is still
+2026-07-31 01:41:15.654477760 and its digest still matches -- but the reader
+should not treat this file as a snapshot of an idle machine, and anyone
+planning a rebuild should establish who else is working in
+/home/eliott/p53mdm2 first.
+
+
+########## SECTION 8: TOOLING (Q-003 beta-feedback mandate) ##########
+
+--- MCP_TOOL_CHECKS ---
+# banyan plugin -- all three calls succeeded.
+mcp__plugin_banyan_banyan-hpc__get_resources  ->
+{"result":[{"id":"banyan","type":"compute","description":"banyan — single-node 2× NVIDIA H100 NVL cluster (x86_64), Slurm without accounting","partitions":[{"partition":"all","available":"up","time_limit":"5-00:00:00","nodes":{"allocated":0,"idle":1,"other":0,"total":1}}]}]}
+
+mcp__plugin_banyan_banyan-hpc__run_command_on_cluster
+  command: singularity --version; command -v singularity
+  ->
+{"result":"singularity-ce version 4.5.0-noble\n/usr/bin/singularity"}
+
+mcp__plugin_banyan_banyan-hpc__fs_checksum
+  path: /home/eliott/p53mdm2/gromacs.sif
+  ->
+{"result":"1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac  /home/eliott/p53mdm2/gromacs.sif"}
+
+# dgx1 plugin -- the fault recorded on 2026-07-31 reproduces.
+mcp__plugin_dgx1_dgx1-hpc__fs_checksum
+  path: /home/eliott/p53mdm2/gromacs.sif
+  ->
+Error executing tool fs_checksum: could not communicate with process
+--- END MCP_TOOL_CHECKS ---
+
+TOOLING INTERPRETATION
+banyan's MCP plugin is healthy post-upgrade: resources, arbitrary command and
+checksum all returned. Note that run_command_on_cluster runs under a LOGIN
+shell (its own description says so) whereas `ssh banyan '<cmd>'` gets a
+non-login sh -- which is exactly why `module` is a defined function in the
+former and "not found" in the latter, as Section 2 shows. That difference is a
+real trap for any future unit that probes for modules over plain ssh and
+concludes there are none.
+
+dgx1's fs_checksum still fails with "could not communicate with process" on the
+same 5.75 GB path, identical to the failure recorded in dgx1_sif_open.txt on
+2026-07-31. Thirteen days on, unfixed, and reproducible while the banyan
+plugin's equivalent call on the identical NFS path succeeds -- so it is a
+dgx1-endpoint defect, not a property of the file or of file size. Worth raising
+upstream under the Q-003 mandate.
+
+
+########## RESULT ##########
+
+UPGRADE LANDED: banyan is Ubuntu 24.04.4 LTS / kernel 6.8.0-137, ssh restored.
+GZIP GUARD: STILL LIVE. Writer changed 4.2.2 -> singularity-ce 4.5.0-noble;
+  dgx1 reader unchanged at 3.5.2. The new default's compressor could NOT be
+  determined read-only. Mitigation already on disk: 4.2.2 survives at
+  /opt/singularity/4.2.2 and `module load singularity/4.2.2` still works.
+  Settling it requires one small attended build + `unsquashfs -s`.
+DELIVERED ARTIFACT: intact and unchanged -- digest, bytes and mtime all match
+  the delivery record; inspect rc 0 and exec rc 0 under 4.5.0 on the 6.8
+  kernel; still squashfs 4.0 / gzip / 128 KiB.
+COLD-CACHE GATE: NOT freed. Docker state survived the upgrade (52 images,
+  108 cache records, 16.46 GB); a cold rebuild must still be forced explicitly.
