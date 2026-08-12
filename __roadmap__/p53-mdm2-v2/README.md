@@ -53,6 +53,7 @@ graph TD
     p4_maboss_readback[P4 MaBoSS to USD — Time-Sampled Attrs]:::done
     p5_integrated_demo[P5 Integrated Demonstration]:::done
     p1b_container_runtime[P1b Container Runtime Validation]:::inprogress
+    p6_results_consumption[P6 Results Consumption — Making Simulation Output Legible]:::planned
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -72,6 +73,7 @@ graph TD
 | `p4_maboss_readback.md` | 📄 Leaf Task | ✅ Done |
 | `p5_integrated_demo.md` | 📄 Leaf Task | ✅ Done |
 | `p1b_container_runtime/` | 📁 Directory | 🔄 In Progress |
+| `p6_results_consumption/` | 📁 Directory | ⬜ Planned |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |
