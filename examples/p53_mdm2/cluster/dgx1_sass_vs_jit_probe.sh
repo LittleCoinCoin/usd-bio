@@ -25,6 +25,35 @@
 # an artifact of the cache being disabled or misdirected in this environment.
 # Without that control an empty directory is ambiguous, which is the same
 # mistake this campaign has been correcting all along.
+#
+# ---------------------------------------------------------------------------
+# SECOND PASS (arms D and E): WHERE DO RUN C's JIT ENTRIES COME FROM?
+#
+# The first pass (job 30) produced a MIXED result: run A (minimisation only)
+# wrote 0 cache entries against a control that wrote 9, so the nonbonded kernels
+# demonstrably come from embedded sm_70 SASS — but run C (full min+md, which
+# additionally places PME on the GPU) wrote 4 entries / 47471 bytes. Something
+# on the PME path JIT-compiles, and the first pass deliberately left the ORIGIN
+# undetermined: GROMACS reaches PME through cuFFT, which ships its own PTX
+# independently of the image's GMX_CUDA_TARGET_* flags, so those 4 entries may
+# belong to a CUDA library rather than to libgromacs.
+#
+# ARM D is the cheapest discriminator. It is run C's workload with `-pme cpu`
+# passed to both mdrun invocations, so no PME work reaches the device, against a
+# fresh cache:
+#   - the 4 entries VANISH  -> they belong to the PME / cuFFT path
+#   - the 4 entries PERSIST -> they are libgromacs PTX being JIT-compiled
+#
+# ARM E is arm D's own positive control, and it is not optional. A zero-entry
+# arm D is only meaningful if a CUDA_FORCE_PTX_JIT=1 run of the SAME `-pme cpu`
+# workload, in the same environment, writes something — otherwise "the entries
+# vanished" is indistinguishable from "the cache stopped working". Run B is a
+# control for the minimisation workload, not for this one.
+#
+# The arm also records, from each run's own md.log, whether GROMACS said "PME
+# tasks will do all aspects on the GPU". If that line is still present under
+# `-pme cpu` the flag did not take effect and the whole comparison is void, so
+# the verdict reports INCONCLUSIVE rather than a tidy attribution.
 # ============================================================================
 set -uo pipefail
 
@@ -34,10 +63,16 @@ SIF="$WORK/gromacs.sif"
 PROBE_A="$WORK/tmp/jitprobe_default"
 PROBE_B="$WORK/tmp/jitprobe_forced"
 PROBE_C="$WORK/tmp/jitprobe_fullrun"
+PROBE_D="$WORK/tmp/jitprobe_pmecpu"
+PROBE_E="$WORK/tmp/jitprobe_pmecpu_forced"
 RUNDIR_A="$WORK/smoke_run_jitprobe_a"
 RUNDIR_B="$WORK/smoke_run_jitprobe_b"
 RUNDIR_C="$WORK/smoke_run_jitprobe_c"
-OUT="$WORK/dgx1_sass_vs_jit_out.txt"
+RUNDIR_D="$WORK/smoke_run_jitprobe_d"
+RUNDIR_E="$WORK/smoke_run_jitprobe_e"
+# Job-scoped so a re-run cannot overwrite an earlier job's raw capture.
+RUNTAG="${SLURM_JOB_ID:-manual}"
+OUT="$WORK/dgx1_sass_vs_jit_out_$RUNTAG.txt"
 SMOKE_NTOMP=8
 
 note() { echo; echo "======== $* ========"; }
@@ -85,6 +120,14 @@ run_probe A "$PROBE_A" "$RUNDIR_A" 0
 run_probe B "$PROBE_B" "$RUNDIR_B" 1
 
 
+# How many times did GROMACS' own md.log say PME went to the device? This is the
+# check that arm D's `-pme cpu` actually took effect; without it, "the entries
+# vanished" could equally mean "the flag was ignored and something else changed".
+pme_on_gpu_lines() {
+    local rundir="$1"
+    grep -c 'PME tasks will do all aspects on the GPU' "$rundir"/md.log 2>/dev/null | head -1
+}
+
 # Run C covers the FULL min+md sequence that job 28 ran. Run A used minimisation
 # only, so it could not account for the three cache entries job 28 left behind:
 # the md step additionally puts PME on the GPU, which loads different modules.
@@ -109,11 +152,49 @@ run_full() {
     local rc="${PIPESTATUS[0]}"
     local n; n=$(find "$cache" -type f 2>/dev/null | wc -l | tr -d ' ')
     local sz; sz=$(du -sb "$cache" 2>/dev/null | awk '{print $1}')
+    local pme; pme=$(pme_on_gpu_lines "$rundir")
     echo "run_exit: $rc"; echo "cache_files_after: $n"; echo "cache_bytes_after: ${sz:-0}"
-    eval "RC_$label=$rc; N_$label=$n; SZ_$label=${sz:-0}"
+    echo "md_log_pme_on_gpu_lines: ${pme:-0}"
+    eval "RC_$label=$rc; N_$label=$n; SZ_$label=${sz:-0}; PME_$label=${pme:-0}"
 }
 
 run_full C "$PROBE_C" "$RUNDIR_C"
+
+
+# Arms D and E: the same full min+md sequence as run C, with `-pme cpu` on BOTH
+# mdrun invocations so nothing on the PME path reaches the device. D is the
+# measurement, E is D's own forced-JIT positive control. See the header.
+run_full_pmecpu() {
+    local label="$1" cache="$2" rundir="$3" force="$4"
+    note "RUN $label: FULL min+md with -pme cpu (PME off the GPU), CUDA_CACHE_PATH=$cache CUDA_FORCE_PTX_JIT=$force"
+    rm -rf "$cache" "$rundir"; mkdir -p "$cache" "$rundir"
+    echo "cache_files_before: $(find "$cache" -type f 2>/dev/null | wc -l | tr -d ' ')"
+    SINGULARITYENV_CUDA_CACHE_PATH="$cache" \
+    SINGULARITYENV_CUDA_FORCE_PTX_JIT="$force" \
+    SINGULARITYENV_CUDA_CACHE_DISABLE=0 \
+    CUDA_CACHE_PATH="$cache" CUDA_FORCE_PTX_JIT="$force" CUDA_CACHE_DISABLE=0 \
+    singularity exec --nv -B "$TEMPLATES:/templates:ro" -B "$rundir:/work" --pwd /work "$SIF" \
+        bash -c '
+          set -e
+          echo "in_container_CUDA_CACHE_PATH=${CUDA_CACHE_PATH:-unset}"
+          echo "in_container_CUDA_FORCE_PTX_JIT=${CUDA_FORCE_PTX_JIT:-unset}"
+          bash /templates/make_box.sh /templates /work 3.0
+          /opt/gromacs/bin/gmx grompp -f min.mdp -c conf.gro -p topol.top -o min.tpr -maxwarn 2
+          /opt/gromacs/bin/gmx mdrun -deffnm min -nb gpu -pme cpu -ntmpi 1 -ntomp '"$SMOKE_NTOMP"'
+          /opt/gromacs/bin/gmx grompp -f md.mdp -c min.gro -p topol.top -o md.tpr -maxwarn 2
+          /opt/gromacs/bin/gmx mdrun -deffnm md -nb gpu -pme cpu -ntmpi 1 -ntomp '"$SMOKE_NTOMP"'
+        ' 2>&1 | grep -E 'in_container_|GPU selected|Using GPU .* nonbonded|PME|Potential Energy|converged|steps,'
+    local rc="${PIPESTATUS[0]}"
+    local n; n=$(find "$cache" -type f 2>/dev/null | wc -l | tr -d ' ')
+    local sz; sz=$(du -sb "$cache" 2>/dev/null | awk '{print $1}')
+    local pme; pme=$(pme_on_gpu_lines "$rundir")
+    echo "run_exit: $rc"; echo "cache_files_after: $n"; echo "cache_bytes_after: ${sz:-0}"
+    echo "md_log_pme_on_gpu_lines: ${pme:-0}"
+    eval "RC_$label=$rc; N_$label=$n; SZ_$label=${sz:-0}; PME_$label=${pme:-0}"
+}
+
+run_full_pmecpu D "$PROBE_D" "$RUNDIR_D" 0
+run_full_pmecpu E "$PROBE_E" "$RUNDIR_E" 1
 
 note "SUMMARY"
 echo "real_cache_size_after: $(du -sh "$HOME/.nv/ComputeCache" 2>/dev/null | awk '{print $1}')"
@@ -132,6 +213,27 @@ if [ "${N_B:-0}" -gt 0 ] && [ "${N_C:-0}" -eq 0 ]; then
 elif [ "${N_C:-0}" -gt 0 ]; then
     VERDICT="MIXED - minimisation loaded from SASS but the full min+md run wrote ${N_C} JIT cache entries, so the md/PME path compiles at least one module from PTX"
 fi
+
+# Where do run C's entries come from? Every guard below is a way for this
+# measurement to be void, and each one reports INCONCLUSIVE rather than the
+# tidier reading.
+PME_ORIGIN="INCONCLUSIVE"
+if [ "${N_E:-0}" -eq 0 ]; then
+    PME_ORIGIN="INCONCLUSIVE - the -pme cpu arm's own forced-JIT control wrote no cache, so a zero -pme cpu result is indistinguishable from a cache that stopped working"
+elif [ "${N_C:-0}" -eq 0 ]; then
+    PME_ORIGIN="INCONCLUSIVE - the GPU-PME full run wrote no JIT entries in this job, so there is nothing to attribute"
+elif [ "${PME_C:-0}" -eq 0 ]; then
+    PME_ORIGIN="INCONCLUSIVE - the GPU-PME baseline run never reported PME on the device, so it is not the PME-on-GPU condition it is meant to be"
+elif [ "${PME_D:-0}" -ne 0 ]; then
+    PME_ORIGIN="INCONCLUSIVE - the -pme cpu arm still reported PME on the device, so the flag did not take effect and the arms differ in nothing"
+elif [ "${N_D:-0}" -eq 0 ]; then
+    PME_ORIGIN="PME_PATH - the ${N_C} JIT entries vanish when PME is moved off the GPU (control wrote ${N_E} files), so they belong to the PME/cuFFT path and NOT to libgromacs"
+elif [ "${N_D:-0}" -eq "${N_C:-0}" ]; then
+    PME_ORIGIN="LIBGROMACS - the ${N_C} JIT entries persist unchanged with PME off the GPU, so they are libgromacs PTX rather than the PME/cuFFT path"
+else
+    PME_ORIGIN="PARTIAL - ${N_C} JIT entries with PME on the GPU, ${N_D} with PME on the CPU; some but not all of them belong to the PME path"
+fi
+
 echo "--- SUMMARY ---"
 echo "CLUSTER=dgx1"
 echo "GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader | sort -u | paste -sd';' -)"
@@ -144,9 +246,19 @@ echo "FORCED_JIT_RUN_JIT_BYTES=${SZ_B:-NONE}"
 echo "FULLRUN_EXIT=${RC_C:-NONE}"
 echo "FULLRUN_JIT_FILES=${N_C:-NONE}"
 echo "FULLRUN_JIT_BYTES=${SZ_C:-NONE}"
+echo "FULLRUN_PME_ON_GPU_LINES=${PME_C:-NONE}"
+echo "PMECPU_RUN_EXIT=${RC_D:-NONE}"
+echo "PMECPU_RUN_JIT_FILES=${N_D:-NONE}"
+echo "PMECPU_RUN_JIT_BYTES=${SZ_D:-NONE}"
+echo "PMECPU_RUN_PME_ON_GPU_LINES=${PME_D:-NONE}"
+echo "PMECPU_CONTROL_EXIT=${RC_E:-NONE}"
+echo "PMECPU_CONTROL_JIT_FILES=${N_E:-NONE}"
+echo "PMECPU_CONTROL_JIT_BYTES=${SZ_E:-NONE}"
 echo "SASS_OR_JIT_VERDICT=$VERDICT"
+echo "PME_JIT_ORIGIN_VERDICT=$PME_ORIGIN"
 echo "SIF_SHA256=$(sha256sum "$SIF" | awk '{print $1}')"
 echo "--- END SUMMARY ---"
 
 note "RESULT: verdict=$VERDICT"
+note "RESULT: pme_jit_origin=$PME_ORIGIN"
 exit 0
