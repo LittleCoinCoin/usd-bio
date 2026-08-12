@@ -49,6 +49,11 @@ Checks (row counts are per present-evidence, one row each):
     sass_not_jit_for_nonbondeds nonbonded kernels load from embedded sm_70 SASS,
                                 asserted only AFTER its forced-JIT positive
                                 control is shown to have fired
+    pme_jit_origin_attributed   the PME-path JIT entries are attributed by a
+                                `-pme cpu` arm carrying its OWN forced-JIT
+                                control; the verdict label is recomputed from
+                                the counts rather than read back, and no count
+                                is hard-coded
 
 Deliberately NOT asserted: wall-clock timings and step rates. They vary with
 node load; a flaky gate teaches people to ignore failures.
@@ -76,6 +81,7 @@ _DGX1_OPEN = os.path.join(_EVIDENCE, "dgx1_sif_open.txt")
 _PTX_DISAMBIG = os.path.join(_EVIDENCE, "ptx_disambiguation_banyan.txt")
 _DGX1_GPU_SMOKE = os.path.join(_EVIDENCE, "dgx1_gpu_smoke.txt")
 _DGX1_SASS_JIT = os.path.join(_EVIDENCE, "dgx1_sass_vs_jit.txt")
+_DGX1_PME_JIT = os.path.join(_EVIDENCE, "dgx1_pme_jit_origin.txt")
 
 # --- Stated expectations (NOT read back out of the evidence) -----------------
 # The cross-cluster portability claim in one line: real SASS for dgx1's V100
@@ -657,6 +663,108 @@ def _check_sass_not_jit_for_nonbondeds():
                     "verdict": s.get("SASS_OR_JIT_VERDICT", "")[:40]}
 
 
+def _pme_origin_label(fullrun, pmecpu, control, pme_on_gpu_baseline,
+                      pme_on_gpu_pmecpu):
+    """Recompute the probe's attribution label from its own counts.
+
+    A transcription of the probe's decision table, kept here so the test asserts
+    the numbers rather than the sentence the script wrote about itself. Every
+    branch that returns INCONCLUSIVE is a way for the measurement to be void.
+    """
+    if control <= 0:
+        return "INCONCLUSIVE"          # no positive control -> a zero means nothing
+    if fullrun == 0:
+        return "INCONCLUSIVE"          # nothing was JIT'd, so nothing to attribute
+    if pme_on_gpu_baseline == 0:
+        return "INCONCLUSIVE"          # the baseline was never the PME-on-GPU condition
+    if pme_on_gpu_pmecpu != 0:
+        return "INCONCLUSIVE"          # `-pme cpu` was ignored; the arms differ in nothing
+    if pmecpu == 0:
+        return "PME_PATH"
+    if pmecpu == fullrun:
+        return "LIBGROMACS"
+    return "PARTIAL"
+
+
+def _check_pme_jit_origin_attributed():
+    """Where the PME-path JIT entries come from, asserted on counts not prose.
+
+    THE CONTROL IS ASSERTED FIRST, for the same reason as
+    `sass_not_jit_for_nonbondeds`: the finding here is a NEGATIVE (`-pme cpu`
+    wrote nothing), and a negative is worthless unless a forced-JIT run of the
+    SAME workload in the SAME environment wrote something. The minimisation
+    arm's control does not cover this workload, so the probe carries a second
+    one and this check reads that one.
+
+    No count is hard-coded. The leaf's step 3 refused to bless the PME-path
+    entry count as a fixed expectation because its cause was unknown; now that
+    the cause IS known, pinning it would still redden on a benign CUDA library
+    update. What is asserted instead is that the label the capture states about
+    itself is exactly what its own numbers imply -- so a future re-capture whose
+    numbers move to a different attribution must move its label with them, and
+    one whose measurement goes void must say INCONCLUSIVE rather than keep an
+    inherited verdict.
+    """
+    text = _read(_DGX1_PME_JIT)
+    s = _parse_summary_block(text)
+    errors = []
+
+    def _int(key):
+        try:
+            return int(s.get(key, ""))
+        except ValueError:
+            errors.append(f"{key}={s.get(key)!r} is not an integer")
+            return None
+
+    control = _int("PMECPU_CONTROL_JIT_FILES")
+    pmecpu = _int("PMECPU_RUN_JIT_FILES")
+    fullrun = _int("FULLRUN_JIT_FILES")
+    pme_base = _int("FULLRUN_PME_ON_GPU_LINES")
+    pme_off = _int("PMECPU_RUN_PME_ON_GPU_LINES")
+
+    if control is not None and control <= 0:
+        errors.append("PMECPU_CONTROL_JIT_FILES=0 -- the -pme cpu arm's own forced-JIT "
+                      "control wrote no JIT cache, so an empty -pme cpu run is "
+                      "indistinguishable from a cache that stopped working and "
+                      "attributes NOTHING")
+
+    # Every arm must have completed, or the counts are counts of a partial run.
+    for key in ("FULLRUN_EXIT", "PMECPU_RUN_EXIT", "PMECPU_CONTROL_EXIT"):
+        if s.get(key) != "0":
+            errors.append(f"{key}={s.get(key)!r} != '0'")
+
+    # The label must be what the numbers say. This is the whole assertion.
+    recorded = s.get("PME_JIT_ORIGIN_VERDICT", "").split(" ", 1)[0]
+    if None not in (control, pmecpu, fullrun, pme_base, pme_off):
+        expected = _pme_origin_label(fullrun, pmecpu, control, pme_base, pme_off)
+        if recorded != expected:
+            errors.append(f"PME_JIT_ORIGIN_VERDICT starts {recorded!r} but its own "
+                          f"counts imply {expected!r} (fullrun={fullrun} "
+                          f"pmecpu={pmecpu} control={control} "
+                          f"pme_on_gpu baseline={pme_base} pmecpu={pme_off})")
+
+    # The trap the whole probe family is built around: the real cache on the
+    # shared NFS home must be neither read nor written, and the only evidence
+    # of that is its size on both sides of the run.
+    sizes = re.findall(r"^real_cache_size_(before|after):\s*(\S+)\s*$", text, re.M)
+    seen = dict(sizes)
+    if len(seen) != 2:
+        errors.append(f"expected a real_cache_size_before and _after line, got {sizes}")
+    elif seen["before"] != seen["after"]:
+        errors.append(f"the real ~/.nv/ComputeCache changed size across the probe: "
+                      f"{seen['before']} -> {seen['after']}")
+
+    if s.get("SIF_SHA256") != _DELIVERED_SIF_SHA256:
+        errors.append(f"SIF_SHA256={s.get('SIF_SHA256')!r} is not the delivered "
+                      f"artifact {_DELIVERED_SIF_SHA256!r}")
+
+    return errors, {"pme_on_gpu_files": fullrun,
+                    "pme_on_cpu_files": pmecpu,
+                    "control_files": control,
+                    "verdict": recorded,
+                    "real_cache": seen.get("before")}
+
+
 def _row(name, fn):
     """One result row. A parser raise becomes a FAIL, not a harness crash."""
     try:
@@ -704,6 +812,9 @@ def run() -> list:
     if os.path.isfile(_DGX1_SASS_JIT):
         rows.append(_row("sass_not_jit_for_nonbondeds",
                          _check_sass_not_jit_for_nonbondeds))
+    if os.path.isfile(_DGX1_PME_JIT):
+        rows.append(_row("pme_jit_origin_attributed",
+                         _check_pme_jit_origin_attributed))
     return rows
 
 
