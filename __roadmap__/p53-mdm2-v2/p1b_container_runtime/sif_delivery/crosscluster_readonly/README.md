@@ -7,14 +7,14 @@ Cross-cluster verification of a `.sif` that only banyan has produced and trusted
 Establish that the image built under singularity-ce 4.2.2 on banyan is usable on dgx1's singularity 3.5.2, without writing to dgx1 or touching a GPU.
 
 ## Pre-conditions
-- [ ] `/home/eliott/p53mdm2/gromacs.sif` exists, produced by `convert_verify_cleanup`
+- [x] `/home/eliott/p53mdm2/gromacs.sif` exists, produced by `convert_verify_cleanup` — 5750255616 bytes, sha256 `1fc04f8b…81ac` `[source: evidence/convert_verify_banyan.txt:13-16; stat'd from both hosts in evidence/dgx1_sif_open.txt:39-40, 54-55]`
 - [x] One shared NFS home (`ts2:/export/home`) mounted identically on both clusters — asserted from `df` output in R07 and R10, but never actually proven byte-for-byte
 
 ## Success Gates
-- ⬜ `[run]` `sha256sum gromacs.sif` computed from banyan and from dgx1 are **equal** — the first genuine test of the "stage once, run anywhere" claim the runbook has relied on since R07
-- ⬜ `[run]` `singularity inspect gromacs.sif` exits 0 under singularity 3.5.2 and prints `GromacsVer`
-- ⬜ `[run]` `singularity exec gromacs.sif /bin/ls /opt/gromacs/bin` exits 0 and lists `gmx`
-- ⬜ `[static]` the SIF-version-skew entry in `examples/p53_mdm2/cluster/README.md`'s risk register is rewritten from open risk to observation
+- ✅ `[run]` `sha256sum gromacs.sif` computed from banyan and from dgx1 are **equal** — the first genuine test of the "stage once, run anywhere" claim the runbook has relied on since R07 — both `1fc04f8b…81ac`, `DIGEST_PARITY=match` `[source: evidence/dgx1_sif_open.txt:15-17, and the two independent shell captures at :71 and :85]`
+- ✅ `[run]` `singularity inspect gromacs.sif` exits 0 under singularity 3.5.2 and prints `GromacsVer` — `DGX1_SINGULARITY_VERSION=singularity version 3.5.2`, `INSPECT_RC=0`, `GromacsVer: 2025.3` (and `TargetSM: 70;90`, no `BuildStatus`) `[source: evidence/dgx1_sif_open.txt:99-100, 113-131]`
+- ✅ `[run]` `singularity exec gromacs.sif /bin/ls /opt/gromacs/bin` exits 0 and lists `gmx` — `EXEC_LS_RC=0` with `gmx` (120984 bytes) present; the command run was `ls -la`, not `/bin/ls` `[source: evidence/dgx1_sif_open.txt:163-176]`
+- ✅ `[static]` the SIF-version-skew entry in `examples/p53_mdm2/cluster/README.md`'s risk register is rewritten from open risk to observation — "RESOLVED TO AN OBSERVATION", with the gzip-default caveat and the not-a-GPU-test limit both recorded `[source: examples/p53_mdm2/cluster/README.md:543-575]`
 
 ## Gotchas
 - **This level is scoped to read-only on purpose.** No `--nv`, no GPU, no `sbatch` on dgx1. The attended dgx1 GPU smoke test is deliberately excluded and belongs here later as a sibling leaf — that reserved slot is why this directory exists for a single leaf today.
@@ -24,7 +24,7 @@ Establish that the image built under singularity-ce 4.2.2 on banyan is usable on
 ## Status
 ```mermaid
 graph TD
-    dgx1_sif_open_check[dgx1 SIF Open Check]:::planned
+    dgx1_sif_open_check[dgx1 SIF Open Check]:::done
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -35,7 +35,7 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `dgx1_sif_open_check.md` | 📄 Leaf Task | ⬜ Planned |
+| `dgx1_sif_open_check.md` | 📄 Leaf Task | ✅ Done |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |

@@ -13,10 +13,10 @@ Convert the verified Docker image into `gromacs.sif` on the shared home, prove t
 - [ ] `df -h /home` shows ≥ 30 G free, and `SINGULARITY_TMPDIR` / `SINGULARITY_CACHEDIR` / `TMPDIR` all redirected under `/home/eliott/p53mdm2/` so no build scratch lands on `/`
 
 ## Success Gates
-- ⬜ `[run]` `gromacs.sif` present on `ts2:/export/home`, with the sha256 of both the intermediate tar and the `.sif` recorded
-- ⬜ `[run]` `singularity inspect` reports `GromacsVer 2025.3` and `TargetSM 70;90`, and **no** `BuildStatus` key survives into the delivered artifact
+- ✅ `[run]` `gromacs.sif` present on `ts2:/export/home`, with the sha256 of both the intermediate tar and the `.sif` recorded — tar `9d57a97c…bb49` (10593997824 B), sif `1fc04f8b…81ac` (5750255616 B), `sif_filesystem: ts2:/export/home /home` `[source: evidence/convert_verify_banyan.txt:59-60, 69-71]`
+- ✅ `[run]` `singularity inspect` reports `GromacsVer 2025.3` and `TargetSM 70;90`, and **no** `BuildStatus` key survives into the delivered artifact — `GATE_NO_BUILDSTATUS=PASS`, `GATE_GROMACSVER=PASS`, `GATE_TARGETSM=PASS` `[source: evidence/convert_verify_banyan.txt:74-92]`
 - ⬜ `[run]` the rebuilt image's SASS summary and `gmx --version` block are byte-identical to the pre-correction capture — a build-reproducibility datum this campaign otherwise has none of
-- ⬜ `[run]` `.sif` and Docker agree on GROMACS version, SIMD, CUDA runtime and GPU-support lines, and on minimisation `Potential Energy` to ≤ 1e-3 relative
+- ✅ `[run]` `.sif` and Docker agree on GROMACS version, SIMD, CUDA runtime and GPU-support lines, and on minimisation `Potential Energy` to ≤ 1e-3 relative — both report `2025.3` / `AVX2_256` / `12.90` / `CUDA`, and `relative_difference: 1.39175e-06`, `GATE_ENERGY_PARITY=PASS` `[source: evidence/convert_verify_banyan.txt:99-104, 126-129; docker side evidence/docker_gpu_smoke_banyan.txt:29-34, 65]`
 - ⬜ `[run]` no `gromacs.tar`, no `gromacs-p53mdm2` image, and `/` free space recorded before and after
 
 ## Gotchas
@@ -28,7 +28,7 @@ Convert the verified Docker image into `gromacs.sif` on the shared home, prove t
 ```mermaid
 graph TD
     convert_verify_cleanup[Convert, Verify, Cleanup]:::inprogress
-    crosscluster_readonly[Cross-Cluster Read-Only Checks]:::planned
+    crosscluster_readonly[Cross-Cluster Read-Only Checks]:::done
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -40,7 +40,7 @@ graph TD
 | Node | Type | Status |
 |:-----|:-----|:-------|
 | `convert_verify_cleanup.md` | 📄 Leaf Task | 🔄 In Progress |
-| `crosscluster_readonly/` | 📁 Directory | ⬜ Planned |
+| `crosscluster_readonly/` | 📁 Directory | ✅ Done |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |
