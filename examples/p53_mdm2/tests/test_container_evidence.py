@@ -31,12 +31,24 @@ Checks (row counts are per present-evidence, one row each):
     required_sass_targets       _REQUIRED_SM present as ELF in every captured
                                 SASS summary, and the rebuild summary is
                                 identical to the original (build equivalence)
+    ptx_targets_observed        PTX embedded for BOTH _REQUIRED_SM, asserted on
+                                per-arch record counts and on the .ptx/.cubin
+                                extension split that makes a record's sm_ token
+                                attributable to its own target (settles Q-008)
     no_buildstatus_label        the scaffolding label reached neither recipe
                                 nor the delivered artifact
     docker_sif_version_parity   docker-path vs sif-path `gmx --version` fields
     docker_sif_energy_parity    the two minimisation energies, relative tol
     dgx1_digest_parity          banyan-computed == dgx1-computed sif digest
     dgx1_sif_opens              inspect + exec succeed under singularity 3.5.2
+    dgx1_gpu_executes           a dgx1 V100 EXECUTED the image: non-zero CUDA
+                                driver, compute cap from two sources, nonbondeds
+                                on the device (not a bare mdrun exit 0)
+    crosscluster_energy_parity  V100 vs H100 minimisation energy from the SAME
+                                image, recomputed rather than read back
+    sass_not_jit_for_nonbondeds nonbonded kernels load from embedded sm_70 SASS,
+                                asserted only AFTER its forced-JIT positive
+                                control is shown to have fired
 
 Deliberately NOT asserted: wall-clock timings and step rates. They vary with
 node load; a flaky gate teaches people to ignore failures.
@@ -61,6 +73,9 @@ _SASS_AUDIT = os.path.join(_EVIDENCE, "sass_audit_banyan.txt")
 _DOCKER_SMOKE = os.path.join(_EVIDENCE, "docker_gpu_smoke_banyan.txt")
 _CONVERT_VERIFY = os.path.join(_EVIDENCE, "convert_verify_banyan.txt")
 _DGX1_OPEN = os.path.join(_EVIDENCE, "dgx1_sif_open.txt")
+_PTX_DISAMBIG = os.path.join(_EVIDENCE, "ptx_disambiguation_banyan.txt")
+_DGX1_GPU_SMOKE = os.path.join(_EVIDENCE, "dgx1_gpu_smoke.txt")
+_DGX1_SASS_JIT = os.path.join(_EVIDENCE, "dgx1_sass_vs_jit.txt")
 
 # --- Stated expectations (NOT read back out of the evidence) -----------------
 # The cross-cluster portability claim in one line: real SASS for dgx1's V100
@@ -358,6 +373,77 @@ def _check_required_sass_targets():
     return errors, {"summaries_checked": sorted(summaries)}
 
 
+def _check_ptx_targets_observed():
+    """PTX is embedded for BOTH required architectures, and attributably so.
+
+    This encodes the OBSERVED behaviour, settling Q-008. The
+    `sass_portability_audit` gate originally predicted PTX for `sm_90` only,
+    matching `GMX_CUDA_TARGET_COMPUTE="90"`; the capture contradicted it. R14
+    could not decide between two readings of that contradiction -- PTX really
+    emitted per SM target, or a `-lptx` record's `sm_` token merely naming its
+    enclosing cubin -- because the capture held no token to discriminate them.
+
+    The disambiguation capture discriminates on the record EXTENSION: `-lptx`
+    names records `*.ptx` and `-lelf` names them `*.cubin`, and no cubin name
+    appears in the `-lptx` listing at all. So a PTX record's `sm_` token is that
+    record's own target, and PTX for both architectures is real -- which is what
+    both recipes have recorded since 2026-07-30.
+
+    Deliberately asserted over the per-architecture record COUNTS rather than
+    over `SM_PTX` alone: a set-valued key cannot distinguish "PTX for both" from
+    "one arch's PTX plus a container name that happens to mention the other".
+    """
+    summary = _parse_summary_block(_read(_PTX_DISAMBIG))
+    errors = []
+
+    # The discriminator. Without it the sm_ token is not attributable, which is
+    # exactly the ambiguity that blocked this gate for a cycle.
+    if summary.get("PTX_EXTENSIONS") != ".ptx":
+        errors.append(f"PTX_EXTENSIONS={summary.get('PTX_EXTENSIONS')!r} != '.ptx' "
+                      f"-- cuobjdump -lptx no longer names records by extension, "
+                      f"so a record's sm_ token is no longer attributable")
+    if summary.get("ELF_EXTENSIONS") != ".cubin":
+        errors.append(f"ELF_EXTENSIONS={summary.get('ELF_EXTENSIONS')!r} != '.cubin'")
+    if summary.get("PTX_CUBIN_TOKENS") != "0":
+        errors.append(f"PTX_CUBIN_TOKENS={summary.get('PTX_CUBIN_TOKENS')!r} != '0' "
+                      f"-- a cubin name appears in the -lptx listing, which would "
+                      f"revive R14's enclosing-cubin reading")
+
+    # PTX genuinely present for every required architecture.
+    for sm in sorted(_REQUIRED_SM):
+        key = f"PTX_{sm}_RECORDS"
+        raw = summary.get(key)
+        try:
+            count = int(raw)
+        except (TypeError, ValueError):
+            errors.append(f"{key}={raw!r} is not an integer")
+            continue
+        if count <= 0:
+            errors.append(f"{key}={count} -- no PTX embedded for {sm}, so the "
+                          f"observed-PTX-for-both finding no longer holds")
+
+    # One PTX record per cubin: the equality that first made the gate suspicious.
+    if summary.get("PTX_RECORDS") != summary.get("ELF_RECORDS"):
+        errors.append(f"PTX_RECORDS={summary.get('PTX_RECORDS')!r} != "
+                      f"ELF_RECORDS={summary.get('ELF_RECORDS')!r}")
+
+    # The older captures must stay consistent with this reading.
+    audits = {"sass_audit_banyan.txt": _SASS_AUDIT}
+    if os.path.isfile(_CONVERT_VERIFY):
+        audits["convert_verify_banyan.txt"] = _CONVERT_VERIFY
+    for name, path in sorted(audits.items()):
+        observed = set(_parse_summary_block(_read(path))
+                       .get("SM_PTX", "").split(";")) - {""}
+        missing = _REQUIRED_SM - observed
+        if missing:
+            errors.append(f"{name}: SM_PTX lacks {sorted(missing)}, contradicting "
+                          f"the disambiguation capture")
+    return errors, {"ptx_records": summary.get("PTX_RECORDS"),
+                    "per_arch": {sm: summary.get(f"PTX_{sm}_RECORDS")
+                                 for sm in sorted(_REQUIRED_SM)},
+                    "audits_crosschecked": sorted(audits)}
+
+
 def _check_no_buildstatus_label():
     """The scaffolding provenance label must reach neither recipe nor artifact."""
     errors = []
@@ -458,6 +544,119 @@ def _check_dgx1_sif_opens():
 
 # --- harness entry point -----------------------------------------------------
 
+def _check_dgx1_gpu_executes():
+    """A dgx1 V100 actually EXECUTED the image — not merely opened it.
+
+    Cycle-007 established that `gromacs.sif` inspects and execs under dgx1's
+    singularity 3.5.2, and that sm_70 SASS exists in the library. Those are two
+    facts and must not read as one: no dgx1 GPU had run anything. This gates the
+    run that closed that gap.
+
+    A zero `mdrun` exit is deliberately NOT treated as sufficient. GROMACS falls
+    back to CPU nonbondeds with only a log note, so device execution is asserted
+    from the detected-GPU block and the nonbonded placement instead.
+    """
+    s = _parse_summary_block(_read(_DGX1_GPU_SMOKE))
+    errors = []
+
+    # Non-zero driver is the falsification of cycle-007's driverless `0.0`.
+    driver = s.get("CUDA_DRIVER", "")
+    try:
+        if float(driver) <= 0:
+            errors.append(f"CUDA_DRIVER={driver!r} is not positive -- a driverless "
+                          f"run, which is NOT evidence of GPU capability")
+    except ValueError:
+        errors.append(f"CUDA_DRIVER={driver!r} is not a number")
+
+    # The architecture this cluster exists to exercise, from two independent
+    # sources: nvidia-smi and GROMACS' own md.log.
+    want_cc = s.get("REQUIRED_COMPUTE_CAP")
+    for key in ("GPU_COMPUTE_CAP_NVIDIASMI", "GPU_COMPUTE_CAP_MDLOG"):
+        if s.get(key) != want_cc:
+            errors.append(f"{key}={s.get(key)!r} != REQUIRED_COMPUTE_CAP={want_cc!r}")
+
+    if s.get("NONBONDED_ON_GPU") != "yes":
+        errors.append("NONBONDED_ON_GPU != 'yes' -- nonbondeds fell back to the CPU, "
+                      "so this is not evidence of device execution")
+    for key in ("MDRUN_EXIT", "VERSION_EXIT"):
+        if s.get(key) != "0":
+            errors.append(f"{key}={s.get(key)!r} != '0'")
+
+    # The image under test must be the artifact of record, not some other build.
+    if s.get("SIF_SHA256") != _DELIVERED_SIF_SHA256:
+        errors.append(f"SIF_SHA256={s.get('SIF_SHA256')!r} is not the delivered "
+                      f"artifact {_DELIVERED_SIF_SHA256!r}")
+    return errors, {"gpu": s.get("GPU_NAME"), "driver": driver,
+                    "compute_cap": s.get("GPU_COMPUTE_CAP_MDLOG"),
+                    "sm_exercised": s.get("SM_ARCH_EXERCISED")}
+
+
+def _check_crosscluster_energy_parity():
+    """The same image agrees on physics across a V100 and an H100.
+
+    Recomputed from the two recorded energies rather than read back from the
+    script's own GATE_ verdict string -- a gate that trusts the artifact's
+    self-assessment asserts nothing.
+    """
+    s = _parse_summary_block(_read(_DGX1_GPU_SMOKE))
+    errors = []
+    try:
+        dgx1 = float(s["DGX1_MIN_POTENTIAL_ENERGY"])
+        banyan = float(s["BANYAN_MIN_POTENTIAL_ENERGY"])
+    except (KeyError, ValueError) as exc:
+        return [f"unusable energies in the dgx1 capture: {exc}"], {}
+    rel = abs(dgx1 - banyan) / abs(banyan) if banyan else abs(dgx1 - banyan)
+    if rel > _ENERGY_REL_TOL:
+        errors.append(f"cross-cluster energy relative difference {rel:.3e} exceeds "
+                      f"{_ENERGY_REL_TOL:.0e} -- the two architectures disagree "
+                      f"on physics from the same image")
+    return errors, {"dgx1_v100": dgx1, "banyan_h100": banyan, "relative": rel}
+
+
+def _check_sass_not_jit_for_nonbondeds():
+    """Nonbonded kernels come from embedded sm_70 SASS, not from JIT'd PTX.
+
+    THE CONTROL IS ASSERTED FIRST, AND THAT ORDER IS THE POINT. A check that
+    only read `default run wrote zero cache entries` would PASS in exactly the
+    broken environment where the JIT cache never worked at all -- an empty
+    directory is indistinguishable from a disabled or misdirected one. So the
+    forced-JIT run must have written something before the empty default run is
+    allowed to mean anything.
+
+    The PME path's JIT count is deliberately NOT asserted. It is an
+    unattributed observation -- possibly cuFFT's own PTX rather than
+    libgromacs' -- so hard-coding it would bless a number whose cause is
+    unknown and would redden on a benign CUDA library update. It travels in
+    the detail payload instead, where it informs without promising.
+    """
+    s = _parse_summary_block(_read(_DGX1_SASS_JIT))
+    errors = []
+
+    def _int(key):
+        try:
+            return int(s.get(key, ""))
+        except ValueError:
+            errors.append(f"{key}={s.get(key)!r} is not an integer")
+            return None
+
+    control = _int("FORCED_JIT_RUN_JIT_FILES")
+    default = _int("DEFAULT_RUN_JIT_FILES")
+    fullrun = _int("FULLRUN_JIT_FILES")
+
+    if control is not None and control <= 0:
+        errors.append("FORCED_JIT_RUN_JIT_FILES=0 -- the positive control wrote no "
+                      "JIT cache, so the probe cannot detect JIT in this "
+                      "environment and an empty default run proves NOTHING")
+    elif default is not None and default != 0:
+        errors.append(f"DEFAULT_RUN_JIT_FILES={default} != 0 -- the default run "
+                      f"JIT-compiled PTX, so nonbonded kernels are not coming "
+                      f"from the embedded sm_70 SASS")
+    return errors, {"forced_control_files": control,
+                    "default_files": default,
+                    "pme_path_files_UNATTRIBUTED": fullrun,
+                    "verdict": s.get("SASS_OR_JIT_VERDICT", "")[:40]}
+
+
 def _row(name, fn):
     """One result row. A parser raise becomes a FAIL, not a harness crash."""
     try:
@@ -484,6 +683,8 @@ def run() -> list:
         rows.append(_row("recipe_evidence_agreement",
                          _check_recipe_evidence_agreement))
         rows.append(_row("required_sass_targets", _check_required_sass_targets))
+    if os.path.isfile(_SASS_AUDIT) and os.path.isfile(_PTX_DISAMBIG):
+        rows.append(_row("ptx_targets_observed", _check_ptx_targets_observed))
     if os.path.isfile(_MANIFEST):
         rows.append(_row("manifest_integrity", _check_manifest_integrity))
     if os.path.isfile(_CONVERT_VERIFY):
@@ -496,6 +697,13 @@ def run() -> list:
     if os.path.isfile(_DGX1_OPEN):
         rows.append(_row("dgx1_digest_parity", _check_dgx1_digest_parity))
         rows.append(_row("dgx1_sif_opens", _check_dgx1_sif_opens))
+    if os.path.isfile(_DGX1_GPU_SMOKE):
+        rows.append(_row("dgx1_gpu_executes", _check_dgx1_gpu_executes))
+        rows.append(_row("crosscluster_energy_parity",
+                         _check_crosscluster_energy_parity))
+    if os.path.isfile(_DGX1_SASS_JIT):
+        rows.append(_row("sass_not_jit_for_nonbondeds",
+                         _check_sass_not_jit_for_nonbondeds))
     return rows
 
 
