@@ -427,6 +427,7 @@ AGENTS.md
 .cursor/
 .cursorrules
 .aider*
+.worktreeinclude
 
 # Stray npm lockfile (no package.json in this repo)
 package-lock.json
