@@ -1,0 +1,88 @@
+
+======== dgx1_gpu_smoke.sh starting 2026-08-12T15:43:19+09:00  job=28 ========
+host: dgx1
+singularity: singularity version 3.5.2
+sif: /home/eliott/p53mdm2/gromacs.sif
+sif_sha256: 1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac
+sif_bytes: 5750255616
+
+======== STEP 1: device resolution ========
+device_source: SLURM_JOB_GPUS=0
+resolved_global_gpu: 0
+0, Tesla V100-SXM2-16GB, 7.0, 4 MiB, 16384 MiB
+1, Tesla V100-SXM2-16GB, 7.0, 4 MiB, 16384 MiB
+2, Tesla V100-SXM2-16GB, 7.0, 4 MiB, 16384 MiB
+3, Tesla V100-SXM2-16GB, 7.0, 4 MiB, 16384 MiB
+4, Tesla V100-SXM2-16GB, 7.0, 4 MiB, 16384 MiB
+5, Tesla V100-SXM2-16GB, 7.0, 4 MiB, 16384 MiB
+6, Tesla V100-SXM2-16GB, 7.0, 4 MiB, 16384 MiB
+7, Tesla V100-SXM2-16GB, 7.0, 4 MiB, 16384 MiB
+
+======== STEP 2: gmx --version under singularity exec --nv ========
+GROMACS version:     2025.3
+Precision:           mixed
+GPU support:         CUDA
+SIMD instructions:   AVX2_256
+CUDA driver:         13.0
+CUDA runtime:        12.90
+version_exit: 0
+
+======== STEP 3: identical smoke system on a dgx1 V100 ========
+GROMACS version:     2025.3
+Precision:           mixed
+GPU support:         CUDA
+SIMD instructions:   AVX2_256
+CUDA driver:         13.0
+CUDA runtime:        12.90
+         be removed in a future GROMACS version. Please, consider
+compared to previous GROMACS versions.
+solvated_molecules: 884
+sol_lines: 1
+atoms_in_conf: 2652
+Compiled SIMD is AVX2_256, but CPU also supports AVX_512 (see log).
+Steepest Descents converged to Fmax < 1000 in 87 steps
+Potential Energy  = -4.1673953e+04
+Compiled SIMD is AVX2_256, but CPU also supports AVX_512 (see log).
+2000 steps,      4.0 ps.
+Performance:     1351.242        0.018
+mdrun_exit: 0
+
+======== STEP 4: GPU evidence from the dgx1 md.log ========
+    Number of GPUs detected: 1
+    #0: NVIDIA Tesla V100-SXM2-16GB, compute cap.: 7.0, ECC: yes, stat: compatible
+1 GPU selected for this run.
+PME tasks will do all aspects on the GPU
+Using GPU 8x4 nonbonded short-range kernels
+
+======== STEP 4b: nonbonded kernel timing — did work reach the device? ========
+ Wait GPU NB local         1    8       2001       0.001          0.014   0.3
+ Wait GPU state copy       1    8        503       0.106          1.785  41.5
+
+======== STEP 5: cross-cluster energy parity (dgx1 V100 vs banyan H100, same .sif) ========
+banyan_h100_min_potential_energy: -4.1674062e+04
+dgx1_v100_min_potential_energy:   -4.1673953e+04
+relative_difference: 2.61554e-06
+GATE_CROSSCLUSTER_ENERGY=PASS (<=1e-3)
+
+======== SUMMARY ========
+--- SUMMARY ---
+CLUSTER=dgx1
+SINGULARITY_VERSION=singularity version 3.5.2
+GPU_NAME=Tesla V100-SXM2-16GB
+GPU_COMPUTE_CAP_NVIDIASMI=7.0
+GPU_COMPUTE_CAP_MDLOG=7.0
+REQUIRED_COMPUTE_CAP=7.0
+SM_ARCH_EXERCISED=sm_70
+CUDA_DRIVER=13.0
+CUDA_RUNTIME=12.90
+GPUS_DETECTED=1
+NONBONDED_ON_GPU=yes
+MDRUN_EXIT=0
+VERSION_EXIT=0
+DGX1_MIN_POTENTIAL_ENERGY=-4.1673953e+04
+BANYAN_MIN_POTENTIAL_ENERGY=-4.1674062e+04
+CROSSCLUSTER_ENERGY_REL=2.61554e-06
+SIF_SHA256=1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac
+--- END SUMMARY ---
+
+======== RESULT: rc=0 ========
