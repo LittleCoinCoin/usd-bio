@@ -262,8 +262,8 @@ that, not adjectives, is where the band's vividness budget gets spent.
 **6 · Simulation infrastructure, delivered**
 > Trajectories stream frame by frame into the same representation, loaded on demand —
 > demonstrated on ABL kinase simulations from Shinobu Lab. The engine that produces them
-> runs containerized on the center's H100 hardware, matching its reference build to
-> 1.4 parts per million.
+> runs containerized on RIKEN GPU hardware, matching its reference build to 1.4 parts
+> per million.
 
 **7 · An open standard for biology**
 > The goal is a formal OpenUSD schema domain for biology, the counterpart of the physics
@@ -353,7 +353,7 @@ commitment the center has made, and that is not one you can make alone.
 | The ordering across mutations | **Measured**, asserted against three independent read-outs | The claim the demonstration makes |
 | The *size* of the 31 → 86 gap | **Not protected.** Runs through a logistic whose constants are unfitted placeholders | This is why the percentages are curve labels and not the headline. Say it before being asked if the reviewer is a modeler |
 | Trajectories in USD | **Real**, on ABL kinase (Shinobu Lab) | No p53–MDM2 trajectory exists yet, on any machine |
-| GROMACS on center hardware | **Real.** Container delivered, executed on a banyan H100, parity 1.39e-06 | A smoke-test system ran. The p53–MDM2 simulation decks are not built |
+| GROMACS on RIKEN GPU hardware | **Real.** Container delivered, executed on a banyan H100, parity 1.39e-06 | **This is RIKEN hardware (the presenter's own lab), not PRIMe's.** Never write "the center's hardware". A smoke-test system ran; the p53–MDM2 simulation decks are not built |
 | Review layer | **Specified, not authored** | Do not draw it in Figure 1, and do not name it in card 3 |
 
 ---
