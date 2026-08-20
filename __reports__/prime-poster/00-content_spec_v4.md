@@ -3,7 +3,7 @@
 **Event:** WPI-PRIMe site visit, 2026-09-03 · **Poster number:** P-14
 **Submission:** PDF **and** PPTX to `planning@prime.osaka-u.ac.jp` by **2026-08-21**
 **Layout:** adapted portrait Morrison "Better Poster" — claim bar / center / card band
-**Status:** v4. Rebuilt around the modality-span claim (PI, this session). Folds in a
+**Status:** v4.1. Rebuilt around the modality-span claim (PI, this session). Folds in a
 four-model fact-sampling round and three corrections it surfaced. Every number verified
 against the working tree this session (§11).
 
@@ -277,10 +277,18 @@ Five across, two down. Body ≤ 28 words. Each card carries at least one number.
 > source data, never against the code that wrote it, with one independent method per
 > stage — including re-running the simulation from scratch.
 
-**6 · One container, two GPU generations**
-> The same GROMACS 2025.3 image runs on an H100 and on a V100 from one shared filesystem.
-> Identical minimization, energies agreeing to 2.6 parts per million. Trajectories stream
-> frame by frame into the same representation.
+**6 · Trajectories stream, frame by frame**
+> Molecular dynamics frames load on demand instead of all at once — 20 frames sampled
+> across a roughly 70,000-frame ABL kinase trajectory from Shinobu Lab, with its 61,273
+> water molecules carried as one instanced set.
+
+*Changed in v4.1.* This card previously carried the container's cross-cluster GPU parity
+(H100 vs V100, 2.6 parts per million). **That fact is not about the USD framework** — it
+is container and HPC engineering, and on a board whose entire argument is *one
+representation for six kinds of data*, a card about simulation-engine portability is the
+strongest available evidence of lost focus. It also invites the reader to wonder what the
+center is funding. It moves to the conversation kit (§9), where it answers a question if
+one is asked, and off the board otherwise.
 
 **7 · Where this is going**
 > Today USD Bio is a validated convention layer — a `bio:` namespace and shared templates,
@@ -294,9 +302,18 @@ Five across, two down. Body ≤ 28 words. Each card carries at least one number.
 
 **Two QR codes** at the band's edge: the repository and `openusd.org`.
 
-### 6.2 The diff panel — two slots, bottom right
+### 6.2 The evidence panel — two slots, bottom right
+
+**Heading:** `Nothing moves that we did not move`
+
+Three commands, in this order. The order is the argument: *untouched → one bounded change
+→ and the change can be undone.*
 
 ```
+$ md5 maboss/reference/p53_Mdm2.bnd maboss/output/p53_Mdm2_W23A.bnd
+33ab9a84315bcf2d507692ca9a750d7e
+33ab9a84315bcf2d507692ca9a750d7e
+
 $ diff maboss/reference/p53_Mdm2_runcfg.cfg maboss/output/p53_Mdm2_W23A.cfg
 8c8
 < $KMn_pMC=1;
@@ -307,20 +324,57 @@ $ diff maboss/reference/p53_Mdm2_runcfg.cfg maboss/output/p53_Mdm2_W23A.cfg
 ---
 > $KMn_pMCD=0.0082602991708;
 
-$ md5 maboss/reference/p53_Mdm2.bnd maboss/output/p53_Mdm2_W23A.bnd
-33ab9a84315bcf2d507692ca9a750d7e
-33ab9a84315bcf2d507692ca9a750d7e
+$ ddg_from_s(0.0082602991708)
+-6.192000
 ```
 
 **Caption:**
-> The Boolean model is the published one from Institut Curie, fetched verbatim. Our
-> pipeline returns it byte-identical — same checksum — and writes the entire molecular
-> result into two numbers in its configuration.
+> The network model is Institut Curie's, published and fetched unchanged. Our pipeline
+> never writes it — the same checksum goes in and comes out. It sets two parameters and
+> nothing else. Read either one back and the binding energy that produced it returns
+> exactly, so the crossing from molecule to network loses nothing.
 
-**Why it earns two slots.** It answers the question a lab head actually has: *what does
-joining cost me?* Two lines, and we did not fork your model. Reproducible live with
-`diff`. Set it to read at 1 m; keep the `$` prompts — it is the one element that visibly
-did not pass through a designer, and that is its value.
+### Why this is the argument, and what it replaces
+
+v4's first draft claimed the pipeline "returns the model byte-identical", which implies a
+round trip that does not happen: `maboss/emit_model.py` step 4 copies the reference
+topology verbatim, so a matching checksum was never at risk. Stated that way the panel
+takes credit for restraint it did not have to exercise, and a reviewer who reads the
+source finds that out.
+
+**The honest version is stronger**, and it has two legs, both tested:
+
+1. **The change is bounded.** The network's topology — the biology of the model, the part
+   a collaborator owns — is not something this pipeline writes at all. The checksum is
+   the proof of that restraint, not proof of a round trip. What it does write is two
+   named parameters, and the `diff` is the proof that it wrote nothing else.
+   *Source:* `emit_model.py` — "the reference `.cfg` text with ONLY `$KMn_pMCD` and
+   `$KMn_pMC` reset to `S` … everything else byte-for-byte unchanged."
+2. **The change is reversible.** `dg_correlation.ddg_from_s` is a closed-form inverse, and
+   the emitted value carries twelve significant figures specifically so the molecular
+   quantity survives. Verified this session: `S = 0.0082602991708 → ΔΔG = −6.192000`,
+   against an original of −6.192. `tests/test_maboss_emit.py` asserts this per variant at
+   a tolerance of 1e-4, and describes itself as closing the PI's inverse loop.
+
+Together they say what a shared representation has to be able to say: **the system only
+ever adds, and what it adds can be taken back out.** Nothing is silently altered, and
+nothing is destroyed crossing the scale boundary. That is the property that makes it safe
+for a lab to put its work in.
+
+**It pairs with card 3.** Card 3 shows that *layers* do not contaminate each other; this
+panel shows that an *external file* survives the same treatment. One claim, two
+demonstrations, different scopes.
+
+**Why it earns two slots.** It answers the question a lab head actually has — *what does
+joining cost me, and can I get my work back out?* Reproducible live in front of a
+reviewer. Set it to read at 1 m; keep the `$` prompts. It is the one element on the board
+that visibly did not pass through a designer, and that is its value.
+
+**Third line, presentational note.** `ddg_from_s(...)` is shown bare rather than as a full
+`python -c` invocation with an import path. This is the one place the panel departs from
+literal transcript, and it is a legibility trade: the real one-liner is long enough to
+wrap and would bury the number. If a strict-transcript reading is preferred, the full form
+is `python -c "from p53_mdm2.maboss.dg_correlation import ddg_from_s; print(ddg_from_s(0.0082602991708))"`.
 
 ### 6.3 The visibility swap
 
@@ -346,13 +400,16 @@ implication of Alliance membership** (§2).
 | Audio not proven | **True and stated** | Deliberately printed |
 | Four outside tools, none modified | **Measured.** PDB 1YCR, DDMut-PPI, Institut Curie model, GROMACS | Response bodies committed verbatim |
 | Nine atoms removed | **Measured.** `bio:atomCount` 14 → 5 | Real 1YCR coordinates, truncated; "no fabricated positions" per the files' own doc strings |
-| `.bnd` checksums, two-line diff | **Measured** this session | Reproducible at the board |
+| The pipeline never writes the network topology | **Measured.** `emit_model.py` copies the reference `.bnd` verbatim; MD5 identical across all four | **Do not say "returns it byte-identical"** — that implies a round trip. It is never written. The checksum proves restraint, not survival |
+| Only two parameters change | **Measured.** `diff` is exactly `8c8` and `12c12` | `emit_model.py`: "everything else byte-for-byte unchanged" |
+| The change is reversible | **Measured.** `ddg_from_s(0.0082602991708) = −6.192000` against an original of −6.192; asserted per variant at 1e-4 in `tests/test_maboss_emit.py` | Closed-form logit inverse; the value is written at twelve significant figures for exactly this reason |
+| Cross-cluster GPU parity | **Measured** (job 28) — **but off the board.** Not a USD-framework claim | Conversation only. RIKEN hardware, never "the center's" |
 | 53 automated checks, all passing | **Measured** this session. **The README's 39 is stale** (2026-07-31; cycle-008 took it to 53) | Re-run the morning of export and print what it says |
 | Binding-energy changes | **Real** DDMut-PPI predictions | Predicted, not experimentally measured. Queried by mutation string against deposited 1YCR |
 | p53 activity curves | **Real** MaBoSS 2.6.6, seed 100, 50 000 samples, 500 frames | Deterministic, re-runnable |
 | The ordering across mutations | **Measured**, asserted three ways | The claim the demonstration makes |
 | The *size* of the 31 → 86 gap | **Not protected.** Runs through unfitted constants | Why the percentages are curve labels. Volunteer this before being asked if the reviewer is a modeler |
-| One container, two GPU generations, 2.6 ppm | **Measured.** Job 28, 2026-08-12, H100 vs V100 | **RIKEN hardware, the presenter's own labs — never "the center's".** A 2,652-atom water box ran; no p53–MDM2 MD has run anywhere |
+
 | Trajectories stream | **Real**, ABL kinase, Shinobu Lab | 4,676-atom complex, 61,273 waters, 20 frames strided from ~70,000 |
 | Schema | **Convention layer today; schema is the goal.** Card 7 says so | See §3's prepared answer |
 | Review layer | **Specified, not authored** | Do not draw it; do not name it in card 3 |
@@ -380,9 +437,13 @@ Found by the sampling round and verified.
 ## 9. The conversation kit
 
 1. *"Between molecular dynamics and Boolean network simulation we already cover six kinds of data. We have not found one OpenUSD couldn't hold. Audio, we haven't tested."*
-2. *"The published Curie model comes through byte-identical. What changed is two numbers in a config file."*
+2. *"We never write Curie's model — same checksum in and out. We set two parameters. And you can read either one back and recover the binding energy exactly, so nothing is lost crossing from the molecule to the network."*
 3. *"The only thing edited by hand in that whole result is nine atoms."*
-4. *"Same container, an H100 and a V100, energies agreeing to two parts per million."*
+
+**Off the board, for questions only:** *"The same GROMACS container runs on an H100 and a
+V100 off one shared filesystem, energies agreeing to two parts per million."* This is
+RIKEN hardware, the presenter's own labs — never "the center's". It is not a claim about
+the USD framework and it does not go on the poster (§6.1, card 6).
 
 Held in reserve, said **before** being asked if the reviewer is a modeler: *"The
 energy-to-parameter conversion is monotone and invertible, which is all the mechanism
@@ -421,6 +482,8 @@ All run against the working tree this session.
 | 14 → 5 atoms | `grep bio:atomCount composition/geometries/*.usda` | wild-type 14, W23A 5 |
 | `.bnd` byte-identical | `md5 maboss/reference/*.bnd maboss/output/*.bnd` | `33ab9a84…` × 4 |
 | Two-line `.cfg` diff | `diff` against the reference | `8c8`, `12c12`, nothing else |
+| Topology never written | read `maboss/emit_model.py` step 4 | Verbatim copy of the reference `.bnd` |
+| Change is reversible | `ddg_from_s(0.0082602991708)` | `-6.192000` against an original of `-6.192`; F19A and L26A also recover exactly |
 | ABL system size | `solvent_instancer.usda`, `docs/11` | 4,676 complex atoms; 61,273 waters = 183,819 atoms; 20 frames of ~70,000, stride 3500 |
 | No schema on disk | searched for `plugInfo.json`, `generatedSchema.usda`, `apiSchemas` | None present; attributes are `custom` |
 
