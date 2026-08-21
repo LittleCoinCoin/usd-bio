@@ -51,6 +51,7 @@ Public API
 
 from __future__ import annotations
 
+import contextlib
 import math
 import os
 import subprocess
@@ -266,6 +267,22 @@ def author_camera(
     Returns:
         ``camera_path`` (the same value passed in), for convenience.
     """
+    if representation not in DEFAULT_REPRESENTATIONS:
+        # Mirrors build_representation_session_layer's guard. Without this,
+        # an unknown mode passed through as camera_representation resolves
+        # to NO selection at all (SetVariantSelection on a name the
+        # VariantSet doesn't have is a silent no-op), so the bbox measured
+        # here is whatever geometry survives an UNSELECTED representation
+        # cascade -- which, per this module's own module docstring, is just
+        # the 834 bond Cylinders, not the 818 atoms. That silently shrinks
+        # the fitted frame around a smaller, wrong subject with no error at
+        # all -- a bad `camera_representation` must fail loudly instead of
+        # quietly producing an under-framed (and, with a different padding
+        # value, potentially clipping) camera.
+        raise ValueError(
+            f"Unknown representation {representation!r}; use one of "
+            f"{DEFAULT_REPRESENTATIONS}"
+        )
     rng = _compute_world_bbox(stage_path, root_path, representation)
     center = (rng.GetMin() + rng.GetMax()) / 2.0
     size = rng.GetMax() - rng.GetMin()
@@ -308,6 +325,40 @@ def author_camera(
 # Combined session layer: representation + camera in one file
 # ---------------------------------------------------------------------------
 
+@contextlib.contextmanager
+def _temp_session_layer_path(out_path: str | None = None):
+    """Allocate (or accept) a session-layer path, GUARANTEED to be removed
+    if the wrapped block raises before it finishes -- and left alone
+    (ownership transferred to the caller) on a clean exit.
+
+    This exists because ``build_render_session_layer`` writes the
+    representation selection and the camera into the SAME file across two
+    separate calls (``build_representation_session_layer`` then
+    ``author_camera``). The first call unconditionally creates and saves
+    the file; the second can raise (bad ``root_path``, nonexistent
+    ``stage_path``, an empty-bbox ``RuntimeError``, or -- since the DEFECT-1
+    fix above -- a bad ``camera_representation``). Without this, that
+    exception leaves the already-written temp ``.usda`` on disk forever:
+    nothing downstream of the raise ever reaches the ``os.remove`` call that
+    ``render()`` only wraps around its own ``subprocess.run``. Confirmed
+    leaking twice in the adversarial verification pass, including two
+    pre-existing leaked files already found in the OS temp dir from earlier
+    real (non-test) usage.
+    """
+    owns_path = out_path is None
+    if owns_path:
+        fd, out_path = tempfile.mkstemp(suffix=".usda", prefix="p53_session_")
+        os.close(fd)
+    try:
+        yield out_path
+    except BaseException:
+        try:
+            os.remove(out_path)
+        except OSError:
+            pass
+        raise
+
+
 def build_render_session_layer(
     representation: str,
     aperture_ratio: float = POSTER_APERTURE_RATIO,
@@ -323,23 +374,29 @@ def build_render_session_layer(
     selection and the framing camera, ready for a single ``--sessionLayer``
     argument to usdrecord.
 
+    Exception-safe: if either the representation-selection write or the
+    camera-authoring step raises (see :func:`_temp_session_layer_path`),
+    the temp file created for this attempt is removed before the exception
+    propagates -- no leaked ``.usda`` on any error path.
+
     Returns:
         (session_layer_path, camera_path)
     """
-    session_layer_path = build_representation_session_layer(
-        representation,
-        root_path=root_path,
-        display_color_overrides=display_color_overrides,
-        out_path=out_path,
-    )
-    author_camera(
-        stage_path,
-        session_layer_path,
-        aperture_ratio,
-        root_path=root_path,
-        representation=camera_representation,
-        camera_path=camera_path,
-    )
+    with _temp_session_layer_path(out_path) as session_layer_path:
+        build_representation_session_layer(
+            representation,
+            root_path=root_path,
+            display_color_overrides=display_color_overrides,
+            out_path=session_layer_path,
+        )
+        author_camera(
+            stage_path,
+            session_layer_path,
+            aperture_ratio,
+            root_path=root_path,
+            representation=camera_representation,
+            camera_path=camera_path,
+        )
     return session_layer_path, camera_path
 
 
