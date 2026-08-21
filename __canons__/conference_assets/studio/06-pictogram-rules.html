@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio Plate 06 — Pictogram Construction Rules</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="plate.css">
+<style>
+.themebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.themebar select{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;padding:6px 8px;border:1px solid var(--hair);border-radius:2px;background:var(--pg-2);color:var(--tx)}
+.guide-row{display:flex;align-items:center;gap:28px;margin:18px 0 6px;flex-wrap:wrap}
+.guide-tile{width:180px;height:180px;background:var(--pg-2);border:1px solid var(--hair);border-radius:4px}
+.grey .guide-tile,.grey .lib-tile .box{filter:grayscale(1) contrast(1.04)}
+.lib-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:8px}
+.lib-tile{background:var(--pg-2);border:1px solid var(--hair);border-radius:4px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.lib-tile .sizes{display:flex;align-items:flex-end;gap:14px}
+.lib-tile .box{background:var(--field,#eee);border-radius:3px}
+.lib-tile .cap{font-size:12.5px;font-weight:700;color:var(--tx);text-align:center}
+.lib-tile .sub{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;color:var(--tx-3);text-align:center}
+.legend-row{display:flex;align-items:center;gap:22px;flex-wrap:wrap;background:var(--pg-2);border:1px solid var(--hair);border-radius:4px;padding:16px 20px;margin-top:10px}
+.legend-item{display:flex;align-items:center;gap:8px}
+.legend-item .box{width:24px;height:24px;flex:none}
+.legend-item span{font-size:13.5px;color:var(--tx)}
+.legend-item.hit span{color:var(--accent);font-weight:700}
+@media(max-width:960px){.lib-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1><span class="plate-no">Studio Plate 06</span>Pictogram construction rules — closed on how, open on what</h1>
+  <div class="meta">
+    <div><b>System</b>conference_assets v2</div>
+    <div><b>Status</b>For review</div>
+    <div><b>Date</b>2026-08-16</div>
+  </div>
+</header>
+
+<div class="deck">
+  <div>
+    <h2>A different kind of closed set than the chart or methods kit.</h2>
+    <p class="n">The chart kit is closed on <em>form</em> — four chart types, full stop. Pictograms can't work that way: "subject," "sample," "site," "model," "citation" is an open, field-specific vocabulary, and no fixed icon set could cover every lab's posters for years to come. What <em>can</em> be closed is <strong>construction</strong> — the grid, stroke weight, corner rounding, and colour rule every pictogram obeys — so that whoever draws the fortieth icon this system will ever need produces something that visibly belongs next to the first.</p>
+    <p class="n">The payoff is the same "portable literacy" argument the methods kit made for its layout: a reader who has seen this lab's <em>subject</em> icon once should recognise it instantly on every poster after, at any size, in any theme. That only holds if the same concept always gets the same icon — a construction rule without a reuse rule is just a nicer-looking way to draw something different every year.</p>
+  </div>
+  <aside class="side">
+    <p><span class="lbl">Reads on</span></p>
+    <p>Section 02's stroke and corner numbers are computed from the grid ratio, not typed — change the ratio in pictogram-kit.js and the mm values and the cross-check against the chart kit's data-stroke floor update with them.</p>
+  </aside>
+</div>
+
+<div class="controls">
+  <button class="tog" id="t-grey" aria-pressed="false">Greyscale proof</button>
+  <button class="tog" id="t-guide" aria-pressed="true">Show construction grid</button>
+  <div class="themebar"><span class="lbl">Theme</span><select id="c-theme"></select></div>
+  <span class="spacer"></span>
+  <span class="note" id="stamp">computing…</span>
+</div>
+
+<!-- ============================================================ 01 -->
+<section>
+  <div class="sec-head">
+    <span class="num">01</span>
+    <h3>The construction rules</h3>
+    <p>Five tokens. Every pictogram in the starter library below, and every one a future poster adds, is checked against these — not redrawn from taste each time.</p>
+  </div>
+  <div class="body">
+    <div class="guide-row">
+      <div class="guide-tile" id="guide-demo"></div>
+      <table class="tk" style="margin:0;max-width:560px">
+        <thead><tr><th>Token</th><th>Value</th><th>What it fixes</th></tr></thead>
+        <tbody>
+          <tr><td class="k">grid</td><td class="v">24 units</td><td>Every icon is drawn on the same square grid, so unrelated icons still share optical scale.</td></tr>
+          <tr><td class="k">keyline shapes</td><td class="v">circle ⌀20 · square 18</td><td>Most icons bound to one of two reference shapes, centred with 2-unit margin — the reason a circle icon and a square icon still look the same size side by side.</td></tr>
+          <tr><td class="k">stroke : grid</td><td class="v" id="tk-stroke">—</td><td>Stroke scales with the icon, never set as a fixed pixel value. At the inline floor this lands at <b id="tk-stroke-mm">—</b>.</td></tr>
+          <tr><td class="k">corner : grid</td><td class="v" id="tk-corner">—</td><td>One rounding rate for every squared-off shape — <b id="tk-corner-mm">—</b> at inline size. Echoes the same restrained rounding the takeaway plate uses (Plate 01), not a separate decision.</td></tr>
+          <tr><td class="k">colour</td><td class="v">ink or ink-soft</td><td>Never accent by default. Fill: none — outline only, so a pictogram never competes with the chart kit's own fill-based accent event.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout" style="margin-top:20px">
+      <span class="lbl">A number worth checking, not asserting</span>
+      <p id="crosscheck">—</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 02 -->
+<section>
+  <div class="sec-head">
+    <span class="num">02</span>
+    <h3>Two size tiers, one physical scale</h3>
+    <p>Inline sits at the sheet's own type floor — a pictogram is never allowed to be smaller than the smallest legal word next to it. Standalone is exactly double, for legends, actor markers, and anywhere an icon carries its concept alone.</p>
+  </div>
+  <div class="body">
+    <div class="lib-grid" id="lib-grid"></div>
+    <p class="n" style="margin-top:22px">Toggle the construction grid off above to see the same eight read as a finished set rather than a diagram of their own rules.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 03 -->
+<section>
+  <div class="sec-head">
+    <span class="num">03</span>
+    <h3>The one accent event, here too</h3>
+    <p>Same rule as the chart and methods kits, restated so it survives being read on its own: at most one pictogram per figure may take the accent colour, and only to mark the one thing the figure is actually about.</p>
+  </div>
+  <div class="body">
+    <div class="legend-row" id="legend-row"></div>
+    <p class="n" style="margin-top:18px">A legend where every icon is accent-coloured has the same defect as a chart with three highlighted bars: it stops telling the reader where to look. If a poster needs to distinguish several categories at once, that is the chart kit's categorical scale's job (Plate 03), not the pictogram set's.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 04 -->
+<section>
+  <div class="sec-head">
+    <span class="num">04</span>
+    <h3>What this plate asks you to decide</h3>
+    <p>Three decisions, plus one process to adopt.</p>
+  </div>
+  <div class="body">
+    <ol class="dec">
+      <li><b>Construction is closed; vocabulary is open, by design.</b> Confirm that's the right split — an alternative is a small fixed icon set (as some poster templates ship), which is simpler but will visibly run out within a year or two of real use across fields.</li>
+      <li><b>Stroke-to-grid ratio of 1:10.</b> Chosen because it lands standalone-size pictograms within 1% of the chart kit's own data-stroke floor — the two kits agreeing on "how thick is a mark" without being told to. Worth a real print check alongside Plate 01's ink ceilings and Plate 03's ppi floors before it hardens.</li>
+      <li><b>The reuse rule needs an owner, not just a page.</b> "Same concept, same icon, forever" only works if new icons get checked against this plate before they ship. Decide whether that's a lightweight habit (check this page first) or something the studio should enforce with an actual shared icon file future posters import.</li>
+    </ol>
+    <div class="scope">
+      <div>
+        <p class="lbl">This plate does not decide</p>
+        <ul>
+          <li>The hero illustration slot and its ink allowance</li>
+          <li>Which concepts beyond these eight get drawn next — that should follow real posters, not be guessed here</li>
+        </ul>
+      </div>
+      <div>
+        <p class="lbl">Known soft spots</p>
+        <ul>
+          <li>The corner-radius rule is stated as a ratio but not yet enforced pixel-exactly across all eight starter icons — citation and computation deviate slightly. Worth a pass before this becomes the reference file.</li>
+          <li>Eight icons is enough to prove the rules, not enough to be useful yet — treat this as the construction spec, not the finished library.</li>
+          <li>No test yet for how these read at the smallest inline size printed, only on screen — same caveat as every mm-based floor in this system until a real print check happens.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script src="palette-engine.js"></script>
+<script src="pictogram-kit.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const KEY2='plate02.palette.v1';
+function read(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+const ATTESTED={canon:{rule:'complement',hue:272,sat:0.55,tint:0},slate:{rule:'complement',hue:203,sat:0.45,tint:0.04},bone:{rule:'analogous',hue:28,sat:0.42,tint:0.42},moss:{rule:'complement',hue:142,sat:0.4,tint:0.06},ash:{rule:'complement',hue:174,sat:0.42,tint:0},vermilion:{rule:'analogous',hue:9,sat:0.6,tint:0}};
+let themeKey='canon',themeState=Object.assign({},ATTESTED.canon);
+if(read(KEY2)){themeKey='lab';themeState=read(KEY2)}
+let res=PE.build(themeState);
+function populateThemeSelect(){const opts=[];if(read(KEY2))opts.push('<option value="lab">Current lab palette (Plate 02)</option>');Object.keys(ATTESTED).forEach(k=>opts.push('<option value="'+k+'">'+k[0].toUpperCase()+k.slice(1)+'</option>'));$('c-theme').innerHTML=opts.join('');$('c-theme').value=themeKey}
+$('c-theme').addEventListener('change',e=>{themeKey=e.target.value;themeState=themeKey==='lab'?(read(KEY2)||themeState):Object.assign({},ATTESTED[themeKey]);res=PE.build(themeState);renderAll()});
+
+const LABELS={subject:'Subject',sample:'Sample',time:'Duration',location:'Site',instrument:'Observation',computation:'Model',citation:'Reference',flag:'Flagged result'};
+let showGuide=true;
+
+function drawTokens(){
+  $('tk-stroke').textContent='1 : '+Math.round(1/PG.STROKE_RATIO);
+  $('tk-corner').textContent='1 : '+Math.round(1/PG.CORNER_RATIO);
+  const strokeInline=PG.INLINE_MM*PG.STROKE_RATIO,strokeStandalone=PG.STANDALONE_MM*PG.STROKE_RATIO;
+  const cornerInline=PG.INLINE_MM*PG.CORNER_RATIO;
+  $('tk-stroke-mm').textContent=strokeInline.toFixed(2)+'mm';
+  $('tk-corner-mm').textContent=cornerInline.toFixed(2)+'mm';
+  const CK_DATA=1.4,diffPct=Math.abs(strokeStandalone-CK_DATA)/CK_DATA*100;
+  $('crosscheck').innerHTML='At standalone size ('+PG.STANDALONE_MM.toFixed(2)+'mm), the stroke-to-grid ratio produces a <b>'+strokeStandalone.toFixed(2)+'mm</b> stroke — the chart kit\'s own data-line floor is <b>1.40mm</b> (Plate 03), a difference of <b>'+diffPct.toFixed(1)+'%</b>. That was checked after picking the ratio, not engineered to match — close enough that the two kits read as one family without being told to.';
+}
+function drawGuideDemo(){
+  $('guide-demo').innerHTML=PG.icon('location',res.roles,{guide:true});
+}
+function drawLibrary(){
+  $('lib-grid').innerHTML=PG.KEYS.map(k=>{
+    const inline=PG.icon(k,res.roles,{guide:showGuide}),standalone=PG.icon(k,res.roles,{guide:showGuide});
+    return '<div class="lib-tile"><div class="sizes">'+
+      '<div class="box" style="width:22px;height:22px">'+inline+'</div>'+
+      '<div class="box" style="width:44px;height:44px">'+standalone+'</div>'+
+      '</div><div class="cap">'+LABELS[k]+'</div><div class="sub">inline '+PG.INLINE_MM.toFixed(2)+'mm · standalone '+PG.STANDALONE_MM.toFixed(2)+'mm</div></div>';
+  }).join('');
+}
+function drawLegend(){
+  const items=[['sample','Samples collected'],['time','Follow-up complete'],['flag','Primary endpoint met']];
+  $('legend-row').innerHTML=items.map((it,i)=>{
+    const hit=i===items.length-1;
+    return '<div class="legend-item'+(hit?' hit':'')+'"><div class="box">'+PG.icon(it[0],res.roles,{emphasis:hit})+'</div><span>'+it[1]+'</span></div>';
+  }).join('');
+}
+function applyRolesToScope(){document.documentElement.style.setProperty('--paper',res.roles.paper.hex);document.documentElement.style.setProperty('--field',res.roles.field.hex);PE.ROLES.forEach(r=>document.documentElement.style.setProperty('--'+r,res.roles[r].hex))}
+function renderAll(){applyRolesToScope();drawTokens();drawGuideDemo();drawLibrary();drawLegend();$('stamp').textContent=PG.KEYS.length+' starter pictograms · grid '+PG.GRID+'u · stroke '+PG.STROKE_U.toFixed(1)+'u'}
+function tog(id,cls,cb){const b=$(id);b.addEventListener('click',()=>{const on=b.getAttribute('aria-pressed')==='true';b.setAttribute('aria-pressed',String(!on));if(cls)document.body.classList.toggle(cls,!on);if(cb)cb(!on)})}
+tog('t-grey','grey');
+tog('t-guide',null,on=>{showGuide=on;drawGuideDemo.__force=true;drawLibrary();drawGuideDemo();});
+populateThemeSelect();renderAll();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(renderAll);
+</script>
+</body>
+</html>

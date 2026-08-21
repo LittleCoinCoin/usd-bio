@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>studio smoke test</title>
+<link rel="stylesheet" href="plate.css"></head>
+<body>
+<pre id="out">running</pre>
+<div id="spec" class="specimen" style="width:900px"></div>
+<script src="palette-engine.js"></script>
+<script src="chart-kit.js"></script>
+<script src="methods-kit.js"></script>
+<script src="pictogram-kit.js"></script>
+<script src="diagram-grammars.js"></script>
+<script src="specimen.js"></script>
+<script>
+const L=[];const ok=(n,c,d)=>L.push((c?'PASS':'FAIL')+'  '+n+(d?'  '+d:''));
+try{
+  ok('PE loaded', !!window.PE);
+  ok('CK loaded', !!window.CK);
+  ok('MK loaded', !!window.MK);
+  ok('PE.ROLES is the nine role tokens', PE.ROLES.length===9, PE.ROLES.join(','));
+  const res=PE.build({rule:'complement',hue:272,sat:0.55,tint:0,plateSlot:0,accentSlot:1});
+  ok('PE.build returns roles', !!res.roles && !!res.roles.paper && !!res.roles['accent-on-panel']);
+  ok('PE.build contrast contract passes', res.checks.every(c=>c.pass),
+     res.checks.map(c=>c.label+'='+c.val.toFixed(2)).join(' | '));
+  ok('PE.build ink coverage under ceiling', res.ink.c<=PE.COV_MAX, 'C='+(res.ink.c*100).toFixed(1)+'%');
+  ok('PE.css emits a data-theme block', PE.css(res,'canon').indexOf('[data-theme="canon"]')>-1);
+
+  const roles=res.roles;
+  // charts, all three doses
+  const series={x:['0','4','8'],data:[{name:'A',values:[10,20,30]},{name:'B',values:[12,14,15]}],emphasize:'A'};
+  ['lean','mid','rich'].forEach(k=>{
+    const s=CK.series(Object.assign({roles:roles,ink:k},series));
+    ok('CK.series ink='+k, s.indexOf('<svg')===0 && s.length>400, s.length+' chars');
+  });
+  ok('CK v2 back-compat (scale:false)', CK.series(Object.assign({roles:roles,scale:false},series)).indexOf('<svg')===0);
+  ok('CK.distribution defaults to box form',
+     CK.distribution({roles:roles,data:[{label:'x',points:[1,2,3,4,5,6,7,8]}]}).indexOf('<rect')>-1);
+  ok('CK.claimWaffle exists and draws', CK.claimWaffle({roles:roles,value:0.71}).indexOf('<rect')>-1);
+  ok('CK.goldilocks returns three doses', CK.goldilocks('series',Object.assign({roles:roles},series)).length===3);
+  ok('CK.ppiCheck flags an under-res image', CK.ppiCheck(800,600,380,285,150).pass===false);
+
+  // the greyscale diagnostic, and the >3-series claim from plate 03b
+  const spec={trunk:{label:'Screened',n:200},arms:[
+    {label:'A',stages:['s1','s2','s3'],n:[100,90,80],emphasis:true,deviateAt:1},
+    {label:'B',stages:['s1','s2','s3'],n:[100,85,70]}]};
+  const gd=CK.greyDiagnostic([roles.accent.hex,PE.OKABE[0]],roles.paper.hex);
+  ok('CK.greyDiagnostic returns a mode', gd.mode==='decorative'||gd.mode==='load-bearing', gd.mode);
+  const gdAll=CK.greyDiagnostic(PE.OKABE,roles.paper.hex);
+  ok('full Okabe-Ito scale is NOT greyscale-safe (plate 03b claim)', gdAll.separates===false,
+     'worst grey pair '+(gdAll.worst?gdAll.worst.grey.toFixed(2):'?')+':1');
+
+  // methods kit
+  const spec2={trunk:{label:'Screened',n:200},arms:[
+    {label:'A',stages:['s1','s2','s3'],n:[100,90,80],emphasis:true,deviateAt:1},
+    {label:'B',stages:['s1','s2','s3'],n:[100,85,70]}]};
+  ['lean','mid','rich'].forEach(k=>{
+    const f=MK.funnel(Object.assign({roles:roles,ink:k},spec2));
+    ok('MK.funnel ink='+k, f.indexOf('<svg')===0 && f.length>600, f.length+' chars');
+  });
+  ok('MK.sequence draws', MK.sequence({roles:roles,steps:[{label:'a'},{label:'b',emphasis:true}]}).indexOf('<svg')===0);
+
+
+
+  // ---- decisions applied 2026-08-21 ----
+  const saf=CK.catSafety(roles.paper.hex);
+  const picked=CK.catPick(saf,8);
+  ok('DECISION 1: catPick assigns safe entries first',
+     picked.every((p,i)=> i===0 || !(picked[i-1].safe===false && p.safe===true)),
+     picked.map(p=>(p.safe?'+':'-')+p.hex).join(' '));
+  ok('DECISION 1: no unsafe colour before a safe one is used',
+     picked.slice(0,saf.filter(x=>x.safe).length).every(p=>p.safe));
+  ok('DECISION 1: PE.OKABE array itself is unchanged (still published order)',
+     PE.OKABE[0]==='#000000' && PE.OKABE[4]==='#F0E442');
+
+  ok('DECISION 3: figures inherit the container font by default',
+     CK.series(Object.assign({roles:roles},series)).indexOf('font-family="inherit"')>-1);
+  ok('DECISION 3: per-call font override works',
+     CK.series(Object.assign({roles:roles,font:'IBM Plex Mono'},series)).indexOf('font-family="IBM Plex Mono"')>-1);
+  CK.setFont('Fira Sans, sans-serif');
+  ok('DECISION 3: setFont sets a project-wide default',
+     CK.series(Object.assign({roles:roles},series)).indexOf('font-family="Fira Sans, sans-serif"')>-1);
+  CK.setFont(null);
+  ok('DECISION 3: setFont(null) restores inherit',
+     CK.series(Object.assign({roles:roles},series)).indexOf('font-family="inherit"')>-1);
+  ok('DECISION 3: MK and DG expose setFont too', typeof MK.setFont==='function' && typeof DG.setFont==='function');
+  ok('DECISION 3: no kit hardcodes Archivo any more',
+     [CK.series(Object.assign({roles:roles},series)),
+      MK.funnel(Object.assign({roles:roles},spec)),
+      DG.gantt(roles,{tasks:DG.genGantt()})].every(s=>s.indexOf('Archivo')===-1));
+
+  // ---- pictogram kit ----
+  ok('PG loaded', !!window.PG);
+  ok('PG has a closed icon vocabulary', PG.KEYS.length>=8, PG.KEYS.join(','));
+  ok('PG.icon draws', PG.icon('subject',roles).indexOf('<svg')===0);
+  ok('PG stroke scales off the 24u grid', Math.abs(PG.STROKE_U-2.4)<1e-9, 'STROKE_U='+PG.STROKE_U);
+  ok('PG inline size == chart label floor (7.06mm)', Math.abs(PG.INLINE_MM-7.06)<1e-9);
+
+  // ---- diagram grammars (low-fidelity sketches) ----
+  ok('DG loaded', !!window.DG);
+  ['sequenceDiagram','gantt','component','stateMachine','matrix','network'].forEach(fn=>{
+    ok('DG.'+fn+' is present', typeof DG[fn]==='function');
+  });
+  ok('DG.stateMachine draws from its generator',
+     DG.stateMachine(roles,Object.assign({w:420,h:200},DG.genStateMachine())).indexOf('<svg')===0);
+  ok('DG.component draws from its generator',
+     DG.component(roles,{root:DG.genComponent()}).indexOf('<svg')===0);
+  ok('DG.matrix draws from its generator',
+     DG.matrix(roles,Object.assign({w:360,h:220},DG.genMatrix())).indexOf('<svg')===0);
+  ok('DG.gantt draws from its generator',
+     DG.gantt(roles,{tasks:DG.genGantt()}).indexOf('<svg')===0);
+  ok('DG.network draws from its generator',
+     DG.network(roles,DG.genNetwork()).indexOf('<svg')===0);
+  ok('DG.sequenceDiagram draws from its generator',
+     DG.sequenceDiagram(roles,Object.assign({w:420,h:220},DG.genSequence())).indexOf('<svg')===0);
+
+  // ---- specimen surfaces + coverage instrument ----
+  ok('SP loaded', !!window.SP);
+  const host=document.getElementById('spec');
+  SP.build(document);
+  const sheet=host.querySelector('.sp-sheet');
+  ok('SP.build injected a landscape specimen', !!sheet);
+  SP.apply(sheet, roles);
+  const cov=SP.coverage(sheet, roles.paper.hex);
+  ok('SP.coverage measures the DOM', !!cov && cov.c>0, cov?('C='+(cov.c*100).toFixed(1)+'% plate='+(cov.plate*100).toFixed(1)+'%'):'null');
+  ok('measured coverage is under COV_MAX', !!cov && cov.c<=PE.COV_MAX, cov?((cov.c*100).toFixed(1)+'% / '+(PE.COV_MAX*100)+'%'):'');
+  ok('PLATE_MAX is consumed by SP.meter (not dead)',
+     (SP.meter.toString().indexOf('PLATE_MAX')>-1));
+
+  // the CSS/JS categorical order divergence
+  ok('DIVERGENCE: PE.OKABE[0] !== tokens.css --cat-1 (#0072B2)', PE.OKABE[0]!=='#0072B2',
+     'PE.OKABE[0]='+PE.OKABE[0]+' — confirms the reorder conflict');
+}catch(e){ L.push('FAIL  threw: '+e.message) }
+document.getElementById('out').textContent=L.join('\n');
+</script>
+</body></html>

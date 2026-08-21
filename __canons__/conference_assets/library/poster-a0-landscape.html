@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Posters" -->
+<!--
+  A0 LANDSCAPE POSTER — 1189 x 841 mm — "PRESENTER" LAYOUT
+  Layout only. Components in components.css, atoms in tokens.css.
+
+  This is the layout the Vienna eye-tracking pilot selected: the only
+  stimulus where every participant looked at every area of interest.
+  Weigh that as a tiebreaker, not a mandate — n=13, and its own authors
+  call it a flawed pilot.
+
+  TOGGLES (on the .sheet element):
+    data-stand     right | left    the silent bar goes on the side you do
+                                   NOT stand on, so your body does not
+                                   occlude it
+    data-evidence  hero | grid     grid = 2x2 for co-equal results
+    data-billboard full | compact
+    data-take      qr | url | contact | capture | none
+    data-proof     "grey" | "dwell" | combinations
+
+  The takeaway band is sized to content with a floor (--zone-band-min),
+  NOT to Morrison's 37.7%: his proportion was co-calibrated with 125-138pt
+  type on a 914mm canvas, and porting it while correctly shrinking type to
+  120pt stranded ~80mm of empty panel that the evidence zone needs.
+-->
+<title>A0 Landscape Poster</title>
+
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  @page { size: 1189mm 841mm; margin: 0; }
+  html, body { margin: 0; padding: 0; background: var(--paper); }
+
+  .sheet {
+    width: var(--canvas-a0-landscape-w);
+    height: var(--canvas-a0-landscape-h);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-prose);
+    display: grid;
+    grid-template-columns: var(--zone-silentbar) 1fr;
+    overflow: hidden;
+  }
+  .sheet[data-stand="left"] { grid-template-columns: 1fr var(--zone-silentbar); }
+  .sheet[data-stand="left"] .silentbar { order: 2; }
+  .sheet[data-stand="left"] .main      { order: 1; }
+
+  /* SILENT PRESENTER BAR — must stand alone.
+     Honest capacity: ~200 words, a 50-60 second read. Morrison's "1-4
+     minutes" describes careful reading of bar + chips + captions together.
+     If your stand-alone story needs more than ~200 words, this format is
+     fighting you — see the Escalation section of the consumption guide.
+     Hyphenation is on: at ~36 CPL an unhyphenated rag is violent. */
+  .silentbar {
+    padding: var(--space-4) var(--space-3);
+    display: grid;
+    align-content: start;
+    gap: var(--space-3);
+    border-right: var(--rule-weight) solid var(--rule);
+    min-height: 0;
+    overflow: hidden;
+    hyphens: auto;
+  }
+  .silentbar p { font-size: var(--type-body); line-height: var(--leading-prose); margin: 0; max-width: var(--measure-bar); }
+
+  .presenter { display: grid; gap: var(--space-1); }
+  .presenter .label { font-size: var(--type-micro); letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); }
+  .presenter .name { font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--type-title); line-height: var(--leading-display); }
+
+  .main {
+    display: grid;
+    grid-template-rows: minmax(var(--zone-band-min), auto) 1fr auto;
+    background: var(--field);
+    min-height: 0;
+  }
+
+  .billboard { padding: var(--space-4) var(--space-5); display: grid; align-content: center; }
+
+  /* Landscape carries the conventional title too — some conferences
+     mandate the submitted title appear on the poster. */
+  .titleline {
+    padding: 0 var(--space-5) var(--space-2);
+    font-size: var(--type-caption);
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  /* auto for the title line, 1fr so the figure claims all remaining height */
+  .evidence {
+    padding: var(--space-3) var(--space-5) var(--space-3);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: var(--space-2);
+    min-height: 0;
+  }
+  [data-evidence="grid"] .evidence {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr 1fr;
+  }
+  [data-evidence="grid"] .titleline { grid-column: 1 / -1; }
+  .figure { --figure-bg: var(--paper); }
+
+  .foot {
+    /* The poster QR token (158mm) is calibrated to the portrait footer and
+       swamps this one. 110mm is still comfortably above --qr-size-min. */
+    --qr-size: 110mm;
+    padding: var(--space-3) var(--space-5);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    border-top: var(--rule-weight) solid var(--rule);
+    background: var(--paper);
+  }
+  .foot .limitation { flex: 1; }
+  .take-slot { flex: none; max-width: 44ch; font-size: var(--type-caption); line-height: var(--leading-prose); }
+  .take-slot .big { display: block; font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--type-body); color: var(--ink); margin-bottom: var(--space-1); }
+  .foot .byline { flex: none; max-width: 34ch; }
+  /* Surface validity: posters do not accept `poster` (slide-only). */
+  .sheet:not([data-take="qr"]):not([data-take="url"]):not([data-take="contact"]):not([data-take="capture"]):not([data-take="none"]) {
+    --config-error: "CONFIG ERROR: invalid data-take for a poster (use qr|url|contact|capture|none)";
+  }
+</style>
+
+<body>
+<div class="sheet" data-stand="right" data-evidence="hero" data-billboard="full" data-take="qr">
+
+  <!-- ============ SILENT PRESENTER BAR (~200 words, stands alone) ==== -->
+  <aside class="silentbar" data-dwell="5m">
+    <div class="presenter">
+      <span class="label">Presenter</span>
+      <span class="name">A. Author</span>
+    </div>
+
+    <section>
+      <h2 class="section-head">Background</h2>
+      <p>Who cares, and what was unknown. Two or three sentences — this bar
+         has to be readable while you are mid-conversation with someone else.</p>
+    </section>
+
+    <section>
+      <h2 class="section-head">Methods</h2>
+      <div class="diagram-flow">
+        <div class="diagram-box" style="--box-colour: var(--cat-1)">
+          <b>Condition A</b>n = 000. What was done, in one line.
+        </div>
+        <div class="diagram-box" style="--box-colour: var(--cat-2)">
+          <b>Condition B</b>n = 000. The contrast that makes the claim testable.
+        </div>
+        <div class="diagram-box" style="--box-colour: var(--cat-3)">
+          <b>Analysis</b>The model, and what it controls for.
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-head">Extra results</h2>
+      <p>Assume they already read the punchline. Put the secondary finding
+         here, not on the billboard.</p>
+    </section>
+
+    <div class="badges"><!-- mandated logos; --badge-h defaults to 0 --></div>
+  </aside>
+
+  <!-- ============ MAIN PANEL ======================================== -->
+  <div class="main">
+
+    <header class="billboard" data-dwell="5s">
+      <h1 class="takeaway">
+        One sentence. Plain language. The <em>finding</em>, not the topic.
+      </h1>
+    </header>
+
+    <section class="evidence" data-dwell="1m">
+      <p class="titleline">Conventional title: investigating the dynamics of X on Y.</p>
+      <figure class="result">
+        <figcaption>Say what the reader should see. Spoil it deliberately.</figcaption>
+        <div class="figure" data-placeholder="hero figure"></div>
+      </figure>
+    </section>
+
+    <footer class="foot">
+      <!-- 5m-layer structure, NOT take-away: it keeps its own dwell tag -->
+      <p class="limitation" data-dwell="5m">
+        <strong>Limitation.</strong> The honest boundary of the claim.
+      </p>
+
+      <div class="qr" data-placeholder="QR" data-dwell="take"></div>
+
+      <div class="take-slot" data-dwell="take">
+        <div class="take take-qr">Scan for preprint, data, and full methods.</div>
+        <div class="take take-url"><span class="big">github.com/org/project</span>Short enough to retype. No shorteners.</div>
+        <div class="take take-contact"><span class="big">a.author@institution.edu</span>ORCID 0000-0000-0000-0000</div>
+        <div class="take take-capture"><span class="big">No preprint yet — leave your address.</span>Sheet and pen on the table.</div>
+      </div>
+
+      <!-- Authorship is unconditional: outside the switch, always shown. -->
+      <p class="byline">A. Author, B. Author, C. Author — Institution.</p>
+    </footer>
+
+  </div>
+</div>
+</body>

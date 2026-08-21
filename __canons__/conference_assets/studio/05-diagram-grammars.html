@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio Plate 05 — Diagram Grammars</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="plate.css">
+<style>
+.themebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.themebar select{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;padding:6px 8px;border:1px solid var(--hair);border-radius:2px;background:var(--pg-2);color:var(--tx)}
+.sketch-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:8px}
+.sketch{background:var(--pg-2);border:1px solid var(--hair);border-radius:4px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.sketch h4{margin:0;font-size:16px;font-weight:800;letter-spacing:-.01em}
+.sketch .box{aspect-ratio:19/10;background:var(--field,#eee);border-radius:3px}
+.sketch .box svg{display:block}
+.grey .sketch .box{filter:grayscale(1) contrast(1.04)}
+.sketch .meta{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--tx-2)}
+.sketch p.use{margin:0;font-size:13px;line-height:1.55;color:#2C2D31}
+.riskbox{margin-top:2px;font-size:12px;color:var(--warn);line-height:1.5}
+@media(max-width:960px){.sketch-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1><span class="plate-no">Studio Plate 05</span>Diagram grammars — six structures, low fidelity, for a direction pick</h1>
+  <div class="meta">
+    <div><b>System</b>conference_assets v2</div>
+    <div><b>Status</b>Sketch — not a closed kit yet</div>
+    <div><b>Date</b>2026-08-16</div>
+  </div>
+</header>
+
+<div class="deck">
+  <div>
+    <h2>Six structures that are not directed process flow.</h2>
+    <p class="n">Plate 04 covers one family well: things that flow left to right, with or without a real magnitude. That's a real gap when a reference system is meant to last years across every field — a wet-lab protocol, a systems paper, and a policy study don't all reduce to a pipeline. Rather than pick a third time and build the wrong one at full depth, this plate sketches all six requested structures at low fidelity: enough to judge the visual direction and mark vocabulary, not enough to call finished.</p>
+    <p class="n">None of these are closed sets yet — no ink-budget proof, no poster-distance stress test, no theme-contrast checks. That work only happens for whichever ones earn a place. Reroll any panel to see it hold across different data; reroll the theme to see it hold across palettes.</p>
+  </div>
+  <aside class="side">
+    <p><span class="lbl">Reads on</span></p>
+    <p>Every sketch is live SVG. This file intentionally doesn't share code with methods-kit.js — building the shared abstraction now, before knowing which structures survive, would be premature.</p>
+  </aside>
+</div>
+
+<div class="controls">
+  <button class="tog" id="t-grey" aria-pressed="false">Greyscale proof</button>
+  <div class="themebar"><span class="lbl">Theme</span><select id="c-theme"></select></div>
+  <span class="spacer"></span>
+  <button class="act" id="b-reroll">Reroll all</button>
+</div>
+
+<section>
+  <div class="sec-head">
+    <span class="num">01</span>
+    <h3>The six sketches</h3>
+    <p>Each panel: what the structure is for, the sketch itself, and the specific risk it carries if promoted to a full kit.</p>
+  </div>
+  <div class="body">
+    <div class="sketch-grid">
+
+      <article class="sketch">
+        <h4>Actor / lifeline sequence</h4>
+        <p class="use">Who messages whom, in order — an instrument-and-operator protocol, a distributed system's request path, a multi-party study procedure. Time runs top to bottom, not left to right.</p>
+        <div class="box" id="s-seq"></div>
+        <p class="riskbox">Risk: message-label collisions on a dense exchange (6+ messages) — needs the same deconflict pass as the chart kit's series labels before it's a kit.</p>
+      </article>
+
+      <article class="sketch">
+        <h4>Gantt / project timeline</h4>
+        <p class="use">Phase durations and overlap — when the method itself has a project shape (recruitment overlapping baseline, a multi-season field campaign). Answers "how long" and "what ran concurrently," which flow diagrams can't.</p>
+        <div class="box" id="s-gantt"></div>
+        <p class="riskbox">Risk: reads as a bar chart, competing with the chart kit's own ranked-bar form — needs a clear rule for when a poster gets one or the other, not both.</p>
+      </article>
+
+      <article class="sketch">
+        <h4>Nested component / architecture</h4>
+        <p class="use">Containment, not flow — a system's modules, a codebase's layers, an apparatus's subassemblies. The relationship being drawn is "part of," which no arrow can honestly express.</p>
+        <div class="box" id="s-comp"></div>
+        <p class="riskbox">Risk: nesting depth is unbounded in principle; a real kit needs a hard depth cap (two levels, as sketched) or it invites a poster-sized org chart.</p>
+      </article>
+
+      <article class="sketch">
+        <h4>State machine</h4>
+        <p class="use">States and the conditions that move between them — an instrument's operating modes, a robot's control logic, a protocol with real branching (the fixed fan-out in Plate 04 still can't do this). The self-loop shown is a state that can re-enter itself.</p>
+        <div class="box" id="s-state"></div>
+        <p class="riskbox">Risk: edge-label collisions and line crossings scale badly past ~5 states — would need either a fixed canonical layout per state count or an explicit "too complex, use a table" escape hatch.</p>
+      </article>
+
+      <article class="sketch">
+        <h4>Factorial / matrix design</h4>
+        <p class="use">Condition × condition, the experimental design itself rather than its results — a 2×2, a dose × timepoint grid. Closest of the six to Plate 03's chart-vs-table guidance: this is the "table" side of that decision, drawn instead of set in body text.</p>
+        <div class="box" id="s-matrix"></div>
+        <p class="riskbox">Risk: only really reads past 2×2 or 2×3 — beyond that it is a table and should be typeset as one, not forced into this diagram.</p>
+      </article>
+
+      <article class="sketch">
+        <h4>Undirected network</h4>
+        <p class="use">Relationships with no inherent direction — site co-occurrence, protein interaction, citation or collaboration structure. The hub layout here is hand-placed; a real kit would need an actual force-layout pass or a rule restricting it to small, pre-clustered graphs.</p>
+        <div class="box" id="s-network"></div>
+        <p class="riskbox">Risk: hand-placed or naively-radial layouts don't generalise past ~8 nodes without edge crossings a reader will misread as meaningful.</p>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="num">02</span>
+    <h3>What this plate asks you to decide</h3>
+    <p>One decision: which of these six, if any, get built out to the same standard as the flow and sequence kits.</p>
+  </div>
+  <div class="body">
+    <div class="callout">
+      <span class="lbl">Building all six to full depth is the wrong default</span>
+      <p>Each promoted structure needs its own ink-budget check, poster-distance stroke/type audit, theme-contrast proof, and closed-vocabulary decision — the same investment Plates 03 and 04 took. Six of those in parallel is how a reference system stops being a system. Picking one or two, well, keeps the "designer's liberty vs. system cohesion" tension the brief named from the start resolved in the system's favour.</p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script src="palette-engine.js"></script>
+<script src="diagram-grammars.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const KEY2='plate02.palette.v1';
+function read(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+const ATTESTED={canon:{rule:'complement',hue:272,sat:0.55,tint:0},slate:{rule:'complement',hue:203,sat:0.45,tint:0.04},bone:{rule:'analogous',hue:28,sat:0.42,tint:0.42},moss:{rule:'complement',hue:142,sat:0.4,tint:0.06},ash:{rule:'complement',hue:174,sat:0.42,tint:0},vermilion:{rule:'analogous',hue:9,sat:0.6,tint:0}};
+let themeKey='canon',themeState=Object.assign({},ATTESTED.canon);
+if(read(KEY2)){themeKey='lab';themeState=read(KEY2)}
+let res=PE.build(themeState);
+function populateThemeSelect(){const opts=[];if(read(KEY2))opts.push('<option value="lab">Current lab palette (Plate 02)</option>');Object.keys(ATTESTED).forEach(k=>opts.push('<option value="'+k+'">'+k[0].toUpperCase()+k.slice(1)+'</option>'));$('c-theme').innerHTML=opts.join('');$('c-theme').value=themeKey}
+$('c-theme').addEventListener('change',e=>{themeKey=e.target.value;themeState=themeKey==='lab'?(read(KEY2)||themeState):Object.assign({},ATTESTED[themeKey]);res=PE.build(themeState);renderAll()});
+
+let D={};
+function genAll(){D={seq:DG.genSequence(),gantt:DG.genGantt(),comp:DG.genComponent(),state:DG.genStateMachine(),matrix:DG.genMatrix(),net:DG.genNetwork()}}
+genAll();
+function drawAll(){
+  const r=res.roles;
+  $('s-seq').innerHTML=DG.sequenceDiagram(r,Object.assign({w:420,h:220},D.seq));
+  $('s-gantt').innerHTML=DG.gantt(r,{w:420,h:180,tasks:D.gantt});
+  $('s-comp').innerHTML=DG.component(r,{w:420,h:220,root:D.comp});
+  $('s-state').innerHTML=DG.stateMachine(r,Object.assign({w:420,h:200},D.state));
+  $('s-matrix').innerHTML=DG.matrix(r,Object.assign({w:360,h:220},D.matrix));
+  $('s-network').innerHTML=DG.network(r,Object.assign({w:360,h:220},D.net));
+}
+$('b-reroll').addEventListener('click',()=>{genAll();drawAll()});
+function applyRolesToScope(){document.documentElement.style.setProperty('--paper',res.roles.paper.hex);document.documentElement.style.setProperty('--field',res.roles.field.hex);PE.ROLES.forEach(r=>document.documentElement.style.setProperty('--'+r,res.roles[r].hex))}
+function renderAll(){applyRolesToScope();drawAll()}
+function tog(id,cls){const b=$(id);b.addEventListener('click',()=>{const on=b.getAttribute('aria-pressed')==='true';b.setAttribute('aria-pressed',String(!on));document.body.classList.toggle(cls,!on)})}
+tog('t-grey','grey');
+populateThemeSelect();renderAll();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(renderAll);
+</script>
+</body>
+</html>

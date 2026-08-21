@@ -1,0 +1,30 @@
+/* =====================================================================
+   styles.css — the design system's entry point for Claude Design.
+
+   WHY THIS FILE EXISTS
+   A rendered design receives only this file's transitive @import closure.
+   Anything not reachable from here does not exist as far as new work is
+   concerned. Before this file, the project's only global CSS was
+   studio/plate.css — the *review-document chrome* — so the app indexed
+   --pg / --tx / --hair / --mark as "the design system's tokens" and knew
+   nothing about --paper, --panel, --accent or --accent-on-panel.
+
+   That was backwards. plate.css styles the spec sheets you read; the nine
+   role tokens style the posters you make. This file puts the second set in
+   front of the design agent, which is the set anyone authoring with the
+   system actually uses.
+
+   ORDER IS NOT ARBITRARY
+   tokens.css declares the vocabulary; components.css consumes it and
+   declares no tokens of its own. Loading components first would leave every
+   var() unresolved on first paint.
+
+   NOT INCLUDED, DELIBERATELY
+   studio/plate.css. The studio plates link it themselves. It is chrome for
+   review documents and must never leak into an authored poster — its
+   --u container units and its Archivo/IBM Plex Mono voice belong to the
+   spec sheets, not to the sheets they specify.
+   ===================================================================== */
+
+@import "tokens/tokens.css";
+@import "tokens/components.css";

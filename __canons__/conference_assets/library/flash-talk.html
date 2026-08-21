@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Talks" -->
+<!--
+  1-SLIDE FLASH TALK — 16:9, 338.7 x 190.5 mm
+  Layout only. Components in components.css, atoms in tokens.css.
+
+  Built to Michael Alley's Assertion-Evidence checklist, NOT the poster
+  grid. This is the better-evidenced half of the system: AE has an
+  independent replication (Sripradith 2023, n=59) showing delayed-retention
+  gains, where the poster format's only independent test (Lewis 2025) was
+  essentially null.
+
+  Three rules that define it:
+    1. Headline is a SENTENCE ASSERTION — a claim, max 2 lines, left.
+    2. Body is VISUAL EVIDENCE. No bullet lists: a list hides the
+       relationships among the listed items, which is the part that matters.
+    3. You SPEAK to the evidence. The slide is not your script.
+
+  TOGGLES (on the .sheet element):
+    data-take   poster | qr | url | contact     (default: poster)
+    data-proof  "words" | "grey" | combinations
+
+  60-SECOND BEAT SHEET — ~140-150 spoken words:
+    claim ......................... 10 s
+    point at the visual, say what to see ... 25 s
+    the one number or mechanism ... 15 s
+    "Poster 42, Thursday — come argue with me" ... 10 s
+
+  VENUE WARNING: flash-talk sessions usually collect slides in advance,
+  frequently PPTX-only and sometimes in a mandated house template. These
+  CONTENT rules survive transplantation; this rendered PDF may not be
+  accepted at upload. Check the CFP before you rely on the file.
+-->
+<title>Flash Talk Slide</title>
+
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  @page { size: 338.7mm 190.5mm; margin: 0; }
+  html, body { margin: 0; padding: 0; background: var(--paper); }
+
+  .sheet {
+    width: var(--canvas-slide-w);
+    height: var(--canvas-slide-h);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-prose);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: var(--margin-slide);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .assertion {
+    font-family: var(--font-display);
+    font-weight: var(--weight-display);
+    font-size: var(--type-ae-assertion);
+    line-height: 1.15;
+    text-align: left;
+    margin: 0;
+    /* Alley: at least a half-inch of white space below the headline. */
+    padding-bottom: var(--slide-3);
+  }
+
+  .evidence { display: grid; place-items: center; min-height: 0; overflow: hidden; }
+  .evidence img, .evidence svg { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+  .evidence[data-placeholder]::after {
+    content: attr(data-placeholder);
+    font-size: var(--type-ae-body);
+    color: var(--ink-soft);
+    border: var(--rule-weight) dashed var(--rule);
+    border-radius: var(--radius);
+    padding: var(--slide-5) var(--slide-5);
+  }
+
+  .credit {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--slide-4);
+    padding-top: var(--slide-2);
+    font-size: var(--type-ae-ref);
+    font-weight: var(--weight-prose);   /* never bold — Alley */
+    color: var(--ink-soft);
+    line-height: var(--leading-slide);
+  }
+  .credit .who { color: var(--ink); font-weight: var(--weight-strong); font-size: var(--type-ae-body); }
+  .pointer {
+    font-family: var(--font-display);
+    font-weight: var(--weight-display);
+    font-size: var(--type-ae-body);
+    color: var(--accent);
+    text-align: right;
+    line-height: var(--leading-slide);
+  }
+  /* Per-surface override: the poster QR token (158mm) is most of a slide. */
+  .qr { width: 26mm; height: 26mm; font-size: 8pt; }
+
+  #wordcount { display: none; }
+  [data-proof~="words"] #wordcount {
+    display: block;
+    position: fixed;
+    top: var(--slide-1); right: var(--slide-1);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-mono);
+    font-size: 10pt;
+    padding: 2mm 3mm;
+    border-radius: 2mm;
+  }
+  /* Surface validity: the slide does not accept `capture` or `none`. */
+  .sheet:not([data-take="poster"]):not([data-take="qr"]):not([data-take="url"]):not([data-take="contact"]) {
+    --config-error: "CONFIG ERROR: invalid data-take for a slide (use poster|qr|url|contact)";
+  }
+</style>
+
+<body>
+<div class="sheet" data-take="poster">
+
+  <h1 class="assertion">
+    State the finding as a claim the audience can <em>disagree</em> with.
+  </h1>
+
+  <div class="evidence" data-placeholder="one visual — a figure, a diagram, a photograph"></div>
+
+  <div class="credit">
+    <div>
+      <div class="who">A. Author</div>
+      Institution
+    </div>
+
+    <div class="pointer take take-poster">Poster 42<br>Thursday 16:00 · Hall B</div>
+    <div class="pointer take take-url">github.com/org/project</div>
+    <div class="pointer take take-contact">a.author@institution.edu</div>
+    <div class="qr">QR</div>
+  </div>
+
+  <div id="wordcount"></div>
+
+  <script>
+    // Reading budget: ~20 words per minute of slide time (Alley). A
+    // 1-minute flash talk therefore affords ~20 readable words TOTAL.
+    // Counts .evidence too — a real figure's annotations are exactly the
+    // words most likely to blow the budget, and the old counter missed them.
+    (function () {
+      var BUDGET = 20;
+      var text = ['.assertion', '.evidence', '.credit']
+        .map(function (s) { var n = document.querySelector(s); return n ? (n.innerText || '') : ''; })
+        .join(' ');
+      var n = text.trim().split(/\s+/).filter(Boolean).length;
+      var el = document.getElementById('wordcount');
+      if (el) el.textContent = n + ' / ' + BUDGET + ' words  ' + (n > BUDGET ? 'OVER' : 'ok');
+    })();
+  </script>
+
+</div>
+</body>
