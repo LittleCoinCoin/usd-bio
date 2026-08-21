@@ -124,3 +124,67 @@ figure should therefore read `bio:ddgUnits` from the stage rather than typing
 `"kcal/mol"`, and be explicit that the remaining four unit strings are convention.
 Uniform provenance across rows is the weaker goal here — "read it, don't type it" is
 the whole point of the tile, so it wins wherever the data actually exists.
+
+## fig-composition: the 3D-geometry tile, orthographic camera, and a float32 trap
+
+The sixth and last tile. Real geometry from `demos/p53_mdm2_integrated.usda`
+(818 atoms / 834 bonds, `ballstick` representation — settled by measurement: an
+occlusion check found `points` 86% / `ballstick` 78% / `balls` 75% / `vdw` only 22% of
+Chain_B survives MDM2 occlusion from this camera, and `vdw` would bury Trp23 along
+with the rest of the peptide). One accent, the nine Trp23 sidechain atoms the W23A
+mutation removes, derived as TRP's atom list minus `_ALA_KEEP`
+(`composition/build_genotype.py:59`) — never hardcoded. Everything else is neutralised
+to an achromatic ink ramp (ascending atomic number → ascending luminance, capped below
+the theme accent's own luminance) authored on the `/_class_/{C,N,O,S}` class Spheres,
+plus every one of the 834 bond Cylinders individually (bonds have no shared class to
+override once, unlike atoms — see `render_support.cylinder_prim_paths`).
+
+**Two candidates are rendered and both stay on disk** (`fig-composition-A.png` /
+`-B.png`, `figures/output/`, gitignored by convention same as every other tile's
+raster/svg output): A is the whole complex, oriented by PCA so the longest principal
+axis (measured 41.8 x 29.4 x 25.5 Å over all 818 atoms) runs horizontally — even
+perfectly oriented this fills only ~40% of the frame's width, because the object's own
+in-plane aspect (1.42:1) is far narrower than the frame's (3.3336:1); this is a shape
+ceiling, not a camera defect. B crops to Chain_B's own centroid and PCA axes (Chain_B
+alone measures 2.08:1, much closer to the frame), filling ~72-82% depending on padding
+and keeping >1 Å clearance around every individual Trp23 sidechain atom. B is
+registered as the default.
+
+**Camera: orthographic, not perspective**, via two new `render_support.py` additions —
+`compute_principal_frame()` (PCA over real atom-center world positions, never a
+world-axis-aligned bbox) and `author_oriented_orthographic_camera()` — kept fully
+separate from `author_camera()` (untouched, still what every other render-based figure
+in this package would use). A parallel projection has zero perspective distortion by
+construction, sidestepping the ~115°-horizontal-FOV wide-lens distortion
+`author_camera`'s default 50°-vertical-FOV perspective camera carries (RENDER_NOTES.md
+§7(b)) — verified here with a 9-sphere grid spanning ±10 world units off-axis through
+this exact camera path: every unclipped sphere renders at width/height = 1.0000 exactly,
+regardless of position in frame.
+
+**The float32 aperture trap.** `UsdGeomCamera`'s aperture attributes are schema-typed
+`float` (32-bit), so the float64 world-unit math silently downcasts on `Set()`.
+`author_camera()` elsewhere in this file avoids ever hitting this because its aperture
+is always `some_round_default_mm * aperture_ratio` — binary-friendly inputs that survive
+the downcast without incident. The oriented camera's aperture is derived from real,
+non-round object extents, and for at least one measured case (candidate B, `padding=1.15`)
+that downcast landed the float32 aperture ratio at `2560/ratio32 = 767.99996` — one ulp
+under the pixel-exact-768 gate, which `usdrecord`'s TRUNCATING width/height division then
+floors to 767, not 768. Fixed with a deliberate, documented 1e-6 relative nudge on the
+vertical aperture only (asymmetric on purpose: it can only make the frame very slightly
+MORE generous, never tighter, so it cannot introduce a clip) — see
+`author_oriented_orthographic_camera`'s `_APERTURE_F32_SAFETY_NUDGE`.
+
+**Bond cylinders needed their own neutralisation pass, not just a hue check.**
+`builders/build_assembly.py` already authors an achromatic flat `(0.5, 0.5, 0.5)` on
+every bond — no CPK hue, so the no-CPK gate is satisfied without touching them — but
+that flat albedo renders, through Storm's own tone-mapping, at a HIGHER on-screen
+luminance (measured: sRGB `(204,204,204)` = 0.8 luminance at specular highlights) than
+either the element ink ramp or the accent's own displayed luminance (~0.29 authored,
+~0.43 mean displayed). Left alone, the 834 bonds — not Trp23 — would be the visually
+brightest achromatic thing in frame. Fixed by overriding every bond Cylinder's own
+`displayColor` down to the same linear value as the darkest element ink level (Carbon's).
+After the fix, median accent luminance exceeds median ink luminance by ~0.16 (0..1
+scale); a small tail (~3% of ink pixels, Storm's specular highlights on ink-colored
+spheres, not a hue or design defect) still edges above the accent's own median — see the
+task's adversarial-verification gate output for the exact numbers. Reported as a known,
+weak-but-present overlap rather than glossed over.

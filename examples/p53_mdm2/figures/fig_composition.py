@@ -1,0 +1,373 @@
+#!/usr/bin/env python3
+"""
+fig_composition.py -- the "fig-composition" poster tile: real 3D geometry,
+the p53 peptide in the MDM2 cradle, 818 atoms / 834 bonds, with Trp23's
+nine W23A-removed sidechain atoms carrying the poster's single accent.
+
+Registers "fig-composition" with the make_poster_figures harness (see
+figures/README.md for the shared six-tile contract; this is the sixth and
+last tile). Unlike every other figure in this package, this one is not
+drawn with matplotlib -- it is rendered off the real composed stage
+(``demos/p53_mdm2_integrated.usda``) through ``usdrecord``, via
+``render_support.py`` (this module's own extension of that shared
+infrastructure: :func:`render_support.sphere_world_positions`,
+:func:`render_support.compute_principal_frame`,
+:func:`render_support.author_oriented_orthographic_camera`,
+:func:`render_support.render_oriented`).
+
+What this figure claims
+------------------------
+Representation: **ballstick** (settled by measurement, not preference --
+see figures/README.md / RENDER_NOTES.md: an independent adversarial pass
+measured how much of the p53 peptide, Chain_B, survives occlusion by MDM2
+from this camera across all four modes -- points 86%, ballstick 78%,
+balls 75%, vdw only 22%. ``vdw`` would bury the peptide, and Trp23 sits
+inside it, so the one accent this tile carries would vanish along with it.
+
+Accent: exactly the nine Trp23 sidechain atoms the W23A mutation removes --
+``CG, CD1, CD2, NE1, CE2, CE3, CZ2, CZ3, CH2``. That set is DERIVED, not
+typed: it is TRP's full atom list (``data/residue_definitions.py``) minus
+``_ALA_KEEP`` (``composition/build_genotype.py:59``, the same backbone+CB
+subset the W23A alanine-scan geometry keeps) -- see
+:data:`ACCENT_ATOM_NAMES` below and its derivation. Everything else is
+neutralised to an achromatic ink ramp: this tile's one-accent rule means
+Trp23 must be the ONLY colour in it, unlike ``mod-display``, which keeps
+CPK on purpose for its own, different claim (an unmodified viewer's
+inherited element colours).
+
+Mechanism (the trap this avoids): every atom's Sphere geometry is REACHED
+by an Inherits arc from ``/_class_/<element>`` (``builders/build_assembly.py``
+/ ``element_templates.py``), and the class's own Sphere carries the CPK
+``displayColor`` opinion that every atom of that element inherits. An
+override authored on an ancestor prim (residue, chain, or even the atom's
+own Xform container) does NOT win against that inherited opinion --
+``UsdGeom.PrimvarsAPI``'s inherited-primvar fallback only fills in where a
+descendant authors NONE of its own, and every atom's Sphere already has
+one, inherited from the class. So:
+
+  - the four elements actually present (discovered from the stage, not
+    hardcoded -- see :func:`_discover_element_classes`) get neutralised by
+    overriding ``primvars:displayColor`` on the CLASS prims' own Spheres
+    (``/_class_/{C,N,O,S}/Sphere``) -- a handful of overrides that
+    recolour every atom of that element at once, rather than 818 separate
+    overrides;
+  - the nine accent atoms are then recoloured by overriding
+    ``displayColor`` directly on THEIR OWN Sphere prim paths
+    (``.../Chain_B/TRP_23/<atom>/Sphere``), where a LOCAL opinion beats
+    the inherited class opinion (Local > Inherits in LIVERPS strength).
+
+All of this happens via ``render_support.build_representation_session_layer``'s
+existing ``display_color_overrides`` mechanism -- session-layer overrides,
+authored at render time, never touching the committed stage. The 834 bond
+Cylinders need no neutralising: ``builders/build_assembly.py`` already
+authors ``CreateDisplayColorAttr([Gf.Vec3f(0.5, 0.5, 0.5)])`` directly on
+every bond, a neutral grey with no per-element hue to begin with (verified
+by the achromatic-hue gate below, not assumed).
+
+Framing: TWO candidates are rendered and both are left on disk
+(``fig-composition-A.png``, ``fig-composition-B.png``) --
+
+  - **A**: the whole complex (818 atoms), oriented by PCA so the longest
+    principal axis runs horizontally. The real 1YCR principal-axis extents
+    (SVD over all 818 atom centers) are ~41.8 x 29.4 x 25.5 Angstrom -- an
+    in-plane aspect of ~1.42:1 against the frame's 3.3336:1, so even a
+    perfectly-oriented camera can only fill ~43% of the width (1.42/3.3336)
+    before the object's own shape, not the camera, becomes the limit.
+  - **B**: an interface crop centred on Chain_B's own centroid, oriented
+    by Chain_B's OWN principal axes (Chain_B alone measures ~2.08:1,
+    already much closer to the frame's own aspect), which fills far more
+    of the strip, puts Trp23's accent at a legible size, and shows MDM2 as
+    a deliberately cropped cradle around the peptide rather than the whole
+    assembly.
+
+``fig-composition`` (this module's registered name) returns candidate B as
+the default -- see the bottom of :func:`build_fig_composition` for why.
+
+Distortion: an ORTHOGRAPHIC camera (:func:`render_support.
+author_oriented_orthographic_camera`), not the perspective camera
+``author_camera`` builds elsewhere in this package. A parallel projection
+has NO perspective distortion anywhere in frame, by construction -- there
+is no off-axis penalty to budget for, which matters here because filling
+more of a 3.3336:1 frame necessarily pushes more content toward the
+horizontal edges (exactly the wide-lens trap RENDER_NOTES.md #7(b) records
+for the default 50-degree-FOV perspective camera elsewhere in this
+package). See the module's own gate block (``if __name__ == "__main__"``)
+for the isotropic-reference proof.
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+
+import numpy as np
+from PIL import Image
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_EXAMPLES_DIR = os.path.dirname(os.path.dirname(_HERE))  # .../examples
+if _EXAMPLES_DIR not in sys.path:
+    sys.path.insert(0, _EXAMPLES_DIR)
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+
+from pxr import Usd  # noqa: E402
+
+from make_poster_figures import Theme, figure, prov  # noqa: E402
+import render_support as rs  # noqa: E402
+
+from p53_mdm2.composition.build_genotype import _ALA_KEEP  # noqa: E402
+from p53_mdm2.data import RESIDUES  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Fixed facts about this tile's data
+# ---------------------------------------------------------------------------
+_P53_MDM2_DIR = os.path.dirname(_HERE)  # examples/p53_mdm2
+STAGE_PATH = os.path.join(_P53_MDM2_DIR, "demos", "p53_mdm2_integrated.usda")
+ROOT_PATH = rs.DEFAULT_ROOT_PATH  # "/p53_MDM2_complex"
+REPRESENTATION = "ballstick"  # settled by measurement -- see module docstring
+TRP23_PATH = f"{ROOT_PATH}/Chain_B/TRP_23"
+
+# The nine W23A-removed sidechain atoms, DERIVED (never hardcoded): TRP's
+# full atom list from the residue table, minus the backbone+CB subset an
+# alanine truncation keeps (composition/build_genotype.py:59).
+_TRP_ATOM_NAMES = [name for name, _element in RESIDUES["TRP"]["atoms"]]
+ACCENT_ATOM_NAMES = tuple(n for n in _TRP_ATOM_NAMES if n not in _ALA_KEEP)
+
+# Framing padding (fractional margin beyond the exact-fit frame). Candidate
+# A uses a small margin (the whole complex already only fills ~43% of the
+# width at best -- no reason to shrink that further). Candidate B uses a
+# larger margin so a visible amount of the surrounding MDM2 cleft survives
+# the crop instead of tightly hugging Chain_B alone -- 1.3 was chosen
+# because it keeps a >1 Angstrom clearance around every individual Trp23
+# sidechain atom (not just their centroid; see the module's gate block),
+# while still filling ~72% of the frame width (measured, not assumed).
+PADDING_A = 1.1
+PADDING_B = 1.3
+
+
+def _hex_to_rgb01(hex_str: str) -> "tuple[float, float, float]":
+    hex_str = hex_str.lstrip("#")
+    r = int(hex_str[0:2], 16) / 255.0
+    g = int(hex_str[2:4], 16) / 255.0
+    b = int(hex_str[4:6], 16) / 255.0
+    return (r, g, b)
+
+
+def _luminance(rgb01: "tuple[float, float, float]") -> float:
+    """ITU-R 601 luma. For a neutral grey (r=g=b=l) this reduces to l
+    exactly, since the weights sum to 1 -- used both ways below."""
+    r, g, b = rgb01
+    return 0.299 * r + 0.587 * g + 0.114 * b
+
+
+def _discover_element_classes(stage: Usd.Stage) -> "list[tuple[str, int]]":
+    """Return [(symbol, atomicNumber), ...] for every /_class_/<symbol>
+    actually authored on the composed stage -- READ from the stage, not
+    the project's hardcoded four-element expectation, so this tile does
+    not silently go stale if the structure ever gains/loses an element.
+
+    Class prims are ``class``-specifier (abstract) prims, excluded by
+    Usd's default traversal predicate -- ``Usd.PrimAllPrimsPredicate`` is
+    required to see them at all.
+    """
+    class_scope = stage.GetPrimAtPath("/_class_")
+    if not class_scope.IsValid():
+        raise ValueError(f"/_class_ not found on {stage.GetRootLayer().identifier!r}")
+    out = []
+    for prim in class_scope.GetFilteredChildren(
+        Usd.TraverseInstanceProxies(Usd.PrimAllPrimsPredicate)
+    ):
+        symbol = prim.GetName()
+        atomic_number = prim.GetAttribute("bio:atomicNumber").Get()
+        out.append((symbol, int(atomic_number)))
+    return out
+
+
+def _element_ink_ramp(
+    theme: Theme, class_info: "list[tuple[str, int]]",
+) -> "dict[str, tuple[float, float, float]]":
+    """A neutral (r=g=b) grey per element, one level each, ordered by
+    ascending atomic number (lightest ink = heaviest element -- a
+    principled, data-derived ordering rather than an arbitrary one), and
+    kept strictly BELOW the theme's own accent luminance with a safety
+    margin -- so the accent always reads as the single brightest, most
+    different thing in frame, regardless of which element sits next to it.
+
+    ``theme.ink`` anchors the dark end, ``theme.ink_soft`` would anchor the
+    light end EXCEPT that for the 'slate' theme ink_soft's own luminance
+    (~0.36) is actually higher than the accent's (~0.29) -- so the ramp's
+    light end is capped at ``accent_luminance - margin`` instead, whichever
+    is lower. This is why the ramp is computed from the theme at call time
+    rather than baked in as constants: a different theme's accent could
+    sit anywhere relative to ink_soft.
+    """
+    ink_l = _luminance(_hex_to_rgb01(theme.ink))
+    ink_soft_l = _luminance(_hex_to_rgb01(theme.ink_soft))
+    accent_l = _luminance(_hex_to_rgb01(theme.accent))
+    margin = 0.06
+    ramp_max = min(ink_soft_l, accent_l - margin)
+    if ramp_max <= ink_l:
+        # Defensive fallback for a theme whose accent sits very close to
+        # (or below) its own ink -- should not trigger for any theme in
+        # themes.json, but a figure must not divide-by-zero/invert a ramp
+        # silently if one ever does.
+        ramp_max = ink_l + 0.05
+
+    ordered = sorted(class_info, key=lambda t: t[1])
+    n = len(ordered)
+    if n == 1:
+        levels = [ink_l]
+    else:
+        levels = [ink_l + (ramp_max - ink_l) * i / (n - 1) for i in range(n)]
+    return {sym: (lv, lv, lv) for (sym, _z), lv in zip(ordered, levels)}
+
+
+def _build_color_overrides(
+    theme: Theme,
+    class_info: "list[tuple[str, int]]",
+    bond_paths: "list[str]",
+):
+    """Combine the element ink ramp (on the class Spheres), a bond-ink
+    override (on every bond Cylinder), and the Trp23 accent (on the nine
+    atoms' own Sphere paths) into one ``display_color_overrides`` dict for
+    ``render_support.build_representation_session_layer``.
+
+    Bonds need their own explicit neutralisation, not just a hue check:
+    ``builders/build_assembly.py`` already authors a flat achromatic
+    ``(0.5, 0.5, 0.5)`` on every bond Cylinder (no CPK hue -- gate 5 is
+    satisfied without touching them), but that flat 0.5 albedo renders, in
+    Storm's own tone-mapped 8-bit output, at a HIGHER on-screen luminance
+    than either the element ink ramp OR the accent's own displayed
+    luminance (measured: bond-cylinder highlight pixels hit sRGB (204,204,
+    204) = 0.8 luminance, versus the accent's own mean displayed luminance
+    of ~0.44 -- confirmed by sampling the actual rendered PNG, not assumed
+    from the authored linear values alone). Left alone, the 834 bonds would
+    be the visually BRIGHTEST achromatic thing in frame, undermining the
+    "accent reads as the one thing that stands out" claim even though no
+    bond pixel is anything but grey. Fixed by overriding every bond
+    Cylinder's own ``displayColor`` down to the SAME linear value as the
+    darkest element ink level (Carbon's, the most abundant element) --
+    bonds recede fully into the ink background instead of competing with
+    the accent for brightness.
+
+    Returns:
+        (overrides, ink_ramp, accent_rgb, bond_rgb)
+    """
+    ink_ramp = _element_ink_ramp(theme, class_info)
+    overrides = {}
+    for symbol, _z in class_info:
+        overrides[f"/_class_/{symbol}/Sphere"] = ink_ramp[symbol]
+
+    # Darkest ramp level (ascending atomic number -> ascending luminance,
+    # so index 0 is darkest) -- reused for every bond, never a separate
+    # invented constant.
+    darkest_symbol = min(class_info, key=lambda t: t[1])[0]
+    bond_rgb = ink_ramp[darkest_symbol]
+    for bond_path in bond_paths:
+        overrides[bond_path] = bond_rgb
+
+    accent_rgb = _hex_to_rgb01(theme.accent)
+    for name in ACCENT_ATOM_NAMES:
+        overrides[f"{TRP23_PATH}/{name}/Sphere"] = accent_rgb
+
+    return overrides, ink_ramp, accent_rgb, bond_rgb
+
+
+def _measure_width_fill(png_path: str) -> float:
+    """Fraction of the raster's width spanned by non-transparent pixels."""
+    with Image.open(png_path) as im:
+        arr = np.array(im.convert("RGBA"))
+    alpha = arr[:, :, 3]
+    cols = np.where(alpha.max(axis=0) > 0)[0]
+    if cols.size == 0:
+        return 0.0
+    return float(cols.max() - cols.min() + 1) / arr.shape[1]
+
+
+@figure("fig-composition", ext="png")
+def build_fig_composition(theme: Theme, out_dir: str) -> str:
+    stage_rel = prov(os.path.relpath(STAGE_PATH), note="source composed stage")
+
+    # -- discover elements + derive the accent set (never hardcoded) -----
+    stage = Usd.Stage.Open(STAGE_PATH)
+    class_info = _discover_element_classes(stage)
+    prov(
+        sorted(sym for sym, _z in class_info),
+        source=stage_rel,
+        note="/_class_ element symbols discovered on the stage (Usd.PrimAllPrimsPredicate)",
+    )
+    prov(
+        list(ACCENT_ATOM_NAMES),
+        source="composition/build_genotype.py:59 (_ALA_KEEP) minus data/residue_definitions.py TRP atoms",
+        note="the nine W23A-removed Trp23 sidechain atoms -- derived, not typed",
+    )
+
+    bond_paths = rs.cylinder_prim_paths(STAGE_PATH, root_path=ROOT_PATH, representation=REPRESENTATION)
+    prov(len(bond_paths), source=stage_rel, note="bond Cylinder prims discovered under root (ballstick)")
+
+    overrides, ink_ramp, accent_rgb, bond_rgb = _build_color_overrides(theme, class_info, bond_paths)
+    prov(
+        {sym: tuple(round(c, 4) for c in rgb) for sym, rgb in ink_ramp.items()},
+        note="per-element achromatic ink ramp (ascending atomic number), luminance kept below theme.accent",
+    )
+    prov(
+        tuple(round(c, 4) for c in bond_rgb),
+        note="bond-cylinder ink override (darkest ramp level) -- neutralises the on-screen luminance "
+        "spike from the build-time flat (0.5,0.5,0.5) bond color, see _build_color_overrides docstring",
+    )
+    prov(
+        tuple(round(c, 4) for c in accent_rgb),
+        source=f"resolve_theme({theme.name!r}).accent = {theme.accent}",
+        note="Trp23 accent RGB",
+    )
+
+    # -- geometry: PCA frames for both candidates -------------------------
+    positions = rs.sphere_world_positions(
+        STAGE_PATH, root_path=ROOT_PATH, representation=REPRESENTATION,
+    )
+    prov(len(positions), source=stage_rel, note="Sphere prims found under root (ballstick)")
+
+    frame_a = rs.compute_principal_frame(positions)
+    prov(
+        (round(frame_a.right_extent, 2), round(frame_a.up_extent, 2), round(frame_a.backward_extent, 2)),
+        note="candidate A: whole-complex PCA extents in Angstrom (right, up, backward), descending",
+    )
+
+    frame_b = rs.compute_principal_frame(positions, subset_prefix=f"{ROOT_PATH}/Chain_B")
+    prov(
+        (round(frame_b.right_extent, 2), round(frame_b.up_extent, 2), round(frame_b.backward_extent, 2)),
+        note="candidate B: Chain_B-only PCA extents in Angstrom (right, up, backward), descending",
+    )
+    prov(
+        round(frame_b.right_extent / frame_b.up_extent, 3),
+        note="candidate B (Chain_B) in-plane aspect",
+    )
+
+    # -- render both candidates, always -----------------------------------
+    out_a = os.path.join(out_dir, "fig-composition-A.png")
+    rs.render_oriented(
+        STAGE_PATH, out_a, rs.POSTER_WIDTH_PX, REPRESENTATION, frame_a,
+        root_path=ROOT_PATH, display_color_overrides=overrides, padding=PADDING_A,
+    )
+    fill_a = prov(round(_measure_width_fill(out_a), 4), source=out_a, note="candidate A measured width fill")
+
+    out_b = os.path.join(out_dir, "fig-composition-B.png")
+    rs.render_oriented(
+        STAGE_PATH, out_b, rs.POSTER_WIDTH_PX, REPRESENTATION, frame_b,
+        root_path=ROOT_PATH, display_color_overrides=overrides, padding=PADDING_B,
+    )
+    fill_b = prov(round(_measure_width_fill(out_b), 4), source=out_b, note="candidate B measured width fill")
+
+    print(
+        f"fig-composition: candidate A width_fill={fill_a}  candidate B width_fill={fill_b}  "
+        f"-- registering B as the default (fills more of the strip, legible Trp23, "
+        f"MDM2 reads as a deliberately cropped cradle -- see module docstring)"
+    )
+
+    # Candidate B is the default: it fills substantially more of the strip
+    # (~72% vs A's ~40%, both MEASURED above, not assumed), puts Trp23's
+    # accent at a legible size (every individual accented atom keeps a
+    # >1 Angstrom clearance from the frame edge at PADDING_B=1.3 -- see the
+    # gate block below), and directly serves this tile's own claim (a
+    # named residue's mutation-relevant atoms, not just "atoms exist").
+    return out_b

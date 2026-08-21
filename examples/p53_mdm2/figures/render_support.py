@@ -52,10 +52,13 @@ Public API
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import math
 import os
 import subprocess
 import tempfile
+
+import numpy as np
 
 from pxr import Usd, UsdGeom, Sdf, Gf
 
@@ -551,3 +554,395 @@ def open_stage_with_representation(
             os.remove(session_layer_path)
         except OSError:
             pass
+
+
+# ---------------------------------------------------------------------------
+# Oriented orthographic camera: PCA-fitted framing off ARBITRARY world-space
+# axes, for a figure whose subject's longest axis is not the world X/Y/Z axes
+# (added for fig-composition -- see figures/README.md's "fig-composition"
+# entry). `author_camera()` above is left completely untouched: it always
+# looks down the world +Z axis and is what every earlier figure was verified
+# against, so nothing here changes its behavior or its callers.
+# ---------------------------------------------------------------------------
+
+def sphere_world_positions(
+    stage_path: str,
+    *,
+    root_path: str = DEFAULT_ROOT_PATH,
+    representation: str = "ballstick",
+) -> "dict[str, Gf.Vec3d]":
+    """Return ``{prim_path_str: world_position}`` for every ``Sphere`` prim
+    under ``root_path``, on a FRESH stage opened with ``representation``
+    selected via an in-memory session layer (never touches the committed
+    file -- same discipline as :func:`open_stage_with_representation`).
+
+    World position is each Sphere's own local-to-world translation (via
+    ``UsdGeom.XformCache``), i.e. the atom center -- exactly the point cloud
+    a PCA/bounding computation over "the atoms" should use.
+    """
+    stage = open_stage_with_representation(
+        stage_path, representation, root_path=root_path,
+    )
+    root_prim = stage.GetPrimAtPath(root_path)
+    if not root_prim.IsValid():
+        raise ValueError(f"{root_path!r} not found on {stage_path!r}")
+
+    xf_cache = UsdGeom.XformCache()
+    positions: "dict[str, Gf.Vec3d]" = {}
+    for prim in Usd.PrimRange(root_prim):
+        if prim.GetTypeName() == "Sphere":
+            world = xf_cache.GetLocalToWorldTransform(prim)
+            t = world.ExtractTranslation()
+            positions[str(prim.GetPath())] = Gf.Vec3d(t[0], t[1], t[2])
+    return positions
+
+
+def cylinder_prim_paths(
+    stage_path: str,
+    *,
+    root_path: str = DEFAULT_ROOT_PATH,
+    representation: str = "ballstick",
+) -> "list[str]":
+    """Return the prim path (as ``str``) of every ``Cylinder`` prim under
+    ``root_path``, on a fresh stage opened with ``representation`` selected
+    (never touches the committed file).
+
+    Unlike atoms (which all ``inherits`` a shared ``/_class_/<element>``
+    template, so one override on the class recolors every atom of that
+    element at once), bond Cylinders have NO shared class -- each is
+    authored with its own direct ``displayColor`` opinion
+    (``builders/build_assembly.py:create_bond_geometry``). Recoloring bonds
+    therefore means one override per bond path; this is the discovery step
+    for that.
+    """
+    stage = open_stage_with_representation(
+        stage_path, representation, root_path=root_path,
+    )
+    root_prim = stage.GetPrimAtPath(root_path)
+    if not root_prim.IsValid():
+        raise ValueError(f"{root_path!r} not found on {stage_path!r}")
+    return [
+        str(prim.GetPath())
+        for prim in Usd.PrimRange(root_prim)
+        if prim.GetTypeName() == "Cylinder"
+    ]
+
+
+@dataclasses.dataclass(frozen=True)
+class PrincipalFrame:
+    """An orthonormal world-space camera basis fitted to a point cloud by
+    PCA, plus the real (measured, not assumed) extents along it.
+
+    ``right``/``up``/``backward`` are unit ``Gf.Vec3d``, mutually orthogonal,
+    and right-handed (``backward == right ^ up``, exactly -- constructed via
+    the cross product rather than taken as-is from the third singular
+    vector, so the handedness is correct by construction rather than by
+    the sign SVD happens to return). ``right`` is the LARGEST-extent
+    principal axis, ``up`` the second largest, ``backward`` the smallest
+    -- i.e. the shape's "thinnest" direction is what points at the camera,
+    which is exactly what a wide, shallow poster frame wants: the two
+    biggest extents get the two frame dimensions, and the smallest, least
+    useful-to-see extent is spent on depth instead.
+    """
+
+    center: Gf.Vec3d
+    right: Gf.Vec3d
+    up: Gf.Vec3d
+    backward: Gf.Vec3d
+    right_extent: float
+    up_extent: float
+    backward_extent: float
+
+
+def compute_principal_frame(
+    positions: "dict[str, Gf.Vec3d]",
+    subset_prefix: "str | None" = None,
+) -> PrincipalFrame:
+    """PCA (via SVD, numpy) over the world positions in ``positions``
+    (as returned by :func:`sphere_world_positions`), optionally restricted
+    to paths equal to or nested under ``subset_prefix`` (e.g. a chain path,
+    to fit the camera to one chain's shape while the render still shows
+    everything else in the stage that falls inside the resulting frame).
+
+    Raises:
+        ValueError: if the (possibly subset) point cloud is empty.
+    """
+    if subset_prefix is not None:
+        pts = [
+            v for path, v in positions.items()
+            if path == subset_prefix or path.startswith(subset_prefix + "/")
+        ]
+    else:
+        pts = list(positions.values())
+    if not pts:
+        raise ValueError(
+            f"no Sphere positions found under subset_prefix={subset_prefix!r}"
+        )
+
+    arr = np.array([[v[0], v[1], v[2]] for v in pts], dtype=float)
+    center = arr.mean(axis=0)
+    centered = arr - center
+
+    # SVD on the centered point cloud: right singular vectors (rows of vt)
+    # are the principal axes, sorted by descending variance/extent.
+    _, _, vt = np.linalg.svd(centered, full_matrices=False)
+    right_np, up_np = vt[0], vt[1]
+    right_np = right_np / np.linalg.norm(right_np)
+    # Re-orthogonalize up against right defensively (SVD already returns
+    # orthonormal rows to float precision, but this costs nothing and
+    # removes any doubt).
+    up_np = up_np - np.dot(up_np, right_np) * right_np
+    up_np = up_np / np.linalg.norm(up_np)
+    backward_np = np.cross(right_np, up_np)
+    backward_np = backward_np / np.linalg.norm(backward_np)
+
+    basis = np.array([right_np, up_np, backward_np])
+    proj = centered @ basis.T
+    extents = proj.max(axis=0) - proj.min(axis=0)
+
+    return PrincipalFrame(
+        center=Gf.Vec3d(*[float(x) for x in center]),
+        right=Gf.Vec3d(*[float(x) for x in right_np]),
+        up=Gf.Vec3d(*[float(x) for x in up_np]),
+        backward=Gf.Vec3d(*[float(x) for x in backward_np]),
+        right_extent=float(extents[0]),
+        up_extent=float(extents[1]),
+        backward_extent=float(extents[2]),
+    )
+
+
+def author_oriented_orthographic_camera(
+    session_layer_path: str,
+    frame: PrincipalFrame,
+    aperture_ratio: float = POSTER_APERTURE_RATIO,
+    *,
+    camera_path: str = DEFAULT_CAMERA_PATH,
+    padding: float = 1.15,
+    center_override: "Gf.Vec3d | None" = None,
+) -> str:
+    """Author an ORTHOGRAPHIC ``UsdGeomCamera`` into ``session_layer_path``,
+    positioned at ``frame``'s center (or ``center_override``) and ORIENTED
+    so that local camera X/Y/Z map to ``frame.right`` / ``frame.up`` /
+    ``frame.backward`` in world space -- i.e. the image's horizontal and
+    vertical axes are whatever ``frame`` says they are, not necessarily the
+    world X/Y axes. This is what lets a figure align a subject's actual
+    longest axis with the frame's wide dimension instead of being stuck
+    with however the geometry happened to be authored.
+
+    Orthographic, not perspective: a parallel projection has ZERO
+    perspective distortion anywhere in frame by construction (every ray is
+    parallel), which sidesteps entirely the wide-lens distortion documented
+    in RENDER_NOTES.md #7(b) for ``author_camera``'s default 50-degree-FOV
+    perspective camera -- there is no "off-axis" penalty to worry about,
+    which matters here because filling more of a very wide (3.3336:1)
+    frame necessarily pushes more content toward the horizontal edges.
+
+    Framing fits BOTH in-plane extents (``frame.right_extent``,
+    ``frame.up_extent``) into the aperture at ``aperture_ratio`` -- the same
+    "fit by the binding dimension" logic as :func:`author_camera`, except
+    the depth (``backward_extent``) extent is NOT folded in as a safety
+    margin: for an orthographic camera looking exactly down its own
+    backward axis, depth cannot affect what is visible in frame (there is
+    no perspective foreshortening to guard against), so including it would
+    only waste frame area that could otherwise go to width fill.
+
+    Aperture-unit calibration (verified against this OpenUSD build's own
+    ``Gf.Camera``, not assumed or guessed): an orthographic
+    ``UsdGeomCamera``'s visible world-space window is exactly
+    ``(horizontalAperture / 10, verticalAperture / 10)`` -- confirmed via
+    ``UsdGeom.Camera.GetCamera(...).frustum.GetWindow()`` on this build,
+    independent of the stage's ``metersPerUnit``.
+
+    Returns:
+        ``camera_path``.
+    """
+    half_height = max(
+        frame.up_extent / 2.0,
+        frame.right_extent / (2.0 * aperture_ratio),
+    )
+    va_world = 2.0 * half_height * padding
+    ha_world = va_world * aperture_ratio
+
+    # Depth doesn't affect framing (see docstring), but the camera still
+    # needs to sit outside the subject and the clipping range still needs
+    # to comfortably contain it.
+    distance = max(frame.right_extent, frame.up_extent, frame.backward_extent) * 2.0 + 10.0
+
+    if os.path.exists(session_layer_path):
+        layer = Sdf.Layer.FindOrOpen(session_layer_path)
+    else:
+        layer = Sdf.Layer.CreateNew(session_layer_path)
+    stage = Usd.Stage.Open(layer)
+
+    camera = UsdGeom.Camera.Define(stage, camera_path)
+    camera.CreateProjectionAttr(UsdGeom.Tokens.orthographic)
+    # UsdGeomCamera's aperture attrs are schema-typed `float` (32-bit), so
+    # the float64 values computed above get silently downcast on Set().
+    # Confirmed empirically on this build: for arbitrary (non-round)
+    # va_world/ha_world magnitudes -- unlike author_camera()'s fixed,
+    # binary-friendly vertical_aperture_mm=20.0 -- that downcast can land
+    # the float32 aperture RATIO on the wrong side of an integer pixel
+    # boundary (measured: 2560/ratio32 = 767.99996, one ulp short of 768,
+    # which usdrecord's TRUNCATING width/height division then floors to
+    # 767 instead of 768). A relative nudge of 1e-6 on the vertical
+    # aperture only (the height gets very slightly MORE generous, never
+    # less -- so this can only relax the frame, never clip it) reliably
+    # pushes the truncated result back to exactly the target height with
+    # comfortable margin (measured: 768.0007). See figures/README.md's
+    # "fig-composition" entry for the full reproduction.
+    _APERTURE_F32_SAFETY_NUDGE = 1.0 + 1e-6
+    camera.CreateHorizontalApertureAttr(ha_world * 10.0)
+    camera.CreateVerticalApertureAttr(va_world * 10.0 * _APERTURE_F32_SAFETY_NUDGE)
+    camera.CreateClippingRangeAttr(
+        Gf.Vec2f(0.1, float(distance * 2.0 + frame.backward_extent + 10.0))
+    )
+
+    center = center_override if center_override is not None else frame.center
+    cam_pos = center + frame.backward * distance
+
+    # Row-vector convention (USD's own): row i of the rotation submatrix is
+    # where LOCAL axis i maps to in world space. Verified empirically against
+    # this build with a 3-sphere asymmetric probe (right -> +image-X,
+    # up -> +image-Y) before use here -- see the fig-composition provenance
+    # notes for the reproduction recipe.
+    rot = Gf.Matrix3d(
+        frame.right[0], frame.right[1], frame.right[2],
+        frame.up[0], frame.up[1], frame.up[2],
+        frame.backward[0], frame.backward[1], frame.backward[2],
+    )
+    xform_matrix = Gf.Matrix4d(rot, Gf.Vec3d(cam_pos))
+
+    xformable = UsdGeom.Xformable(camera.GetPrim())
+    xformable.ClearXformOpOrder()
+    xformable.AddTransformOp().Set(xform_matrix)
+
+    stage.GetRootLayer().Save()
+    return camera_path
+
+
+def build_oriented_render_session_layer(
+    representation: str,
+    frame: PrincipalFrame,
+    aperture_ratio: float = POSTER_APERTURE_RATIO,
+    *,
+    root_path: str = DEFAULT_ROOT_PATH,
+    display_color_overrides: "dict | None" = None,
+    camera_path: str = DEFAULT_CAMERA_PATH,
+    padding: float = 1.15,
+    center_override: "Gf.Vec3d | None" = None,
+    out_path: "str | None" = None,
+) -> "tuple[str, str]":
+    """Like :func:`build_render_session_layer`, but combining the
+    representation selection with an oriented ORTHOGRAPHIC camera (see
+    :func:`author_oriented_orthographic_camera`) instead of
+    :func:`author_camera`'s fixed look-down-world-Z perspective camera.
+    Same exception-safety discipline: the temp file is removed if either
+    authoring step raises (:func:`_temp_session_layer_path`).
+
+    Returns:
+        (session_layer_path, camera_path)
+    """
+    with _temp_session_layer_path(out_path) as session_layer_path:
+        build_representation_session_layer(
+            representation,
+            root_path=root_path,
+            display_color_overrides=display_color_overrides,
+            out_path=session_layer_path,
+        )
+        author_oriented_orthographic_camera(
+            session_layer_path,
+            frame,
+            aperture_ratio,
+            camera_path=camera_path,
+            padding=padding,
+            center_override=center_override,
+        )
+    return session_layer_path, camera_path
+
+
+def render_oriented(
+    stage_path: str,
+    out_png: str,
+    width: int,
+    representation: str,
+    frame: PrincipalFrame,
+    *,
+    aperture_ratio: float = POSTER_APERTURE_RATIO,
+    root_path: str = DEFAULT_ROOT_PATH,
+    display_color_overrides: "dict | None" = None,
+    camera_path: str = DEFAULT_CAMERA_PATH,
+    padding: float = 1.15,
+    center_override: "Gf.Vec3d | None" = None,
+    complexity: str = "high",
+    renderer: str = "Storm",
+    timeout: int = 180,
+    keep_session_layer: bool = False,
+) -> str:
+    """Like :func:`render`, but with an oriented ORTHOGRAPHIC camera instead
+    of the fixed look-down-world-Z perspective camera :func:`author_camera`
+    builds -- see :func:`author_oriented_orthographic_camera`.
+
+    Mirrors :func:`render`'s exact structure: build the combined session
+    layer, invoke the ABSOLUTE-path ``usdrecord``, clean up the temp session
+    layer in a ``finally`` (success or failure), and raise
+    :class:`RenderError` if the process exits non-zero OR the output file
+    is missing afterward.
+    """
+    if not os.path.isfile(USDRECORD):
+        raise RenderError(
+            f"usdrecord not found at the pinned absolute path {USDRECORD!r}. "
+            f"Do NOT fall back to a bare 'usdrecord' on PATH -- on this "
+            f"machine that resolves to /usr/bin/usdrecord, Apple's "
+            f"Metal-only USD 0.25.2 stub, a different build entirely."
+        )
+
+    out_dir = os.path.dirname(os.path.abspath(out_png))
+    os.makedirs(out_dir, exist_ok=True)
+
+    session_layer_path, cam_path = build_oriented_render_session_layer(
+        representation,
+        frame,
+        aperture_ratio,
+        root_path=root_path,
+        display_color_overrides=display_color_overrides,
+        camera_path=camera_path,
+        padding=padding,
+        center_override=center_override,
+    )
+
+    cmd = [
+        USDRECORD,
+        "--renderer", renderer,
+        "--sessionLayer", session_layer_path,
+        "--camera", cam_path,
+        "--imageWidth", str(width),
+        "--complexity", complexity,
+    ]
+    cmd += [stage_path, out_png]
+
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=timeout, check=False,
+        )
+    finally:
+        if not keep_session_layer:
+            try:
+                os.remove(session_layer_path)
+            except OSError:
+                pass
+
+    if result.returncode != 0:
+        raise RenderError(
+            f"usdrecord exited {result.returncode}.\n"
+            f"cmd: {' '.join(cmd)}\n"
+            f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        )
+
+    if not os.path.isfile(out_png):
+        raise RenderError(
+            f"usdrecord exited 0 but did not produce {out_png!r}.\n"
+            f"cmd: {' '.join(cmd)}\n"
+            f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        )
+
+    return out_png
