@@ -128,6 +128,51 @@ def _read_prob_series(stage: Usd.Stage, variant: str) -> Tuple[List[int], List[f
     return frames, values
 
 
+def _find_mean_crossings(frames: List[int], values: List[float], mean: float) -> List[int]:
+    """Return every frame at which ``values`` crosses ``mean``.
+
+    A "crossing" is a sign change of ``value - mean`` between two
+    consecutive frames; the reported frame is whichever of the two
+    straddling frames has the value closer to ``mean`` (an exact `0`
+    difference at a sample is reported directly). Frames are returned in
+    ascending order, so ``result[-1]`` is the LAST time the series is at
+    its own mean and ``result[0]`` is the first.
+
+    Used to place each curve's direct label where the curve's value
+    actually equals the number being printed, instead of at the curve's
+    endpoint (which, for a non-monotonic series, can be arbitrarily far
+    from the mean -- see the fig-curves adversarial-review fix this
+    function exists for).
+    """
+    diffs = [v - mean for v in values]
+    crossings: List[int] = []
+    for i in range(len(diffs) - 1):
+        a, b = diffs[i], diffs[i + 1]
+        if a == 0:
+            crossings.append(frames[i])
+        elif (a < 0) != (b < 0):
+            crossings.append(frames[i] if abs(a) <= abs(b) else frames[i + 1])
+    return crossings
+
+
+def _pt_to_data_span(size_pt: float, ax, axis: str) -> float:
+    """Convert a physical point size to a span in data units along `axis`.
+
+    Same conversion as ``make_poster_figures.pt_to_data``, but without that
+    function's 22pt text-floor check -- this is used for a line's stroke
+    half-width, not a text size, so the floor does not apply.
+    """
+    fig = ax.figure
+    inches = size_pt / 72.0
+    px = inches * fig.dpi
+    inv = ax.transData.inverted()
+    if axis == "y":
+        (_, y0), (_, y1) = inv.transform((0, 0)), inv.transform((0, px))
+        return abs(y1 - y0)
+    (x0, _), (x1, _) = inv.transform((0, 0)), inv.transform((px, 0))
+    return abs(x1 - x0)
+
+
 def _stored_time_average(stage: Usd.Stage, variant: str) -> float:
     """Read the independently-computed ``bio:maboss:p53TimeAverage`` scalar
     for one variant, from the integrated demo layer (not the analysis layer
@@ -247,10 +292,8 @@ def build_fig_curves(theme: Theme, out_dir: str) -> str:
         zorder=3,
     )
 
-    # x domain extends past the last real frame (499) purely to reserve
-    # in-axes room for the direct labels -- no data is plotted out there.
     last_frame = wt_frames[-1]
-    ax.set_xlim(0, last_frame + 62)
+    ax.set_xlim(-8, last_frame + 20)
     ax.set_ylim(-4, 104)
     ax.set_xticks([0, last_frame // 2, last_frame])
     ax.set_yticks([0, 50, 100])
@@ -278,19 +321,205 @@ def build_fig_curves(theme: Theme, out_dir: str) -> str:
         ha="left", va="bottom", clip_on=False,
     )
 
-    # Direct labels, adjacent to each curve's terminal point -- not a
-    # legend, not an axis annotation, and no bracket/arrow between them.
-    label_x = last_frame + 18
-    ax.text(
-        label_x, wt_pct_series[-1], f"{display_pct['WildType']} %",
-        color=theme.ink, fontsize=type_pt(24), fontweight="normal",
-        va="center", ha="left", clip_on=False,
+    # ------------------------------------------------------------------
+    # Direct labels -- adjacent to each curve, positioned where the curve's
+    # value actually EQUALS the printed number (its own time-average), not
+    # at the curve's endpoint. An earlier version of this figure labelled
+    # both curves at frame 499 (the right-hand end). W23A ends near its
+    # mean (84% vs a labelled 86%, 2.3pp off) but WildType does not (7% vs
+    # a labelled 31%, 24pp off) -- an end-of-line label reads as an
+    # endpoint value, so that placement silently overstated WildType's
+    # steady-state level by a factor of ~4.4, and asymmetrically: the
+    # near-honest W23A label calibrated the eye to read the WildType one
+    # the same wrong way. Both series do cross their own recomputed mean
+    # inside the plotted range (never hardcoded -- see
+    # ``_find_mean_crossings``); each label is placed at the LATER such
+    # crossing, with a small rightward nudge so the text starts just clear
+    # of the line stroke rather than sitting on top of it, falling back to
+    # the earlier crossing if the later one turns out to collide with
+    # something once actually rendered.
+    # ------------------------------------------------------------------
+    mean_crossings: Dict[str, List[int]] = {}
+    for variant in _VARIANTS:
+        frames, values = series[variant]
+        crossings = _find_mean_crossings(frames, values, recomputed_means[variant])
+        if not crossings:
+            # Not observed in this data (both series do cross their own
+            # mean), but keep a well-defined fallback rather than raising:
+            # the single frame whose value is nearest the mean.
+            nearest = min(range(len(frames)), key=lambda i: abs(values[i] - recomputed_means[variant]))
+            crossings = [frames[nearest]]
+        mean_crossings[variant] = crossings
+        prov(
+            crossings,
+            note=f"{variant}: frame(s) where the curve crosses its own recomputed "
+            f"mean (label is placed at the later one)",
+        )
+        print(f"[fig-curves] {variant}: mean-crossing frames={crossings}")
+
+    # At the 22pt floor, a label's rendered text is tall relative to this
+    # figure's y-range -- an analytic "how much room is there" estimate
+    # turned out to understate how close a curve stays to its own mean
+    # crossing (a hairline collision showed up against the label's OWN
+    # curve when checked). Rather than refine that estimate further, this
+    # places each label empirically: draw it, measure its ACTUAL rendered
+    # bounding box with the real renderer and real font metrics, check that
+    # box in data space against every sampled point of both curves (padded
+    # by each curve's own stroke half-width), and nudge it further away and
+    # re-measure if it doesn't clear -- so "does it collide" is answered by
+    # rendering, not by a formula.
+    label_x_gap_frames = 14
+    ink_halfwidth_pct = 0.5 * _pt_to_data_span(_LINEWIDTH_WT, ax, axis="y")
+    accent_halfwidth_pct = 0.5 * _pt_to_data_span(_LINEWIDTH_W23A, ax, axis="y")
+    curve_halfwidth_pct = {"WildType": ink_halfwidth_pct, "W23A": accent_halfwidth_pct}
+    visual_gap_pct = 1.5
+
+    def _other_variant(variant: str) -> str:
+        return _VARIANTS[1] if variant == _VARIANTS[0] else _VARIANTS[0]
+
+    def _bbox_to_data_rect(artist):
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        bbox = artist.get_window_extent(renderer=renderer)
+        inv = ax.transData.inverted()
+        (dx0, dy0) = inv.transform((bbox.x0, bbox.y0))
+        (dx1, dy1) = inv.transform((bbox.x1, bbox.y1))
+        return min(dx0, dx1), max(dx0, dx1), min(dy0, dy1), max(dy0, dy1)
+
+    def _rect_hits_curve(which: str, x0: float, x1: float, y0: float, y1: float) -> bool:
+        pad = curve_halfwidth_pct[which]
+        c_frames, c_values = series[which]
+        for f, v in zip(c_frames, c_values):
+            if x0 <= f <= x1 and (y0 - pad) <= v * 100.0 <= (y1 + pad):
+                return True
+        return False
+
+    # The label must stay within the plotted quantity's own range -- letting
+    # it wander into the (-4, 104) padding ax.set_ylim() carries for visual
+    # breathing room would mean straddling or crossing the axis spine
+    # (drawn at the ylim edges), which the brief explicitly rules out
+    # ("keep them clear of the axis").
+    _label_y_bounds = (0.0, 100.0)
+
+    def _try_side(variant: str, other: str, x: float, own_pct: float, va: str, max_iterations: int):
+        """Attempt to settle a label on one side (va='bottom' places the
+        text above the anchor value, va='top' places it below), nudging
+        further away each iteration it still overlaps a curve. Returns
+        ``(artist, y, iterations_used)`` on success, else ``None`` (and
+        removes the artist it created)."""
+        pad0 = curve_halfwidth_pct[variant] + visual_gap_pct
+        y = own_pct + pad0 if va == "bottom" else own_pct - pad0
+        color = theme.ink if variant == "WildType" else theme.accent
+        weight = "normal" if variant == "WildType" else "bold"
+        artist = ax.text(
+            x, y, f"{display_pct[variant]} %",
+            color=color, fontsize=type_pt(24), fontweight=weight,
+            va=va, ha="left", clip_on=False,
+        )
+        for iteration in range(max_iterations):
+            x0, x1, y0, y1 = _bbox_to_data_rect(artist)
+            out_of_bounds = y0 < _label_y_bounds[0] or y1 > _label_y_bounds[1]
+            hit_other = _rect_hits_curve(other, x0, x1, y0, y1)
+            hit_own = _rect_hits_curve(variant, x0, x1, y0, y1)
+            print(
+                f"[fig-curves] {variant} frame_x={x:.0f} va={va!r} iter={iteration}: "
+                f"bbox_data=({x0:.1f},{y0:.2f})-({x1:.1f},{y1:.2f}) "
+                f"hit_other={hit_other} hit_own={hit_own} out_of_bounds={out_of_bounds}"
+            )
+            if out_of_bounds:
+                artist.remove()
+                return None
+            if not (hit_other or hit_own):
+                return artist, y, iteration
+            step = 0.35 * (y1 - y0)
+            y += -step if va == "top" else step
+            artist.set_position((x, y))
+        artist.remove()
+        return None
+
+    def _place_and_settle(variant: str, frame: int, max_iterations: int = 12):
+        """Draw `variant`'s label at `frame`, trying both sides (above and
+        below the curve) and keeping whichever one settles clear of both
+        curves and the axis range using the fewest nudges -- i.e. the side
+        with genuinely more room, rather than a guessed direction. Returns
+        ``(artist, x, y, va)`` or ``None`` if neither side ever works."""
+        frames, values = series[variant]
+        idx = frames.index(frame)
+        own_pct = values[idx] * 100.0
+        x = frame + label_x_gap_frames
+        other = _other_variant(variant)
+
+        candidates = []
+        for va in ("bottom", "top"):
+            result = _try_side(variant, other, x, own_pct, va, max_iterations)
+            if result is not None:
+                artist, y, iterations = result
+                candidates.append((iterations, artist, y, va))
+
+        if not candidates:
+            return None
+        candidates.sort(key=lambda c: c[0])  # fewest nudges = most natural fit
+        _iterations, artist, y, va = candidates[0]
+        for _iterations, other_artist, _y, _va in candidates[1:]:
+            other_artist.remove()
+        return artist, x, y, va
+
+    chosen_frame: Dict[str, int] = {}
+    label_artists: List = []
+    for variant in _VARIANTS:
+        crossings = mean_crossings[variant]
+        result = None
+        for candidate in (crossings[-1], crossings[0]):
+            result = _place_and_settle(variant, candidate)
+            if result is not None:
+                chosen_frame[variant] = candidate
+                if candidate != crossings[-1]:
+                    print(
+                        f"[fig-curves] {variant}: later crossing frame "
+                        f"{crossings[-1]} never cleared both curves within "
+                        f"the iteration budget; using the earlier crossing "
+                        f"frame {candidate} instead."
+                    )
+                break
+            if candidate == crossings[0] and len(crossings) == 1:
+                break  # only one crossing exists; nothing left to try
+        if result is None:
+            raise AssertionError(
+                f"fig-curves: could not find a label position for {variant} that "
+                f"clears both curves at either mean-crossing frame "
+                f"{crossings} within the iteration budget -- a genuinely "
+                f"unworkable layout, per the job brief, is reported rather than "
+                f"silently shipped as an endpoint label."
+            )
+        artist, x, y, va = result
+        label_artists.append(artist)
+        print(
+            f"[fig-curves] {variant}: FINAL label at frame {chosen_frame[variant]}, "
+            f"x={x:.0f} y={y:.2f}% va={va!r}"
+        )
+
+    # Verify at final print size (real renderer, real font metrics): the two
+    # labels neither collide with each other nor run off the canvas.
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    fig_w_px, fig_h_px = fig.get_size_inches() * fig.dpi
+    bboxes = [a.get_window_extent(renderer=renderer) for a in label_artists]
+    mutual_overlap = bboxes[0].overlaps(bboxes[1])
+    overflow = [
+        (bb.x0 < 0 or bb.x1 > fig_w_px or bb.y0 < 0 or bb.y1 > fig_h_px)
+        for bb in bboxes
+    ]
+    print(
+        f"[fig-curves] label collision check: mutual_overlap={mutual_overlap} "
+        f"overflow={dict(zip(_VARIANTS, overflow))}"
     )
-    ax.text(
-        label_x, w23a_pct_series[-1], f"{display_pct['W23A']} %",
-        color=theme.accent, fontsize=type_pt(24), fontweight="bold",
-        va="center", ha="left", clip_on=False,
-    )
+    if mutual_overlap or any(overflow):
+        raise AssertionError(
+            "fig-curves: the two direct labels collide with each other or run "
+            f"off the canvas at final print size (mutual_overlap={mutual_overlap}, "
+            f"overflow={dict(zip(_VARIANTS, overflow))}); the mean-crossing "
+            "placement needs a different offset, not a fallback to endpoint labels."
+        )
 
     out_path = os.path.join(out_dir, "fig-curves.svg")
     save_figure(fig, out_path, ext="svg")
