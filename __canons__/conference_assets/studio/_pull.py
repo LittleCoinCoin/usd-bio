@@ -4,7 +4,7 @@ Recover DesignSync get_file payloads byte-exactly from the Claude Code session t
 
     ./_pull.py --list                    what is recoverable
     ./_pull.py --out _pristine           write every payload under _pristine/
-    ./_pull.py --diff                    diff recovered originals against what is on disk
+    ./_pull.py --diff                    diff the LAST FETCHED copy against what is on disk
 
 WHY THIS EXISTS
 `DesignSync.get_file` returns a file's contents into the assistant's context. Writing that
@@ -20,6 +20,16 @@ Nothing is retyped, and the bytes are exactly what the server sent.
 
 The transcript is JSONL with tool results embedded as escaped strings, so this brace-matches
 the `{"method":"get_file",...}` object out of each line rather than assuming a fixed shape.
+
+IMPORTANT — WHAT --diff ACTUALLY COMPARES
+The baseline is the last copy that was FETCHED, not the live project. After pushing local
+changes, the transcript still holds the pre-push bytes, so --diff reports drift for files that
+now match online exactly. Re-fetch those paths with DesignSync.get_file to refresh the baseline
+before trusting a drift report taken after a push.
+
+Likewise, a path the baseline knows but that exists in neither place any more is reported as
+"not fetched since deletion" rather than MISSING — deleting a file on both sides is a correct
+end state, not an absence to go fix.
 """
 
 from __future__ import annotations
@@ -159,7 +169,9 @@ def main() -> int:
         for p, c in sorted(found.items()):
             dest = local_path(p)
             if not dest.exists():
-                print(f"  MISSING  {p}")
+                # Absent locally. This is the expected state for a path deleted on BOTH sides;
+                # the baseline is simply older than the deletion.
+                print(f"  absent locally (baseline predates deletion?)  {p}")
                 missing += 1
                 continue
             cur = dest.read_text(encoding="utf-8")
@@ -171,9 +183,12 @@ def main() -> int:
                                               "online", "local", lineterm="", n=0))
                 adds = sum(1 for x in d if x.startswith("+") and not x.startswith("+++"))
                 dels = sum(1 for x in d if x.startswith("-") and not x.startswith("---"))
-                print(f"  DRIFT     {p}  (+{adds} / -{dels} lines vs online)")
+                print(f"  DIFFERS   {p}  (+{adds} / -{dels} vs last fetch)")
                 drift += 1
-        print(f"\n{clean} identical · {drift} locally modified · {missing} not yet on disk")
+        print(f"\n{clean} identical · {drift} differ from last fetch · {missing} absent locally")
+        if drift or missing:
+            print("NOTE: the baseline is the last FETCHED copy, not live online. After a push,"
+                  "\n      re-fetch before treating these as real drift.")
     return 0
 
 
