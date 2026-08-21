@@ -1,0 +1,8 @@
+{
+  "projectId": "5211a9a7-0a28-4b19-af35-bd84e6721146",
+  "projectName": "Poster & Flash Talk System",
+  "shape": "off-script",
+  "sourceDir": "__canons__/conference_assets",
+  "buildCommand": "python3 __canons__/conference_assets/library/sync.py",
+  "distDir": "__canons__/conference_assets/library/dist"
+}
