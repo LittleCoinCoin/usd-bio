@@ -1,0 +1,246 @@
+/* =====================================================================
+   conference_assets — TOKEN VOCABULARY  (v1)
+
+   The abstract class. Atoms only — vocabulary, not behaviour.
+   Component rules live in components.css; nothing here selects an element
+   except the :root that declares the tokens.
+
+   ---------------------------------------------------------------------
+   WARRANT TAGS — what licenses each value.
+
+     [geometry] parsed out of Morrison's own PPTX (OOXML). A measurement of
+                an artifact: tells you what he did, NOT that it is good.
+     [morrison] Morrison asserts this (slide text, guide, FAQ). AUTHORITY,
+                not evidence. Ranks equal to [house] — weigh it as taste.
+     [field]    Oronje et al. 2022 field studies (n=59, n=95). PREFERENCE
+                data, not learning outcomes.
+     [rct]      Lewis et al. 2025 (n=94). Randomised WHOLE POSTERS, so it
+                warrants the format as a bundle and never a single rule.
+                Null on overall transfer; positive only on a 2-item measure
+                at immediate post-test. No retention evidence exists.
+     [ae]       Alley Assertion-Evidence checklist. The best-evidenced
+                material here: independently replicated (Sripradith 2023),
+                with delayed-retention gains.
+     [optics]   derived from visual-angle arithmetic. Physical and
+                checkable — recompute it yourself and disagree.
+     [house]    our choice, no external warrant. Override freely.
+
+   Independence asymmetry, stated plainly because it should change your
+   confidence: Morrison co-authors the field study, the eye-tracking pilot
+   (published in his own outlet), and the dataviz commentary. The only two
+   INDEPENDENT studies in the corpus are Lewis 2025 (posters — essentially
+   null) and Sripradith 2023 (AE slides — positive). Trust §slide rules
+   more than §poster rules.
+   ===================================================================== */
+
+:root {
+
+  /* -------------------------------------------------------------------
+     1. CANVAS — closed set. Three surfaces, no fourth.
+     Morrison's landscape template is 1372x914mm (US 54x36in), NOT A0, so
+     percentage grids derived from it do not transfer. [geometry]
+     ------------------------------------------------------------------- */
+  --canvas-a0-portrait-w: 841mm;
+  --canvas-a0-portrait-h: 1189mm;
+  --canvas-a0-landscape-w: 1189mm;
+  --canvas-a0-landscape-h: 841mm;
+  --canvas-slide-w: 338.7mm;   /* 16:9 */
+  --canvas-slide-h: 190.5mm;
+
+  --margin-poster: 48mm;       /* ~5.7% of 841mm, matching his inset [geometry] */
+  --margin-slide: 12mm;
+
+  /* Bleed for shops that trim. Default 0 = roll print, no trim.
+     Full-bleed bands to a hard trim edge leave white slivers without it. */
+  --bleed: 0mm;
+
+  /* -------------------------------------------------------------------
+     2. TYPE — ABSOLUTE, never proportional to the sheet.
+
+     Legibility is visual angle: the hall sets the viewing distance, not
+     the paper. So glyph height must not change when the sheet rotates.
+     This is the correction that makes one token file serve both
+     orientations, and it is why Morrison's percentages break off-canvas.
+
+     Physical values (Lato: cap 0.7165em; 1pt = 0.3528mm), and the distance
+     at which each is COMFORTABLE by the 1:120 cap-height signage rule: [optics]
+
+       takeaway 120pt -> 30.3mm cap -> 3.6 m
+       section   72pt -> 18.2mm cap -> 2.2 m
+       title     60pt -> 15.2mm cap -> 1.8 m
+       body      36pt ->  9.1mm cap -> 1.1 m
+       caption   28pt ->  7.1mm cap -> 0.85 m
+       detail    20pt ->  5.1mm cap -> 0.6 m
+       micro     14pt ->  3.5mm cap -> 0.4 m
+
+     Those distances are the real justification for the dwell ladder: the
+     information tiers coincide with a reader's physical approach. The
+     ladder is NOT licensed by information-foraging theory (which models a
+     continuous patch-leaving process, not discrete rungs) — it is
+     licensed by optics. [optics]
+
+     Cross-check: Morrison's landscape 125-138pt on 1372mm scales to
+     108-120pt at 1189mm, so 120pt sits at the top of his own range. The
+     two methods converge. [geometry]
+     ------------------------------------------------------------------- */
+  --type-takeaway: 120pt;      /* 100-140pt sanctioned */
+  --type-section: 72pt;
+  --type-title: 60pt;
+  --type-body: 36pt;
+  --type-caption: 28pt;
+  --type-detail: 20pt;
+  --type-micro: 14pt;
+
+  /* Compact billboard, for evidence-weighted layouts. Was a hard-coded
+     92pt in the portrait template; now part of the scale. */
+  --type-takeaway-compact: 92pt;
+
+  /* Slide scale. Separate because a projected slide is read at a
+     different distance than a printed sheet — the same argument that
+     justifies the absolute poster scale. Alley's checklist verbatim. [ae] */
+  --type-ae-assertion: 28pt;
+  --type-ae-body: 22pt;        /* 18-24pt sanctioned */
+  --type-ae-ref: 13pt;         /* 12-14pt, never bold */
+
+  --leading-display: 0.95;
+  --leading-prose: 1.30;
+  --leading-slide: 1.25;
+
+  /* Measure. These are TRUTHFUL: the silent bar geometry physically caps
+     at ~30ch, so promising 34 was a token that governed nothing. [optics] */
+  --measure-bar: 30ch;         /* silent presenter bar */
+  --measure-lede: 58ch;        /* ~66 CPL, inside the 45-75 comfort band */
+
+  /* -------------------------------------------------------------------
+     3. TYPEFACES
+     Morrison used Segoe UI Black/Light and Lato Black. [geometry]
+     Sans-over-serif at distance is NOT supported by the legibility
+     literature — this is voice, not legibility. Do not defend it as such.
+     What IS load-bearing is the weight contrast: hierarchy rides on
+     weight and size, so it survives font fallback. [house]
+     ------------------------------------------------------------------- */
+  --font-display: "Lato Black", "Lato", "Segoe UI Black", "Inter", system-ui, sans-serif;
+  --font-prose: "Lato", "Segoe UI", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  --weight-display: 900;
+  --weight-strong: 700;
+  --weight-prose: 400;
+  --weight-light: 300;
+
+  /* -------------------------------------------------------------------
+     4. COLOUR — NINE role tokens, themed in PAIRS.
+
+     Every surface token has an ink token. Overriding one without the
+     other is the single commonest way to produce an unreadable poster
+     (set --panel to a pale institutional blue, keep white --panel-ink,
+     and the takeaway vanishes). Theme them together or not at all.
+
+       --paper / --ink        the main field
+       --field / --ink        tinted evidence panel (shares --ink)
+       --panel / --panel-ink  the band the takeaway sits in
+       --accent / --accent-ink   emphasis
+       --ink-soft             de-emphasised prose on --paper/--field
+       --rule                 hairlines, frames
+     ------------------------------------------------------------------- */
+  --ink: #17171B;
+  --ink-soft: #55555F;
+  --paper: #FFFFFF;
+  --field: #EEF3F6;
+  --panel: #1B1033;
+  --panel-ink: #FFFFFF;
+  --accent: #B34700;           /* on --paper: 5.9:1 */
+  --accent-ink: #FFFFFF;
+  /* DEFECT FIXED 2026-08-21. Was #C9D2D9 = 1.53:1 against white — the guidelines demand
+     >=3:1 for graphics, so every hairline and figure frame shipped at less than half the
+     floor. Value adopted from studio/01-theme-layer.html, which validates all six themes
+     at ~3.2:1. NOTE: still only 2.84:1 against --field, where figure frames actually sit;
+     see studio/PENDING-reconcile.md for the decorative-vs-data-graphic scoping question. */
+  --rule: #86929C;
+
+  /* Accent for use ON --panel. The paper accent is far too dark there:
+     #D55E00 on #1B1033 is 4.65:1 against white text at 17.97:1, which
+     makes the "emphasised" word the DIMMEST word in the line. This one
+     is 7.98:1. Colour alone still cannot carry emphasis — components.css
+     pairs it with an achromatic underline. [optics] */
+  --accent-on-panel: #E69F00;
+
+  /* Categorical scale — Okabe-Ito, colour-vision-deficiency safe.
+     REORDERED by contrast on --paper. Use in order; do not invent a 9th.
+
+     cat-1..5 are safe as lines, points, text, or fills.
+     cat-6..8 are FILL-ONLY and must carry an outline: on white they are
+     2.25:1, 2.31:1 and 1.32:1 — all below the 3:1 graphics floor, and
+     the yellow is effectively invisible as a stroke. [optics] */
+  --cat-1: #0072B2;   /* blue           4.5:1 */
+  --cat-2: #D55E00;   /* vermillion     4.9:1 */
+  --cat-3: #009E73;   /* bluish green   3.4:1 */
+  --cat-4: #CC79A7;   /* reddish purple 3.3:1 */
+  --cat-5: #17171B;   /* near-black    17.4:1 */
+  /* ---- fill-only below this line; always outline ---- */
+  --cat-6: #E69F00;   /* orange         2.25:1 */
+  --cat-7: #56B4E9;   /* sky blue       2.31:1 */
+  --cat-8: #F0E442;   /* yellow         1.32:1 */
+
+  /* -------------------------------------------------------------------
+     5. SPACE — one additive ladder (each rung = sum of the previous two).
+        8+12=20, 12+20=32, 20+32=52, 32+52=84.
+     ------------------------------------------------------------------- */
+  --space-0: 0;
+  --space-1: 8mm;
+  --space-2: 12mm;
+  --space-3: 20mm;
+  --space-4: 32mm;
+  --space-5: 52mm;
+  --space-6: 84mm;
+
+  /* Slide ladder. The poster ladder's rungs are absurd on a 338.7mm-wide
+     surface (--space-6 is a quarter of the slide). Same reasoning as the
+     separate type scale. 4+8=12, 8+12=20, 12+20=32. */
+  --slide-1: 4mm;
+  --slide-2: 8mm;
+  --slide-3: 12mm;   /* also Alley's half-inch headline gap (12.7mm) [ae] */
+  --slide-4: 20mm;
+  --slide-5: 32mm;
+
+  /* -------------------------------------------------------------------
+     6. ZONES
+     Fractions of the sheet. These are the ONLY proportional tokens: they
+     describe layout regions, which do scale with the canvas — unlike
+     type, which does not.
+     ------------------------------------------------------------------- */
+  --zone-silentbar: 23%;
+  /* Widened from Morrison's 19.3% [geometry]. At 21% of A0 landscape the
+     live column is 209mm => ~30 characters per line at 36pt, below every
+     classical minimum. 23% plus hyphenation lands ~36 CPL, matching what
+     his own 1372mm bar achieved. [optics] */
+
+  /* The takeaway band is sized to its CONTENT, not to a fixed fraction.
+     Morrison's 37.7% was co-calibrated with 125-138pt type on a 914mm-tall
+     canvas; porting the proportion while correctly shrinking the type to
+     120pt left a 317mm slab holding an 80mm text block. Proportion and
+     point size were a matched pair and must not be ported by different
+     rules. This floor keeps presence without stranding ~80mm that the
+     evidence zone needs. [optics] */
+  --zone-band-min: 28%;
+
+  /* Sanctioned slot for mandated institutional / funder logos. Zero by
+     default. Without an extension point, the first real deployment forks
+     the template and the base class dies. [house] */
+  --badge-h: 0mm;
+
+  /* QR. 158mm is Morrison's own portrait figure [geometry], well above the
+     4in minimum usually quoted; scan range scales with module size. */
+  --qr-size: 158mm;
+  --qr-size-min: 102mm;
+
+  --radius: 4mm;
+  --rule-weight: 0.6mm;
+  /* DECISION 2026-08-21 — there are deliberately TWO hairline weights.
+     --rule-weight (0.6mm) divides the SHEET: zone borders, figure frames, the title rule.
+     The chart kits use a finer 0.35mm hairline INSIDE a figure for gridlines and ticks.
+     They are different jobs at different viewing distances, so they are different numbers.
+     Kit comments used to claim the two were equal; that was simply wrong.
+     No CSS token is defined for the chart hairline — the kits are JS and never read CSS
+     custom properties, so a token here would be dead. It lives in STROKE.hair. */
+}

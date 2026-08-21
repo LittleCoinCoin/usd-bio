@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Posters" -->
+<!--
+  A0 PORTRAIT POSTER — 841 x 1189 mm
+  Layout only. Components live in components.css, atoms in tokens.css.
+
+  TOGGLES (on the .sheet element, all enumerated):
+    data-evidence  hero | grid      how much room the evidence gets
+    data-billboard full | compact   compact = 92pt, for evidence-weighted work
+    data-take      qr | url | contact | capture | none
+    data-proof     "grey" | "dwell" | any space-separated combination
+
+  CAVEAT, portrait-specific: this surface has NO silent presenter bar.
+  The single-column narrative means your body occludes the poster's middle
+  while you stand at it, and `data-stand` (the landscape mitigation) does
+  not apply here. Portrait forfeits the stand-alone-read guarantee — if
+  your conference permits landscape, prefer it.
+-->
+<title>A0 Portrait Poster</title>
+
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  @page { size: 841mm 1189mm; margin: 0; }
+  html, body { margin: 0; padding: 0; background: var(--paper); }
+
+  .sheet {
+    width: var(--canvas-a0-portrait-w);
+    height: var(--canvas-a0-portrait-h);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-prose);
+    font-weight: var(--weight-prose);
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    overflow: hidden;
+  }
+
+  .billboard { padding: var(--space-4) var(--margin-poster) var(--space-3); }
+
+  .titlestrip {
+    padding: var(--space-3) var(--margin-poster) var(--space-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-3);
+    border-bottom: var(--rule-weight) solid var(--rule);
+  }
+  .title {
+    font-size: var(--type-title);
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 62%;
+    line-height: var(--leading-prose);
+  }
+  .titlestrip .byline { font-size: var(--type-title); font-weight: var(--weight-light); text-align: right; margin: 0; }
+
+  .body {
+    padding: var(--space-3) var(--margin-poster);
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
+    gap: var(--space-4);
+    min-height: 0;
+  }
+
+  .lede { font-size: var(--type-body); line-height: var(--leading-prose); margin: 0; max-width: var(--measure-lede); }
+
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); min-height: 0; }
+  [data-evidence="grid"] .results { grid-template-columns: 1fr 1fr 1fr; }
+
+  .methods { display: grid; gap: var(--space-2); }
+
+  .footer {
+    background: var(--field);
+    padding: var(--space-3) var(--margin-poster);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .footer-text { font-size: var(--type-body); line-height: var(--leading-prose); }
+  .footer-text small { display: block; font-size: var(--type-micro); color: var(--ink-soft); margin-top: var(--space-1); }
+  .footer-text .big { font-size: var(--type-title); font-family: var(--font-display); font-weight: var(--weight-display); }
+  [data-take="none"] .footer { display: none; }
+  /* Surface validity: posters do not accept `poster` (slide-only). */
+  .sheet:not([data-take="qr"]):not([data-take="url"]):not([data-take="contact"]):not([data-take="capture"]):not([data-take="none"]) {
+    --config-error: "CONFIG ERROR: invalid data-take for a poster (use qr|url|contact|capture|none)";
+  }
+</style>
+
+<body>
+<div class="sheet" data-evidence="hero" data-billboard="full" data-take="qr">
+
+  <!-- ============ 5 SECONDS — legible at 3.6 m ============ -->
+  <header class="billboard" data-dwell="5s">
+    <h1 class="takeaway">
+      One sentence. Plain language. The <em>finding</em>, not the topic.
+    </h1>
+  </header>
+
+  <div class="titlestrip">
+    <p class="title">Conventional title goes here: investigating the dynamics of X on Y.</p>
+    <p class="byline">A. Author, B. Author<br>Institution</p>
+    <div class="badges"><!-- mandated logos go here; --badge-h defaults to 0 --></div>
+  </div>
+
+  <!-- ============ 1 MINUTE — legible at ~1.1 m ============ -->
+  <main class="body">
+    <p class="lede" data-dwell="1m">
+      <strong>Why this matters.</strong> Two or three sentences at most —
+      who cares, and what was unknown before this.
+    </p>
+
+    <section class="results" data-dwell="1m">
+      <figure class="result">
+        <figcaption>Result 1: say what the reader should see in the figure.</figcaption>
+        <div class="figure" data-placeholder="figure 1"></div>
+      </figure>
+      <figure class="result">
+        <figcaption>Result 2: spoil the answer — do not make them decode it.</figcaption>
+        <div class="figure" data-placeholder="figure 2"></div>
+      </figure>
+    </section>
+
+    <!-- ============ 5 MINUTES — legible at ~0.6 m ============ -->
+    <section class="methods" data-dwell="5m">
+      <h2 class="section-head">Methods</h2>
+      <div class="diagram-flow" data-flow="row">
+        <div class="diagram-box" style="--box-colour: var(--cat-1)">
+          <b>Step one</b>Draw the design; don't narrate it.
+        </div>
+        <div class="diagram-box" style="--box-colour: var(--cat-2)">
+          <b>Step two</b>Each box is one decision a reviewer would challenge.
+        </div>
+        <div class="diagram-box" style="--box-colour: var(--cat-3)">
+          <b>Step three</b>Colour is redundant with position — survives greyscale.
+        </div>
+      </div>
+    </section>
+
+    <p class="limitation" data-dwell="5m">
+      <strong>Limitation.</strong> The honest boundary of the claim. For
+      early-phase work, title this <em>Status</em> or <em>Scope</em> instead.
+    </p>
+  </main>
+
+  <!-- ============ TAKE IT WITH YOU ============ -->
+  <footer class="footer" data-dwell="take">
+    <div class="qr" data-placeholder="QR"></div>
+
+    <div class="footer-text take take-qr">
+      Scan for the preprint, the data, and the full methods.
+      <small>Everything cut from this poster lives behind that code.</small>
+    </div>
+    <div class="footer-text take take-url">
+      <span class="big">github.com/org/project</span>
+      <small>Short enough to read at 2 m and retype. No shorteners.</small>
+    </div>
+    <div class="footer-text take take-contact">
+      <span class="big">A. Author — a.author@institution.edu</span>
+      <small>ORCID 0000-0000-0000-0000 · @handle</small>
+    </div>
+    <div class="footer-text take take-capture">
+      <span class="big">No preprint yet — leave your address and I'll send it.</span>
+      <small>Sheet and pen on the table, or photograph this and email me.</small>
+    </div>
+  </footer>
+
+</div>
+</body>

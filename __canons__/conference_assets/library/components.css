@@ -1,0 +1,247 @@
+/* =====================================================================
+   conference_assets — SHARED COMPONENTS  (v1)
+
+   Behaviour and components shared by all three surfaces. Consumes
+   tokens.css; declares no new tokens. Templates below this layer carry
+   ONLY layout (grid, zones, @page) and explicit, visible per-surface
+   overrides.
+
+   Load order is fixed:  tokens.css -> components.css -> <template style>
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   PROSE HYGIENE
+   At A0 a one-word widow is 9mm tall and visible across the aisle.
+   The renderer is pinned to Chrome/CDP, so text-wrap: pretty is safe.
+   --------------------------------------------------------------------- */
+p, li, figcaption, .lede, .limitation { text-wrap: pretty; }
+h1, h2, h3, .takeaway, .assertion { text-wrap: balance; }
+
+/* ---------------------------------------------------------------------
+   THE BILLBOARD
+   --------------------------------------------------------------------- */
+.billboard {
+  background: var(--panel);
+  color: var(--panel-ink);
+}
+
+.takeaway {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--type-takeaway);
+  line-height: var(--leading-display);
+  /* Left-aligned, never centred. Morrison states this outright, and it is
+     one of the few places his stated reason (centred text is slower to
+     read) matches the reading literature. [morrison] */
+  text-align: left;
+  margin: 0;
+}
+
+[data-billboard="compact"] .takeaway { font-size: var(--type-takeaway-compact); }
+
+/* Emphasis carries an ACHROMATIC cue as well as hue.
+   Hue alone violates the system's own redundancy rule, and on --panel it
+   actively inverts: the paper accent sits at 4.65:1 against white text at
+   17.97:1, making the "emphasised" word the dimmest in the line — and
+   under greyscale, emphasis reads as de-emphasis. The underline is what
+   survives a mono laser; the colour is a bonus. */
+.takeaway em,
+.assertion em {
+  font-style: normal;
+  color: var(--accent);
+  border-bottom: 0.09em solid currentColor;
+  padding-bottom: 0.04em;
+}
+.billboard .takeaway em { color: var(--accent-on-panel); }
+
+/* ---------------------------------------------------------------------
+   SECTION HEADS
+   --------------------------------------------------------------------- */
+.section-head,
+.silentbar h2,
+.methods h2 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: var(--type-section);
+  line-height: var(--leading-display);
+  margin: 0 0 var(--space-1);
+}
+
+/* ---------------------------------------------------------------------
+   EVIDENCE: figures and their assertion captions
+   --------------------------------------------------------------------- */
+.result {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-2);
+  min-height: 0;
+  margin: 0;
+}
+
+/* Caption ABOVE the figure — sanctioned ONLY when it is an assertion
+   sentence saying what to see. A bare label above a figure is worse than
+   one below: the pre-training rationale depends on the caption making a
+   claim the reader can carry into the marks. */
+.result figcaption {
+  font-size: var(--type-caption);
+  font-weight: var(--weight-strong);
+  line-height: var(--leading-prose);
+  margin: 0;
+}
+
+.figure {
+  background: var(--figure-bg, var(--field));
+  border: var(--rule-weight) solid var(--rule);
+  border-radius: var(--radius);
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+}
+.figure img, .figure svg { width: 100%; height: 100%; object-fit: contain; display: block; }
+.figure[data-placeholder]::after {
+  content: attr(data-placeholder);
+  font-size: var(--type-detail);
+  color: var(--ink-soft);
+}
+
+/* ---------------------------------------------------------------------
+   METHOD DIAGRAM
+   One component, one API. Was .step (border-top, --step-colour) in
+   portrait and .arm (border-left, --arm-colour) in landscape — the same
+   concept under two names with two geometries.
+   Colour is redundant with position and label, so it survives greyscale.
+   --------------------------------------------------------------------- */
+.diagram-box {
+  border: var(--rule-weight) solid var(--rule);
+  border-left: 5mm solid var(--box-colour, var(--cat-1));
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  font-size: var(--type-detail);
+  line-height: var(--leading-prose);
+}
+.diagram-box b {
+  display: block;
+  font-size: var(--type-caption);
+  margin-bottom: var(--space-1);
+}
+
+.diagram-flow { display: grid; gap: var(--space-2); }
+/* Even rows when boxes wrap; flex-wrap stretched the final row. */
+.diagram-flow[data-flow="row"] {
+  grid-template-columns: repeat(auto-fit, minmax(120mm, 1fr));
+}
+
+/* ---------------------------------------------------------------------
+   LIMITATION / STATUS
+   5-minute-layer structure, never take-away. For early-phase work this
+   may be titled "Status" or "Scope" — it is a boundary statement, not a
+   confession. It must never sit inside the 5-second layer.
+   --------------------------------------------------------------------- */
+.limitation {
+  font-size: var(--type-body);
+  line-height: var(--leading-prose);
+  border-left: 6mm solid var(--accent);
+  padding-left: var(--space-2);
+  margin: 0;
+  max-width: var(--measure-lede);
+}
+
+/* ---------------------------------------------------------------------
+   BADGES — sanctioned slot for mandated institutional / funder logos.
+   Collapsed to zero unless --badge-h is themed. Exists so a mandated logo
+   does not force a fork of the template.
+   --------------------------------------------------------------------- */
+.badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--badge-h);
+  overflow: hidden;
+}
+.badges img, .badges svg { height: 100%; width: auto; display: block; }
+
+/* ---------------------------------------------------------------------
+   TAKE-AWAY SWITCH — one implementation for all surfaces.
+
+   The zone's job is continuity past the room; a QR is one option, correct
+   only when a real, public, permanent artifact exists. Never print a code
+   that resolves to a 404, a private repo, or "coming soon".
+
+   Surface support matrix (enforced by the invalid-value proof below):
+     posters      qr | url | contact | capture | none
+     flash talk   poster | qr | url | contact
+   --------------------------------------------------------------------- */
+.take, .qr { display: none; }
+
+[data-take="qr"]      .qr           { display: grid; }
+[data-take="qr"]      .take-qr      { display: block; }
+[data-take="url"]     .take-url     { display: block; }
+[data-take="contact"] .take-contact { display: block; }
+[data-take="capture"] .take-capture { display: block; }
+[data-take="poster"]  .take-poster  { display: block; }
+[data-take="none"]    .take-none    { display: block; }
+
+.qr {
+  width: var(--qr-size);
+  height: var(--qr-size);
+  flex: none;
+  background: var(--paper);
+  border: var(--rule-weight) solid var(--rule);
+  border-radius: var(--radius);
+  place-items: center;
+}
+.qr img, .qr svg { width: 100%; height: 100%; display: block; }
+.qr[data-placeholder]::after {
+  content: attr(data-placeholder);
+  font-size: var(--type-detail);
+  color: var(--ink-soft);
+}
+
+/* Authorship is NOT a take-away variant. It is unconditional on every
+   surface and every setting. Templates put it outside the switch. */
+.byline {
+  font-size: var(--type-caption);
+  color: var(--ink-soft);
+  line-height: var(--leading-prose);
+}
+
+/* =====================================================================
+   PROOFS — the system's test harness, as a first-class API.
+   One mechanism: data-proof on <body>, space-separated, list-valued.
+     data-proof="grey"   desaturate
+     data-proof="dwell"  outline the dwell layers
+     data-proof="words"  slide word-budget counter
+   Combine freely: data-proof="grey dwell"
+   ===================================================================== */
+
+/* Greyscale is a CONSERVATIVE SUFFICIENCY test, not a CVD simulation:
+   it is stricter than deutan/protan vision, and achromatopsia is ~1/30,000.
+   What it actually proves is that no distinction depends on hue — which
+   also covers the department mono laser. */
+[data-proof~="grey"], [data-proof~="grey"] .sheet { filter: grayscale(1) contrast(1.05); }
+
+[data-proof~="dwell"] [data-dwell="5s"]   { outline: 3mm solid var(--cat-2); }
+[data-proof~="dwell"] [data-dwell="1m"]   { outline: 2mm solid var(--cat-1); }
+[data-proof~="dwell"] [data-dwell="5m"]   { outline: 1mm solid var(--cat-3); }
+[data-proof~="dwell"] [data-dwell="take"] { outline: 1mm dashed var(--cat-4); }
+
+/* Invalid-value guard.
+   An unsupported data-take silently matched no rule and hid the entire
+   zone — a failure discovered at A0, after print. This makes it loud.
+
+   Validity is SURFACE-SPECIFIC (`poster` is legal on a slide and illegal
+   on a poster), so each template declares its own valid set by setting
+   --config-error. This layer owns only the styling. With the property
+   unset, `content: none` suppresses the box entirely. */
+.sheet::before {
+  content: var(--config-error, none);
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 999;
+  background: var(--cat-2);
+  color: #FFFFFF;
+  font-family: var(--font-mono);
+  font-size: var(--type-caption);
+  padding: var(--space-1) var(--space-2);
+}
