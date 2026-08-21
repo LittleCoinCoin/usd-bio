@@ -1,0 +1,21 @@
+# Derived artifacts of the conference_assets design system.
+# Both entries are outputs, not sources — the sources beside them are versioned.
+
+# Self-contained copies built by library/sync.py: tokens.css and components.css
+# inlined into each template so a published Claude Design component has no
+# external <link> to 404 on. Fully regenerable:
+#     python3 library/sync.py            rebuild
+#     python3 library/sync.py --check    exit 1 if stale
+# Never edit dist/ directly — edit the source template and rebuild.
+library/dist/
+
+# Byte-exact snapshot of the online Claude Design project, written by
+#     python3 studio/_pull.py --out _pristine
+# It is a diffing baseline, not a source. Note the caveat: _pull.py reads the
+# Claude Code session transcript, so this is only regenerable while that
+# transcript survives. The durable record of what was imported is the commit
+# that imported it, plus the online project itself.
+studio/_pristine/
+
+# library/out/ (rendered PDFs and rasterised proofs) is already covered by the
+# repo-root `out` pattern.
