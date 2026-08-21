@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio Plate 03 — Chart &amp; Claim-Graphic Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="plate.css">
+<style>
+.themebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.themebar select{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;padding:6px 8px;border:1px solid var(--hair);border-radius:2px;background:var(--pg-2);color:var(--tx)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:8px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:8px}
+.figure{background:var(--pg-2);border:1px solid var(--hair);border-radius:4px;padding:18px 20px 16px;display:flex;flex-direction:column;gap:10px}
+.figure .assertion{font-size:15px;font-weight:600;line-height:1.4;color:var(--tx);margin:0}
+.figure .chart-box{aspect-ratio:2/1;background:var(--paper,#fff);border:1px solid var(--rule,#ccc)}
+.figure .chart-box svg{display:block}
+.figure .ft{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:2px}
+.figure .note{font-size:12px;color:var(--tx-2);margin:0}
+.figure button{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;border:1px solid var(--hair);background:var(--pg);border-radius:2px;cursor:pointer;color:var(--tx-2);flex:none}
+.figure button:hover{border-color:var(--tx-3);color:var(--tx)}
+.grey .figure .chart-box{filter:grayscale(1) contrast(1.04)}
+
+.claimrow{display:grid;grid-template-columns:220px 1fr;gap:22px;align-items:center}
+.claimrow .box{background:var(--paper,#fff);border:1px solid var(--rule,#ccc);border-radius:4px;aspect-ratio:1/1;max-width:220px}
+.claimrow .box.wide{aspect-ratio:11/7}
+.claimrow .ctl{display:grid;gap:10px;max-width:420px}
+.claimrow label{display:block;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx-3);margin-bottom:5px}
+.claimrow input[type=range]{width:100%;accent-color:var(--tx)}
+.claimrow .val{float:right;color:var(--tx-2)}
+.claimrow .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.claimrow input[type=number]{width:100%;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;padding:6px 7px;border:1px solid var(--hair);border-radius:2px;background:var(--pg)}
+
+.catstrip{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin:14px 0 4px;max-width:760px}
+.catstrip .c{border-radius:3px;overflow:hidden;border:1px solid rgba(0,0,0,.14)}
+.catstrip .sw{height:34px}
+.catstrip .lb{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9px;padding:4px 5px;background:var(--pg-2)}
+.catstrip .lb b{display:block;font-weight:500;color:var(--tx)}
+.catstrip .lb .fl{display:inline-block;margin-top:2px;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;padding:1px 4px;border-radius:2px}
+.fl.pass{background:#E4F0E9;color:var(--ok)}
+.fl.fail{background:#F7E2DC;color:var(--warn)}
+
+.scale-wrap{container-type:inline-size;max-width:640px}
+.scale-fig{border:1px solid var(--hair);background:var(--pg-2);border-radius:4px;padding:20px}
+.scale-fig .assertion{font-size:17px;font-weight:700;margin:0 0 10px;max-width:34ch}
+.scale-chart{aspect-ratio:2/1;background:var(--paper,#fff);border:1px solid var(--rule,#ccc)}
+.scale-bar{display:flex;align-items:center;gap:8px;margin-top:12px}
+.scale-bar .tick{height:6px;background:var(--tx);position:relative}
+.scale-bar .lb{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;color:var(--tx-2)}
+
+.ppi-calc{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:760px;margin:18px 0 10px;align-items:end}
+.ppi-calc div label{display:block;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx-3);margin-bottom:5px}
+.ppi-calc input,.ppi-calc select{width:100%;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px;padding:7px 8px;border:1px solid var(--hair);border-radius:2px;background:var(--pg-2)}
+.ppi-result{margin-top:14px;padding:14px 16px;border-radius:3px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px}
+.ppi-result.pass{background:#E4F0E9;color:var(--ok)}
+.ppi-result.fail{background:#F7E2DC;color:var(--warn)}
+@media(max-width:960px){.grid2,.grid4,.claimrow,.ppi-calc{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1><span class="plate-no">Studio Plate 03</span>Chart &amp; claim-graphic kit — a closed set of forms drawn from data, not a stylesheet</h1>
+  <div class="meta">
+    <div><b>System</b>conference_assets v2</div>
+    <div><b>Status</b>For review</div>
+    <div><b>Date</b>2026-08-16</div>
+  </div>
+</header>
+
+<div class="deck">
+  <div>
+    <h2>The figure was the hole in the system. This closes it.</h2>
+    <p class="n">Everything else on the sheet was specified — type, colour, zones, ink. The thing occupying roughly 40% of it, the figure, was left at "Goldilocks, not minimal" and a caption rule. That is not a kit, it is a mood. This plate supplies four chart forms and two claim graphics as <strong>renderers</strong>: pass in a plain data array, get back an SVG in mm units that already obeys the poster-distance type floor, the stroke floor, the one-accent-event rule, and the Okabe-Ito categorical scale — checked live against whatever theme Plate 02 hands it.</p>
+    <p class="n">The set is closed on purpose. An open chart library is a stylesheet — infinite variety, no guarantee any instance is legible at 3 m. A closed set of four forms plus two claim graphics is a factory: every chart this system ever produces has already been proved to hold the floor.</p>
+  </div>
+  <aside class="side">
+    <p><span class="lbl">Reads on</span></p>
+    <p>All four charts and both claim graphics below are regenerated from random data on load and on demand — reroll any one to confirm it is drawing, not displaying a picture. Reroll the theme to confirm every form survives a different hue, chroma and ground tint.</p>
+  </aside>
+</div>
+
+<div class="controls">
+  <button class="tog" id="t-grey" aria-pressed="false">Greyscale proof</button>
+  <div class="themebar">
+    <span class="lbl">Theme</span>
+    <select id="c-theme"></select>
+    <button class="act" id="b-reroll-theme">Reroll theme</button>
+  </div>
+  <span class="spacer"></span>
+  <span class="note" id="stamp">computing…</span>
+</div>
+
+<!-- ============================================================ 01 -->
+<section>
+  <div class="sec-head">
+    <span class="num">01</span>
+    <h3>The shared grammar</h3>
+    <p>Four rules apply to every form in this kit, before a single chart type is chosen. They are what makes the output a system rather than four unrelated widgets.</p>
+  </div>
+  <div class="body">
+    <table class="tk">
+      <thead><tr><th>Rule</th><th>Applied as</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Direct labels, no legend</td><td>Every series, bar and group is named at the mark itself. A detached legend forces the "dance back and forth" the canon already forbids for the two-zone layout — the same defect, smaller scale.</td></tr>
+        <tr><td class="k">One accent event per figure</td><td>Exactly one bar, one line, one group, or one point may carry <code>--accent</code>. It is the finding. Everything else is ink or ink-soft at reduced weight — a figure that highlights three things highlights nothing.</td></tr>
+        <tr><td class="k">Categorical colour is checked, not assumed</td><td>Multi-series forms cycle the Okabe-Ito set in order and verify each entry against the theme's <code>--paper</code> live — see section 02. A low-contrast entry gets a dashed stroke instead of a silent fail.</td></tr>
+        <tr><td class="k">Type and stroke never go below the sheet's own floor</td><td><code>--type-detail</code> (20pt / 5.1mm cap) is the smallest text anywhere in this canon; no chart label may be smaller. Data strokes hold 4× the hairline weight so a line survives a 3m glance.</td></tr>
+        <tr><td class="k">A scale reference stands in for empty axes</td><td>Any form that doesn't print a value at every mark (series, dot comparison, distribution) draws light gridlines and 2–3 tick values instead of a bare axis. <code class="mono">[Lai &amp; Morrison 2025]</code> — cited in the guidelines' own §7.2 — found charts stripped to necessary-ink-only read worse, not better. Ranked bar's per-bar value label already satisfies this and carries none.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================ 02 -->
+<section>
+  <div class="sec-head">
+    <span class="num">02</span>
+    <h3>Poster-distance floors and the categorical scale, live</h3>
+    <p>Both are computed, not typed. The stroke and type numbers are constants in the kit; the categorical pass/fail is measured against whichever theme is loaded above.</p>
+  </div>
+  <div class="body">
+    <table class="tk">
+      <thead><tr><th>Token</th><th>Value</th><th>Warrant</th></tr></thead>
+      <tbody>
+        <tr><td class="k">chart label floor</td><td class="v">7.06mm / 20pt</td><td><code class="mono">[optics]</code> — equal to <code>--type-detail</code>, the sheet's own floor. A caption at 0.6m that is smaller than the sheet allows itself is a defect, not an efficiency.</td></tr>
+        <tr><td class="k">emphasised value</td><td class="v">9.87mm / 28pt</td><td><code class="mono">[house]</code> — one step up, equal to <code>--type-caption</code>, so the one number doing the finding's work is visibly heavier than its neighbours.</td></tr>
+        <tr><td class="k">data stroke</td><td class="v">1.4mm</td><td><code class="mono">[optics]</code> — 4× the hairline weight (0.35mm). Thinner lines halftone away at the hall's usual 1–3m.</td></tr>
+        <tr><td class="k">emphasised stroke</td><td class="v">2.4mm</td><td><code class="mono">[house]</code> — the line-weight equivalent of the one accent event.</td></tr>
+      </tbody>
+    </table>
+    <p class="n" style="margin-top:6px">Categorical scale against the current theme's paper — <code class="mono">3:1</code> graphics floor:</p>
+    <div class="catstrip" id="catstrip"></div>
+    <p class="n" style="margin-top:6px">An entry marked <b style="color:var(--warn)">fail</b> is still used — never a ninth colour invented to dodge it — but every chart in this kit renders it with a dashed stroke rather than a silent, invisible line. See the series chart in section 03.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 03 -->
+<section>
+  <div class="sec-head">
+    <span class="num">03</span>
+    <h3>The four forms</h3>
+    <p>Each figure follows §7's lockup: an assertion caption above, stating what to see, then the chart. Reroll any one — the data changes, the rules above hold.</p>
+  </div>
+  <div class="body">
+    <div class="grid2">
+      <figure class="figure" id="fig-ranked">
+        <p class="assertion" data-cap></p>
+        <div class="chart-box" data-chart></div>
+        <div class="ft"><p class="note">Ranked bar — one variable across categories, one accent event.</p><button data-reroll="ranked">Reroll data</button></div>
+      </figure>
+      <figure class="figure" id="fig-series">
+        <p class="assertion" data-cap></p>
+        <div class="chart-box" data-chart></div>
+        <div class="ft"><p class="note">Series — Okabe-Ito, direct end labels, no legend.</p><button data-reroll="series">Reroll data</button></div>
+      </figure>
+      <figure class="figure" id="fig-dot">
+        <p class="assertion" data-cap></p>
+        <div class="chart-box" data-chart></div>
+        <div class="ft"><p class="note">Dot comparison — before → after per category.</p><button data-reroll="dot">Reroll data</button></div>
+      </figure>
+      <figure class="figure" id="fig-dist">
+        <p class="assertion" data-cap></p>
+        <div class="chart-box" data-chart></div>
+        <div class="ft"><p class="note">Distribution — honest about spread; a mean tick, not a box hiding it.</p><button data-reroll="dist">Reroll data</button></div>
+      </figure>
+    </div>
+    <div class="callout" style="margin-top:26px">
+      <span class="lbl">Scale reference — before / after this fix</span>
+      <p>These three forms used to carry no axis at all — position and length told you order, nothing told you magnitude. Per the guideline's own citation, that is stripped past Tufte, not up to him: a little redundant scaffolding (gridlines, a few tick values) reads easier, not harder. Ranked bar is unchanged — its direct value label already served as the scale.</p>
+    </div>
+    <div class="compare" id="compare-grid" style="margin-top:14px"></div>
+    <div class="callout" style="margin-top:26px">
+      <span class="lbl">Chart, or table?</span>
+      <p>Reach for a table instead of any of the four forms when the reader's task is to <em>look up</em> a specific value (an n per arm, an exact p-value) rather than <em>compare</em> values at a glance — a chart optimises the second task and actively degrades the first. A table with more than ~6 rows or 4 columns at the sheet's type floor rarely fits the evidence zone at a legible size; past that, the honest options are a ranked bar (if one column is the story) or a supplementary handout, not a shrunk table.</p>
+    </div>
+    <div class="callout" style="margin-top:20px">
+      <span class="lbl">What is deliberately not here</span>
+      <p>No pie, no stacked bar, no dual-axis, no 3-D anything. Each excluded form either encodes its comparison in area or angle (harder to judge at a glance than length or position) or requires a legend to read at all. If a fifth form earns its place, it earns it the same way these four did: one comparison task, one honest encoding, direct labels.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 04 -->
+<section>
+  <div class="sec-head">
+    <span class="num">04</span>
+    <h3>The claim graphic — a non-text five-second layer</h3>
+    <p>The billboard has carried the claim in type alone since the format's first version. Half the hall now runs some version of that billboard, so type is no longer differentiating. These two forms encode the same claim a second way, legible at the same 3.6m the takeaway type is built for.</p>
+  </div>
+  <div class="body">
+    <div class="claimrow" style="margin-bottom:34px">
+      <div class="box" id="claim-prop"></div>
+      <div class="ctl">
+        <p class="n" style="margin-bottom:4px"><strong>Proportion ring.</strong> For a claim shaped "N% of X show Y."</p>
+        <div><label>Value <span class="val" id="v-prop">—</span></label><input type="range" id="c-prop" min="0" max="100" step="1" value="68"></div>
+      </div>
+    </div>
+    <div class="claimrow">
+      <div class="box wide" id="claim-delta"></div>
+      <div class="ctl">
+        <p class="n" style="margin-bottom:4px"><strong>Before / after.</strong> For a claim shaped "X halves Y" or "Y triples under Z."</p>
+        <div class="two">
+          <div><label>Before</label><input type="number" id="c-from" value="14" min="0.1" step="0.1"></div>
+          <div><label>After</label><input type="number" id="c-to" value="41" min="0.1" step="0.1"></div>
+        </div>
+      </div>
+    </div>
+    <p class="n" style="margin-top:22px">Neither is decoration. Both are redundant encodings of the same number the billboard states in words — exactly the redundancy the canon already requires between colour and underline. Use at most one per poster, next to the takeaway line, never inside the evidence zone where it would compete with the hero figure.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 05 -->
+<section>
+  <div class="sec-head">
+    <span class="num">05</span>
+    <h3>One figure at print scale</h3>
+    <p>The grid above proves the rules hold at thumbnail size, which is the size a reviewer sees. It does not prove legibility at reading distance. This is the same ranked-bar figure sized to a plausible single-column evidence panel — 380mm wide — with a physical scale bar. Toggle greyscale above and confirm the accent bar is still the one your eye lands on.</p>
+  </div>
+  <div class="body">
+    <div class="scale-wrap">
+      <div class="scale-fig">
+        <p class="assertion" id="scale-cap"></p>
+        <div class="scale-chart" id="scale-chart"></div>
+        <div class="scale-bar"><div class="tick" id="scale-tick"></div><span class="lb">50mm at this panel's assumed 380mm width</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 06 -->
+<section>
+  <div class="sec-head">
+    <span class="num">06</span>
+    <h3>Raster figures — the minimum-ppi floor</h3>
+    <p>Micrographs, apparatus photos and rendered stills don't come from this kit — they arrive as files. The one rule that travels with them: a 150dpi image printed at A0 size is very easy to produce by accident and impossible to fix after printing.</p>
+  </div>
+  <div class="body">
+    <div class="formula">
+      <p class="eq">effective ppi = px ÷ (mm ÷ 25.4)</p>
+      <ul>
+        <li><b>150 ppi floor</b> — a hero figure viewed from ~0.6–1m. Below this, halftone dots become visible before the reader is close enough to read the caption.</li>
+        <li><b>300 ppi floor</b> — a detail crop meant to be examined closely (a microscopy inset, a zoomed panel). Reserve the higher floor for the parts of the figure actually being scrutinised, not the whole sheet — that is the same Goldilocks judgement §7 already asks for.</li>
+      </ul>
+    </div>
+    <p class="n" style="margin:4px 0 0"><b>Calibrate this against a real print.</b> The 150/300 pair is a printing-industry convention, not something measured off your printer or fabric — Plate 01's ink-budget ceilings carry the same caveat, and both should be checked together on the same test print.</p>
+    <div class="ppi-calc">
+      <div><label>Image width (px)</label><input type="number" id="p-pxw" value="1800"></div>
+      <div><label>Image height (px)</label><input type="number" id="p-pxh" value="1200"></div>
+      <div><label>Printed width (mm)</label><input type="number" id="p-mmw" value="380"></div>
+      <div><label>Use as</label><select id="p-floor"><option value="150">Hero (150 ppi)</option><option value="300">Detail crop (300 ppi)</option></select></div>
+    </div>
+    <div class="ppi-result" id="ppi-out">—</div>
+  </div>
+</section>
+
+<!-- ============================================================ 07 -->
+<section>
+  <div class="sec-head">
+    <span class="num">07</span>
+    <h3>What this plate asks you to decide</h3>
+    <p>Three decisions, plus the two invented numbers in section 06.</p>
+  </div>
+  <div class="body">
+    <ol class="dec">
+      <li><b>Four forms, closed.</b> Ranked bar, series, dot comparison, distribution. If your evidence regularly needs a fifth (a network, a map, a matrix), name it — closed sets grow by decision, not by accident.</li>
+      <li><b>The claim graphic ships as a real component, not a suggestion.</b> Section 04's two forms go into the kit alongside the charts, with the same "at most one, next to the takeaway" placement rule written into the guidelines.</li>
+      <li><b>Categorical colour is proved per-theme, not per-chart.</b> Section 02's strip is the same check every chart runs internally — if you'd rather a hard-fail (refuse to render) instead of the dashed-stroke fallback, that's a one-line change here.</li>
+      <li><b>150 / 300 ppi are textbook numbers, unverified against your printer.</b> Same caveat as Plate 01's ink ceilings — one test print settles both.</li>
+    </ol>
+    <div class="scope">
+      <div>
+        <p class="lbl">This plate does not decide</p>
+        <ul>
+          <li>Pictogram construction for repeated concepts (next plate)</li>
+          <li>The hero illustration slot and its ink allowance</li>
+          <li>Methods-diagram primitives (arm, condition, flow, n-badge)</li>
+        </ul>
+      </div>
+      <div>
+        <p class="lbl">Known soft spots</p>
+        <ul>
+          <li>Direct-label collision avoidance is a simple vertical push-apart — dense series (6+) may still crowd</li>
+          <li>Distribution jitter is deterministic-looking but not seeded; two reads of the same data draw differently</li>
+          <li>The claim graphics assume a positive, single-direction story; a claim with a null or mixed result has no honest glyph here yet</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script src="palette-engine.js"></script>
+<script src="chart-kit.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const KEY2='plate02.palette.v1';
+function read(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+const ATTESTED={
+  canon:{rule:'complement',hue:272,sat:0.55,tint:0,plateSlot:0,accentSlot:1,ruleSlot:null,overrides:{}},
+  slate:{rule:'complement',hue:203,sat:0.45,tint:0.04,plateSlot:0,accentSlot:1,ruleSlot:null,overrides:{}},
+  bone:{rule:'analogous',hue:28,sat:0.42,tint:0.42,plateSlot:0,accentSlot:2,ruleSlot:null,overrides:{}},
+  moss:{rule:'analogous',hue:152,sat:0.6,tint:0.3,plateSlot:0,accentSlot:2,ruleSlot:null,overrides:{}},
+  ash:{rule:'analogous',hue:295,sat:0.6,tint:0,plateSlot:1,accentSlot:2,ruleSlot:null,overrides:{}},
+  vermilion:{rule:'analogous',hue:9,sat:0.6,tint:0,plateSlot:0,accentSlot:2,ruleSlot:null,overrides:{}}
+};
+let themeKey='lab', themeState=read(KEY2);
+if(!themeState){themeKey='canon';themeState=Object.assign({},ATTESTED.canon)}
+let res=PE.build(themeState);
+
+function populateThemeSelect(){
+  const opts=[];
+  if(read(KEY2))opts.push('<option value="lab">Current lab palette (Plate 02)</option>');
+  Object.keys(ATTESTED).forEach(k=>opts.push('<option value="'+k+'">'+k[0].toUpperCase()+k.slice(1)+'</option>'));
+  $('c-theme').innerHTML=opts.join('');
+  $('c-theme').value=themeKey;
+}
+$('c-theme').addEventListener('change',e=>{
+  themeKey=e.target.value;
+  themeState=themeKey==='lab'?(read(KEY2)||themeState):Object.assign({},ATTESTED[themeKey]);
+  res=PE.build(themeState);renderAll();
+});
+$('b-reroll-theme').addEventListener('click',()=>{
+  const rules=['mono','analogous','complement','split'];
+  for(let i=0;i<50;i++){
+    const st={rule:rules[Math.floor(Math.random()*rules.length)],hue:Math.random()*360,sat:0.35+Math.random()*0.5,tint:Math.random()<0.5?0:Math.random()*0.4,plateSlot:0,accentSlot:0};
+    const n=PE.HARMONY[st.rule].offsets.length;st.accentSlot=n-1;
+    const r=PE.build(st);
+    if(r.pass&&!r.warnings.length){themeKey='rolled';themeState=st;res=r;
+      $('c-theme').innerHTML='<option value="rolled">Rolled palette</option>'+$('c-theme').innerHTML;$('c-theme').value='rolled';
+      renderAll();return}
+  }
+});
+
+/* ---------- datasets ---------- */
+const N=(a,b)=>Math.round(a+Math.random()*(b-a));
+let D={};
+function genRanked(){
+  const labels=['Condition A','Condition B','Condition C','Condition D','Condition E'];
+  const data=labels.map(l=>({label:l,value:N(22,60)}));
+  const hi=data[Math.floor(Math.random()*data.length)];hi.value=N(78,96);
+  D.ranked={data:data,highlight:hi.label,unit:'%'};
+}
+function genSeries(){
+  const names=['Arm 1','Arm 2','Arm 3'],x=['wk 0','wk 2','wk 4','wk 6','wk 8','wk 10'];
+  const emph=names[N(0,2)];
+  const data=names.map(n=>{let v=N(10,30);return{name:n,values:x.map(()=>{v+=n===emph?N(4,9):N(-3,4);return Math.max(2,v)})}});
+  D.series={data:data,x:x,emphasize:emph};
+}
+function genDot(){
+  const labels=['Site A','Site B','Site C','Site D','Site E'];
+  const data=labels.map(l=>{const before=N(20,50);return{label:l,before:before,after:before+N(-6,26)}});
+  let hi=data[0];data.forEach(d=>{if(Math.abs(d.after-d.before)>Math.abs(hi.after-hi.before))hi=d});
+  D.dot={data:data,highlight:hi.label};
+}
+function genDist(){
+  const labels=['Control','Low dose','Mid dose','High dose'];
+  const hi=labels[N(2,3)];
+  const data=labels.map(l=>{const base=N(30,45),spread=N(6,14),shift=l===hi?N(15,26):0;
+    return{label:l,points:Array.from({length:16},()=>base+shift+(Math.random()-0.5)*spread*2)}});
+  D.dist={data:data,highlight:hi};
+}
+genRanked();genSeries();genDot();genDist();
+
+const CAPS={
+  ranked:d=>'<em>'+d.highlight+'</em> leads every other condition by a wide margin.',
+  series:d=>'<em>'+d.emphasize+'</em> pulls away from the other two arms after week 4.',
+  dot:d=>'<em>'+d.highlight+'</em> moved further than any other site between conditions.',
+  dist:d=>'<em>'+d.highlight+'</em> shifts the whole distribution up, not just its mean.'
+};
+function setCap(el,html){el.innerHTML=html.replace(/<em>(.*?)<\/em>/,(m,g)=>'<em style="font-style:normal;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:2px;color:'+res.roles.accent.hex+'">'+g+'</em>')}
+
+function pairBlock(note,notOk,ok){
+  return '<div><span class="fl fail" style="display:inline-block;margin-bottom:8px">not ok — no scale</span><div class="chart-box" style="aspect-ratio:2/1">'+notOk+'</div><p class="note" style="margin-top:6px">'+note+'</p></div>'+
+    '<div><span class="fl pass" style="display:inline-block;margin-bottom:8px">ok — scale reference</span><div class="chart-box" style="aspect-ratio:2/1">'+ok+'</div><p class="note" style="margin-top:6px">'+note+'</p></div>';
+}
+function drawCompare(){
+  const roles=res.roles;
+  const s0=CK.series(Object.assign({w:300,h:150,roles:roles,scale:false},D.series));
+  const s1=CK.series(Object.assign({w:300,h:150,roles:roles,scale:true},D.series));
+  const d0=CK.dotComparison(Object.assign({w:300,h:150,roles:roles,scale:false},D.dot));
+  const d1=CK.dotComparison(Object.assign({w:300,h:150,roles:roles,scale:true},D.dot));
+  const t0=CK.distribution(Object.assign({w:300,h:150,roles:roles,scale:false},D.dist));
+  const t1=CK.distribution(Object.assign({w:300,h:150,roles:roles,scale:true},D.dist));
+  $('compare-grid').innerHTML=
+    pairBlock('Series — which arm is ahead is clear; what value it is near was not, until now.',s0,s1)+
+    pairBlock('Dot comparison — line length alone had to carry the gap size.',d0,d1)+
+    pairBlock('Distribution — the mean ticks floated with nothing to judge their level against.',t0,t1);
+}
+function drawGrid(){
+  $('fig-ranked').querySelector('[data-chart]').innerHTML=CK.rankedBar(Object.assign({w:300,h:150,roles:res.roles},D.ranked));
+  setCap($('fig-ranked').querySelector('[data-cap]'),CAPS.ranked(D.ranked));
+  $('fig-series').querySelector('[data-chart]').innerHTML=CK.series(Object.assign({w:300,h:150,roles:res.roles},D.series));
+  setCap($('fig-series').querySelector('[data-cap]'),CAPS.series(D.series));
+  $('fig-dot').querySelector('[data-chart]').innerHTML=CK.dotComparison(Object.assign({w:300,h:150,roles:res.roles},D.dot));
+  setCap($('fig-dot').querySelector('[data-cap]'),CAPS.dot(D.dot));
+  $('fig-dist').querySelector('[data-chart]').innerHTML=CK.distribution(Object.assign({w:300,h:150,roles:res.roles},D.dist));
+  setCap($('fig-dist').querySelector('[data-cap]'),CAPS.dist(D.dist));
+}
+document.querySelectorAll('button[data-reroll]').forEach(b=>b.addEventListener('click',()=>{
+  const k=b.dataset.reroll;
+  if(k==='ranked')genRanked();if(k==='series')genSeries();if(k==='dot')genDot();if(k==='dist')genDist();
+  drawGrid();drawCompare();
+}));
+
+function drawCat(){
+  const safety=CK.catSafety(res.roles.paper.hex);
+  $('catstrip').innerHTML=safety.map((s,i)=>
+    '<div class="c"><div class="sw" style="background:'+s.hex+'"></div><div class="lb"><b>cat-'+(i+1)+'</b>'+s.hex+
+    '<span class="fl '+(s.safe?'pass':'fail')+'">'+(s.safe?'pass':'fail')+'</span></div></div>').join('');
+}
+
+function drawClaims(){
+  const v=+$('c-prop').value/100;$('v-prop').textContent=Math.round(v*100)+'%';
+  $('claim-prop').innerHTML=CK.claimProportion({value:v,roles:res.roles,w:200,h:200});
+  const from=+$('c-from').value||0.1,to=+$('c-to').value||0.1;
+  $('claim-delta').innerHTML=CK.claimDelta({from:from,to:to,roles:res.roles,w:340,h:200});
+}
+['c-prop','c-from','c-to'].forEach(id=>$(id).addEventListener('input',drawClaims));
+
+function drawScale(){
+  setCap($('scale-cap'),CAPS.ranked(D.ranked));
+  $('scale-chart').innerHTML=CK.rankedBar(Object.assign({w:380,h:190,roles:res.roles},D.ranked));
+  $('scale-tick').style.width=(50/380*100)+'%';
+}
+
+function drawPPI(){
+  const pxw=+$('p-pxw').value||1,pxh=+$('p-pxh').value||1,mmw=+$('p-mmw').value||1,floor=+$('p-floor').value;
+  const mmh=mmw*(pxh/pxw);
+  const r=CK.ppiCheck(pxw,pxh,mmw,mmh,floor);
+  const out=$('ppi-out');out.className='ppi-result '+(r.pass?'pass':'fail');
+  out.textContent=(r.pass?'PASS':'FAIL')+' — effective '+r.ppi.toFixed(0)+' ppi at '+mmw+'×'+mmh.toFixed(0)+'mm (needs ≥'+floor+'). '+
+    (r.pass?'':'At this printed size you need at least '+r.needPxW+'×'+r.needPxH+'px.');
+}
+['p-pxw','p-pxh','p-mmw','p-floor'].forEach(id=>$(id).addEventListener('input',drawPPI));
+
+function applyRolesToScope(){document.documentElement.style.setProperty('--paper',res.roles.paper.hex);
+  PE.ROLES.forEach(r=>document.documentElement.style.setProperty('--'+r,res.roles[r].hex));}
+
+function renderAll(){
+  applyRolesToScope();
+  drawGrid();drawCompare();drawCat();drawClaims();drawScale();drawPPI();
+  const fails=CK.catSafety(res.roles.paper.hex).filter(s=>!s.safe).length;
+  $('stamp').textContent='4 forms · 2 claim graphics · '+(8-fails)+'/8 categorical entries stroke-safe on this theme';
+}
+function tog(id,cls){const b=$(id);b.addEventListener('click',()=>{const on=b.getAttribute('aria-pressed')==='true';b.setAttribute('aria-pressed',String(!on));document.body.classList.toggle(cls,!on)})}
+tog('t-grey','grey');
+
+populateThemeSelect();
+renderAll();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(renderAll);
+</script>
+</body>
+</html>

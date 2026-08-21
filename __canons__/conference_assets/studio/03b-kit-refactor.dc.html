@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Goldilocks Ink — kit refactor" description="Chart and methods kits with ink as a dial: three doses, dwell-derived defaults, familiar forms, greyscale diagnostic." -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#F7F6F3}</style>
+<script src="../../studio/palette-engine.js"></script>
+<script src="./chart-kit.js"></script>
+<script src="./methods-kit.js"></script>
+</helmet>
+<div style="font-family:Archivo,sans-serif;color:#16171A;background:#F7F6F3;padding:48px 40px 96px;-webkit-font-smoothing:antialiased">
+<div style="max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:44px">
+
+<header style="display:flex;flex-direction:column;gap:18px;border-bottom:1px solid #DEDCD6;padding-bottom:26px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#8E8F94">Studio plate 03b · kit refactor · v3</div>
+<h1 style="margin:0;font-size:34px;line-height:1.18;font-weight:800;max-width:22ch;text-wrap:pretty">Ink is a dial, not a constant.</h1>
+<p style="margin:0;max-width:76ch;font-size:15px;line-height:1.6;color:#63646A;text-wrap:pretty">Lai &amp; Morrison's argument is that the data-ink ratio has a per-figure optimum you find by comparison — three charts, pick the one that is just right. The v2 kits could render exactly one of those three. This plate is the refactor: a dose parameter on every form, a default derived from the dwell layer rather than a global constant, the familiar chart form restored as the default where v2 had gone Tufte-minimal, extra ink concentrated on the emphasised datum instead of spread evenly, and greyscale re-read as a data-ink diagnostic rather than only a colour-vision check.</p>
+<p style="margin:0;max-width:76ch;font-size:13px;line-height:1.6;color:#8E8F94"><b style="color:#63646A">Warrant.</b> Every number here is <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">[house]</span>. The source is a literature commentary in the authors' own outlet, graded opinion-plus-secondary-synthesis in the evidence base. It licenses a procedure and a diagnostic; it cannot warrant a default, so the defaults below are argued, not cited.</p>
+</header>
+
+<section style="display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:7px">
+<h2 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.01em">1 · The three charts, rendered</h2>
+<p style="margin:0;max-width:74ch;font-size:14px;line-height:1.6;color:#63646A">One dataset, one form, three doses. <b style="color:#16171A">lean</b> keeps the axis and drops the grid, prints only the emphasised number. <b style="color:#16171A">mid</b> adds the grid, three ticks, every value. <b style="color:#16171A">rich</b> adds interior points, five ticks, a leader to the axis and one annotation sentence. Nothing here is a slider position — each dose is a coherent stance on the continuum.</p>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+<div style="display:flex;flex-direction:column;gap:9px;background:#FFFFFF;border:1px solid #DEDCD6;border-radius:4px;padding:16px 17px 15px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8F94">ink: lean</span><span style="font-size:11px;color:#8E8F94">5 min layer</span></div>
+{{ heroLean }}
+<p style="margin:0;font-size:12px;line-height:1.5;color:#63646A">Fastest to read, least familiar. The reader cannot recover a value that is not the highlighted one.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:9px;background:#FFFFFF;border:1px solid #16171A;border-radius:4px;padding:16px 17px 15px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#16171A;font-weight:500">ink: mid</span><span style="font-size:11px;color:#16171A;font-weight:600">house default</span></div>
+{{ heroMid }}
+<p style="margin:0;font-size:12px;line-height:1.5;color:#63646A">Values recoverable, grid present but quiet. This is the dose the v2 kit hardcoded — correctly, as it happens, for the 1-minute layer only.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:9px;background:#FFFFFF;border:1px solid #DEDCD6;border-radius:4px;padding:16px 17px 15px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8F94">ink: rich</span><span style="font-size:11px;color:#8E8F94">5 s layer</span></div>
+{{ heroRich }}
+<p style="margin:0;font-size:12px;line-height:1.5;color:#63646A">Slower to read, more memorable, and it survives being glanced at. Every mark past the polyline is technically chart junk.</p>
+</div>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:7px">
+<h2 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.01em">2 · The dose comes from the dwell layer</h2>
+<p style="margin:0;max-width:74ch;font-size:14px;line-height:1.6;color:#63646A">How much non-data ink to spend depends on the medium and the reader — which, on this sheet, is exactly what <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">data-dwell</span> already declares. So the kits now read it: <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">dwell:'5s'</span> resolves to rich, <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">'1min'</span> to mid, <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">'5min'</span> to lean. No kit function in v2 read the dwell layer at all. The methods kit inverts the mapping on purpose — a protocol figure earns more labelling the longer someone reads it.</p>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+<sc-for list="{{ doseMatrix }}" as="f" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;border:1px solid #DEDCD6;border-radius:4px;padding:14px 15px 13px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#16171A">{{ f.name }}</div>
+{{ f.lean }}
+{{ f.mid }}
+{{ f.rich }}
+<p style="margin:2px 0 0;font-size:11.5px;line-height:1.5;color:#8E8F94">{{ f.note }}</p>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:7px">
+<h2 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.01em">3 · Familiarity is an axis the kit was not modelling</h2>
+<p style="margin:0;max-width:74ch;font-size:14px;line-height:1.6;color:#63646A">The v2 <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">distribution()</span> drew points and a mean bar and no box — Tufte's minimal boxplot, which is precisely the unfamiliar-form failure the commentary is about. Less ink, and slower to read, because the reader has to work out what they are looking at before they can look at it. The box is back as the default; the strip is opt-in; and <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">'both'</span> is the honest maximum — familiar frame, real points, nothing hidden.</p>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+<div style="display:flex;flex-direction:column;gap:9px;background:#FFFFFF;border:1px solid #16171A;border-radius:4px;padding:16px 17px 15px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#16171A;font-weight:500">form: box</span><span style="font-size:11px;color:#16171A;font-weight:600">new default</span></div>
+{{ distBox }}
+<p style="margin:0;font-size:12px;line-height:1.5;color:#63646A">Conventional, countable, and the quartiles are where a reader expects them. Median printed for the emphasised group only.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:9px;background:#FFFFFF;border:1px solid #DEDCD6;border-radius:4px;padding:16px 17px 15px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8F94">form: strip</span><span style="font-size:11px;color:#8E8F94">v2 behaviour</span></div>
+{{ distStrip }}
+<p style="margin:0;font-size:12px;line-height:1.5;color:#63646A">Higher data-ink ratio than the box, and harder to read at 2 m. Kept for the case where the raw n is the point.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:9px;background:#FFFFFF;border:1px solid #DEDCD6;border-radius:4px;padding:16px 17px 15px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8F94">form: both</span><span style="font-size:11px;color:#8E8F94">rigor sessions</span></div>
+{{ distBoth }}
+<p style="margin:0;font-size:12px;line-height:1.5;color:#63646A">For the session judged on methodological completeness, where the traditional poster wins 67% on rigor.</p>
+</div>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:7px">
+<h2 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.01em">4 · Greyscale, re-read as a data-ink diagnostic</h2>
+<p style="margin:0;max-width:74ch;font-size:14px;line-height:1.6;color:#63646A">The greyscale proof already existed as a conservative sufficiency test for colour-vision deficiency and the mono laser printer. The same conversion answers a different question: if every distinction survives desaturation, the colour was decorative ink — free to spend or cut. If one dies, hue is carrying data alone, and no amount of ink elsewhere fixes it.</p>
+</div>
+<div style="display:grid;grid-template-columns:1.1fr 1fr;gap:22px;align-items:start">
+<div style="background:#FFFFFF;border:1px solid #DEDCD6;border-radius:4px;padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8F94">CK.greyDiagnostic()</div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:21px;font-weight:900;letter-spacing:-.02em;white-space:nowrap">{{ greyMode }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8E8F94">{{ greyWorst }}</span></div>
+<p style="margin:0;font-size:13px;line-height:1.6;color:#63646A">{{ greyNote }}</p>
+<div style="border-top:1px solid #EAE8E3;padding-top:12px;display:flex;flex-direction:column;gap:6px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8F94">And the categorical scale, tested the same way</div>
+<p style="margin:0;font-size:12.5px;line-height:1.6;color:#63646A">{{ greyCat }}</p>
+</div>
+<div style="border-top:1px solid #EAE8E3;padding-top:12px;font-size:12px;line-height:1.6;color:#8E8F94">Floor is 1.6:1 between marks in grey — the same separation <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px">PE.build</span> already warns at for accent-against-ink. Ground contrast is checked at the 3:1 graphics floor.</div>
+</div>
+<div style="background:#FFFFFF;border:1px solid #DEDCD6;border-radius:4px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8F94">Same figure, desaturated</div>
+{{ greyProof }}
+<p style="margin:0;font-size:12px;line-height:1.5;color:#63646A">The emphasised series holds because it is also the heaviest stroke and the only one carrying a printed value. That redundancy is the ink worth spending.</p>
+</div>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:7px">
+<h2 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.01em">5 · Claim graphics — the ring is familiar, not accurate</h2>
+<p style="margin:0;max-width:74ch;font-size:14px;line-height:1.6;color:#63646A">A ring gauge is instantly recognised and badly read: arc length against a circle is the pie problem in a thinner coat. The counted grid is just as familiar, countable, higher-ink, and more memorable — because the reader does the counting. Both stay in the kit; the grid is the one to reach for when the proportion itself is the finding.</p>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+<div style="display:flex;flex-direction:column;gap:10px;background:#FFFFFF;border:1px solid #DEDCD6;border-radius:4px;padding:16px 17px 15px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8F94">claimProportion</div>
+{{ claimRing }}
+<p style="margin:0;font-size:12px;line-height:1.5;color:#63646A">Unchanged from v2. Fine when the number is the message and the arc is decoration.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;background:#FFFFFF;border:1px solid #16171A;border-radius:4px;padding:16px 17px 15px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#16171A;font-weight:500">claimWaffle · new</div>
+{{ claimWaffle }}
+<p style="margin:0;font-size:12px;line-height:1.5;color:#63646A">Squares only — still no illustration. The proportion is countable, so it survives a hostile reader.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;background:#FFFFFF;border:1px solid #DEDCD6;border-radius:4px;padding:16px 17px 15px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8F94">claimDelta</div>
+{{ claimDelta }}
+<p style="margin:0;font-size:12px;line-height:1.5;color:#63646A">Now prints the baseline value at mid and above, so the multiplier can be checked rather than trusted.</p>
+</div>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:7px">
+<h2 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.01em">6 · Methods kit — the intermediate n was unreadable</h2>
+<p style="margin:0;max-width:74ch;font-size:14px;line-height:1.6;color:#63646A">The ribbon encodes headcount as square-rooted width, which is a genuinely unfamiliar magnitude channel, and v2 printed a number only where each arm terminated. Every stage in between was width alone. The labels below are the clearest case in the whole system of ink that is unnecessary by Tufte's definition and load-bearing in practice.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-direction:column;gap:9px;background:#FFFFFF;border:1px solid #DEDCD6;border-radius:4px;padding:16px 18px 15px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8F94">ink: lean — closest to v2</span><span style="font-size:11px;color:#8E8F94">emphasised arm only</span></div>
+{{ funnelLean }}
+</div>
+<div style="display:flex;flex-direction:column;gap:9px;background:#FFFFFF;border:1px solid #16171A;border-radius:4px;padding:16px 18px 15px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#16171A;font-weight:500">ink: mid — stage names and every n</span><span style="font-size:11px;color:#16171A;font-weight:600">house default</span></div>
+{{ funnelMid }}
+</div>
+<div style="display:flex;flex-direction:column;gap:9px;background:#FFFFFF;border:1px solid #DEDCD6;border-radius:4px;padding:16px 18px 15px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8F94">ink: rich — attrition stated</span><span style="font-size:11px;color:#8E8F94">5 min layer</span></div>
+{{ funnelRich }}
+</div>
+</div>
+</section>
+
+<footer style="border-top:1px solid #DEDCD6;padding-top:24px;display:flex;flex-direction:column;gap:12px">
+<h2 style="margin:0;font-size:15px;font-weight:700">To land in the repo</h2>
+<p style="margin:0;max-width:76ch;font-size:13px;line-height:1.65;color:#63646A">The two files beside this one are drop-in replacements for <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">studio/chart-kit.js</span> and <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">studio/methods-kit.js</span> — same exports, same signatures, v2 call sites keep working because the old <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">scale</span> boolean now resolves to the lean and mid doses. Three guideline edits follow from them: §7.2 gains the three-dose procedure instead of the phrase "aim for a middle data-ink ratio"; §7 gains a familiarity rule — prefer the conventional form unless the unconventional one is demonstrably clearer; and the greyscale row of the proof table gains its second reading. The pictogram kit and the diagram grammars need nothing: the commentary is about data graphics, and pictograms are non-data ink by definition, which it grants rather than governs.</p>
+</footer>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1260,&quot;height&quot;:900},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;canon&quot;,&quot;slate&quot;,&quot;bone&quot;,&quot;moss&quot;,&quot;vermilion&quot;],&quot;default&quot;:&quot;canon&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Palette&quot;,&quot;label&quot;:&quot;Attested theme&quot;},&quot;distributionForm&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;box&quot;,&quot;strip&quot;,&quot;both&quot;],&quot;default&quot;:&quot;box&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Kit defaults&quot;,&quot;label&quot;:&quot;distribution() form&quot;},&quot;greyscale&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Proof&quot;,&quot;label&quot;:&quot;Desaturate every figure&quot;}}">
+class Component extends DCLogic {
+  state = { ready: false };
+  componentDidMount(){ this.poll() }
+  componentWillUnmount(){ clearTimeout(this._t) }
+  poll(){
+    if (window.PE && window.CK && window.MK) { this.setState({ ready: true }); return }
+    this._t = setTimeout(() => this.poll(), 80);
+  }
+  themes(){
+    return {
+      canon:{rule:'complement',hue:272,sat:0.55,tint:0,plateSlot:0,accentSlot:1,ruleSlot:null,overrides:{}},
+      slate:{rule:'complement',hue:203,sat:0.45,tint:0.04,plateSlot:0,accentSlot:1,ruleSlot:null,overrides:{}},
+      bone:{rule:'analogous',hue:28,sat:0.42,tint:0.42,plateSlot:0,accentSlot:2,ruleSlot:null,overrides:{}},
+      moss:{rule:'analogous',hue:152,sat:0.6,tint:0.3,plateSlot:0,accentSlot:2,ruleSlot:null,overrides:{}},
+      vermilion:{rule:'analogous',hue:9,sat:0.6,tint:0,plateSlot:0,accentSlot:2,ruleSlot:null,overrides:{}}
+    };
+  }
+  /* deterministic normals so the plate is stable across reloads */
+  pts(seed,n,mu,sd){
+    let s=seed,out=[];
+    const nxt=()=>{s=(s*9301+49297)%233280;return s/233280};
+    for(let i=0;i<n;i++){const u=nxt()||1e-6,v=nxt();
+      out.push(Math.round((mu+Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)*sd)*10)/10)}
+    return out;
+  }
+  mount(html,ar){
+    const r=this._roles;
+    return React.createElement('div',{style:{width:'100%',aspectRatio:ar||'2 / 1',background:r.paper.hex,
+      border:'1px solid '+r.rule.hex,borderRadius:'2px',overflow:'hidden',
+      filter:this.props.greyscale?'grayscale(1) contrast(1.04)':'none'},
+      dangerouslySetInnerHTML:{__html:html}});
+  }
+  data(){
+    return {
+      series:{x:['0','4','8','12','16','24'],unit:'%',
+        data:[{name:'Usual care',values:[42,44,45,47,48,49]},{name:'Assertion-first',values:[41,48,56,63,68,71]}],
+        emphasize:'Assertion-first',annotation:'Assertion-first holds a 22-point lead at week 24'},
+      rankedBar:{unit:'%',highlight:'Assertion-first',annotation:'One format clears the rest',
+        data:[{label:'Assertion-first',value:71},{label:'Usual care',value:49},{label:'Topic label',value:38},{label:'No poster',value:22}]},
+      dotComparison:{highlight:'Site A',fromLabel:'baseline',toLabel:'week 24',annotation:'Every site moved; Site A moved most',
+        data:[{label:'Site A',before:41,after:68},{label:'Site B',before:44,after:59},{label:'Site C',before:39,after:52}]},
+      distribution:{highlight:'Assertion-first',annotation:'The gain is a shift, not an outlier',
+        data:[{label:'No poster',points:this.pts(7,16,22,6)},
+              {label:'Usual care',points:this.pts(23,16,49,9)},
+              {label:'Assertion-first',points:this.pts(91,16,71,7)}]}
+    };
+  }
+  funnelSpec(){
+    const stages=['allocated','week 4','week 12','week 24'];
+    return {trunk:{label:'Screened',n:214},
+      ticks:[{at:0,label:'wk 0'},{at:0.34,label:'wk 8'},{at:0.68,label:'wk 16'},{at:1,label:'wk 24'}],
+      arms:[
+        {label:'Assertion-first',stages:stages,n:[107,101,94,88],emphasis:true,deviateAt:2,deviateLabel:'protocol amended'},
+        {label:'Usual care',stages:stages,n:[107,98,86,74]}
+      ]};
+  }
+  renderVals(){
+    if(!this.state.ready) return {ready:false,doseMatrix:[],greyMode:'—',greyWorst:'',greyNote:'Loading the palette engine and kits…'};
+    const res=PE.build(this.themes()[this.props.theme||'canon']||this.themes().canon);
+    const roles=res.roles; this._roles=roles;
+    const D=this.data(),base={roles:roles};
+    const form=(k,o)=>Object.assign({},base,D[k],o||{});
+    const distForm=this.props.distributionForm||'box';
+
+    const hero=k=>this.mount(CK.series(form('series',{w:300,h:150,ink:k})),'2 / 1');
+    const small=(fn,k,extra)=>this.mount(CK[fn](form(fn,Object.assign({w:300,h:140,ink:k},extra||{}))),'15 / 7');
+
+    const doseMatrix=[
+      {name:'series',note:'Emphasised value printed at every dose; interior points and axis leader only at rich.',
+        lean:small('series','lean'),mid:small('series','mid'),rich:small('series','rich')},
+      {name:'rankedBar',note:'v2 drew no value scale at all for bars. It does now, from mid up.',
+        lean:small('rankedBar','lean'),mid:small('rankedBar','mid'),rich:small('rankedBar','rich')},
+      {name:'dotComparison',note:'The highlighted row now prints its own delta — previously unrecoverable.',
+        lean:small('dotComparison','lean'),mid:small('dotComparison','mid'),rich:small('dotComparison','rich')},
+      {name:'distribution',note:'Shown in the form set by the tweak panel: '+distForm+'.',
+        lean:small('distribution','lean',{form:distForm}),mid:small('distribution','mid',{form:distForm}),rich:small('distribution','rich',{form:distForm})}
+    ];
+
+    /* diagnose the colours THIS figure actually draws: the emphasised series takes --accent,
+       the other takes the first Okabe-Ito entry from catPick. Diagnosing colours that are not
+       in the figure would be a demo, not a diagnostic. */
+    const gd=CK.greyDiagnostic([roles.accent.hex,PE.OKABE[0]],roles.paper.hex);
+    const gdCat=CK.greyDiagnostic(PE.OKABE,roles.paper.hex);
+    const greyCat=(gdCat.separates?'The full eight-value scale also survives desaturation.'
+      :'The full eight-value Okabe-Ito scale does not: its worst pair separates by only '+gdCat.worst.grey.toFixed(2)+':1 in grey against '+gdCat.worst.colour.toFixed(2)+':1 in colour. It is a colour-vision-deficiency-safe palette, not a greyscale-safe one \u2014 which is why the guidelines already require hue to be redundant with position, shape, or label, and why more than about three categorical series is a structural problem rather than an ink one.');
+    const greyProof=React.createElement('div',{style:{width:'100%',aspectRatio:'2 / 1',background:roles.paper.hex,
+      border:'1px solid '+roles.rule.hex,borderRadius:'2px',overflow:'hidden',filter:'grayscale(1) contrast(1.04)'},
+      dangerouslySetInnerHTML:{__html:CK.series(form('series',{w:300,h:150,ink:'mid'}))}});
+
+    return {
+      ready:true,
+      heroLean:hero('lean'),heroMid:hero('mid'),heroRich:hero('rich'),
+      doseMatrix:doseMatrix,
+      distBox:this.mount(CK.distribution(form('distribution',{w:300,h:150,ink:'mid',form:'box'})),'2 / 1'),
+      distStrip:this.mount(CK.distribution(form('distribution',{w:300,h:150,ink:'mid',form:'strip'})),'2 / 1'),
+      distBoth:this.mount(CK.distribution(form('distribution',{w:300,h:150,ink:'mid',form:'both'})),'2 / 1'),
+      greyMode:gd.mode,
+      greyWorst:gd.worst?('worst pair '+gd.worst.grey.toFixed(2)+':1 in grey, '+gd.worst.colour.toFixed(2)+':1 in colour'):'',
+      greyNote:gd.note,greyCat:greyCat,greyProof:greyProof,
+      claimRing:this.mount(CK.claimProportion({roles:roles,w:140,h:140,value:0.71,label:'71%'}),'1 / 1'),
+      claimWaffle:this.mount(CK.claimWaffle({roles:roles,w:140,h:140,count:71,total:100,label:'71 of 100'}),'1 / 1'),
+      claimDelta:this.mount(CK.claimDelta({roles:roles,w:220,h:140,from:49,to:71,ink:'mid',unit:'%',fromLabel:'usual care',toLabel:'assertion-first'}),'11 / 7'),
+      funnelLean:this.mount(MK.funnel(Object.assign({roles:roles,w:620,h:150,ink:'lean'},this.funnelSpec())),'62 / 15'),
+      funnelMid:this.mount(MK.funnel(Object.assign({roles:roles,w:620,h:150,ink:'mid'},this.funnelSpec())),'62 / 15'),
+      funnelRich:this.mount(MK.funnel(Object.assign({roles:roles,w:620,h:160,ink:'rich'},this.funnelSpec())),'62 / 16')
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio Plate 01 — Theme Layer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--pg:#F7F6F3;--pg-2:#FFFFFF;--tx:#16171A;--tx-2:#63646A;--tx-3:#8E8F94;--hair:#DEDCD6;--hair-2:#EAE8E3;--mark:#8A4B0F;--ok:#1E6B45;--warn:#9A2C12}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--pg);color:var(--tx);font-family:Archivo,system-ui,sans-serif;font-size:16px;line-height:1.55;text-wrap:pretty}
+a{color:var(--mark);text-decoration:underline;text-underline-offset:2px}
+a:hover{color:var(--tx)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 40px 120px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.lbl{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx-3)}
+
+/* ---- masthead ---- */
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:32px;padding:56px 0 20px;border-bottom:2px solid var(--tx)}
+.top h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.02em}
+.top .plate-no{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--tx-3);display:block;margin-bottom:6px}
+.top .meta{display:flex;gap:24px;flex-wrap:wrap}
+.top .meta div{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;color:var(--tx-2)}
+.top .meta b{display:block;font-weight:400;color:var(--tx-3);font-size:10px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:3px}
+
+.deck{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:64px;padding:44px 0 8px;align-items:start}
+.deck h2{font-size:38px;font-weight:900;line-height:1.08;letter-spacing:-.022em;margin:0 0 18px;max-width:20ch}
+.deck p{font-size:17px;line-height:1.6;margin:0 0 14px;max-width:62ch;color:#2C2D31}
+.deck .side{border-top:2px solid var(--tx);padding-top:12px}
+.deck .side p{font-size:13px;line-height:1.5;color:var(--tx-2);max-width:none}
+
+/* ---- controls ---- */
+.controls{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 0;margin:32px 0 0;background:var(--pg);border-bottom:1px solid var(--hair)}
+button.tog{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:7px 13px;border:1px solid var(--hair);background:var(--pg-2);color:var(--tx-2);border-radius:2px;cursor:pointer}
+button.tog:hover{border-color:var(--tx-3);color:var(--tx)}
+button.tog[aria-pressed="true"]{background:var(--tx);border-color:var(--tx);color:#fff}
+.controls .spacer{flex:1}
+.controls .note{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;color:var(--tx-3)}
+
+/* ---- sections ---- */
+section{padding:64px 0 0}
+.sec-head{display:grid;grid-template-columns:64px minmax(0,1fr);gap:0 24px;align-items:baseline;border-top:2px solid var(--tx);padding-top:14px;margin-bottom:28px}
+.sec-head .num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.14em;color:var(--tx-3);padding-top:6px}
+.sec-head h3{font-size:26px;font-weight:800;letter-spacing:-.018em;margin:0;line-height:1.15}
+.sec-head p{grid-column:2;font-size:16px;line-height:1.6;color:#2C2D31;margin:10px 0 0;max-width:64ch}
+.body{display:grid;grid-template-columns:64px minmax(0,1fr);gap:0 24px}
+.body>*{grid-column:2}
+
+p.n{font-size:15px;line-height:1.62;color:#2C2D31;max-width:64ch;margin:0 0 14px}
+p.n em{font-style:italic;color:var(--tx)}
+p.n strong{font-weight:600}
+.callout{border-left:3px solid var(--mark);padding:2px 0 2px 18px;margin:22px 0;max-width:64ch}
+.callout p{margin:0;font-size:15px;line-height:1.6}
+.callout .lbl{display:block;margin-bottom:6px}
+
+/* ---- formula ---- */
+.formula{background:var(--pg-2);border:1px solid var(--hair);border-radius:3px;padding:22px 24px;margin:24px 0;max-width:64ch}
+.formula .eq{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:15px;color:var(--tx);margin:0 0 12px}
+.formula ul{margin:0;padding-left:18px}
+.formula li{font-size:13.5px;line-height:1.6;color:var(--tx-2);margin-bottom:3px}
+.formula li b{color:var(--tx);font-weight:500}
+
+/* ---- token table ---- */
+table.tk{border-collapse:collapse;width:100%;max-width:760px;margin:20px 0 8px}
+table.tk th{text-align:left;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx-3);font-weight:400;padding:0 16px 8px 0;border-bottom:1px solid var(--tx)}
+table.tk td{padding:11px 16px 11px 0;border-bottom:1px solid var(--hair-2);font-size:14px;vertical-align:top;color:#2C2D31}
+table.tk td.k{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;color:var(--tx);white-space:nowrap}
+table.tk td.v{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;color:var(--mark);white-space:nowrap}
+
+/* ---- specimen ---- */
+.sp-sheet{--u:1cqw;aspect-ratio:1189/841;width:100%;display:grid;grid-template-columns:23% 1fr;background:var(--paper);border:1px solid rgba(0,0,0,.16);overflow:hidden;container-type:inline-size}
+.sp-bar{background:var(--paper);padding:calc(4.2*var(--u)) calc(3.4*var(--u));display:flex;flex-direction:column;gap:calc(2.6*var(--u));border-right:1px solid var(--rule)}
+.sp-bar .h{height:calc(2.1*var(--u));width:62%;background:var(--ink);border-radius:calc(.3*var(--u))}
+.sp-bar .ln{display:flex;flex-direction:column;gap:calc(1.05*var(--u))}
+.sp-bar .ln i{display:block;height:calc(.85*var(--u));background:var(--ink-soft);opacity:.55;border-radius:calc(.3*var(--u))}
+.sp-main{background:var(--field);display:grid;grid-template-rows:auto 1fr auto;padding:calc(3.2*var(--u));gap:calc(2.6*var(--u));min-height:0}
+.sp-plate{background:var(--panel);color:var(--panel-ink);border-radius:calc(.5*var(--u));padding:calc(2.9*var(--u)) calc(3.2*var(--u));display:flex;align-items:center}
+.sp-plate span{font-weight:900;font-size:calc(3.5*var(--u));line-height:1.06;letter-spacing:-.02em;display:block}
+.sp-plate em{font-style:normal;color:var(--accent-on-panel);text-decoration:underline;text-decoration-thickness:calc(.28*var(--u));text-underline-offset:calc(.35*var(--u))}
+.sp-ev{background:var(--paper);border:1px solid var(--rule);border-radius:calc(.4*var(--u));padding:calc(2.2*var(--u));display:flex;flex-direction:column;gap:calc(1.6*var(--u));min-height:0}
+.sp-ev .cap{height:calc(1.15*var(--u));width:70%;background:var(--ink);border-radius:calc(.3*var(--u));flex:none}
+.sp-chart{flex:1;display:flex;align-items:flex-end;gap:calc(1.5*var(--u));min-height:0}
+.sp-chart i{display:block;flex:1;background:var(--ink-soft);opacity:.28;border-radius:calc(.2*var(--u)) calc(.2*var(--u)) 0 0}
+.sp-chart i.hit{background:var(--accent);opacity:1}
+.sp-foot{display:flex;align-items:center;gap:calc(2*var(--u))}
+.sp-foot .lm{height:calc(.9*var(--u));flex:1;background:var(--ink-soft);opacity:.5;border-radius:calc(.3*var(--u))}
+.sp-foot .qr{width:calc(6*var(--u));height:calc(6*var(--u));background:var(--paper);border:calc(.35*var(--u)) solid var(--ink);border-radius:calc(.3*var(--u));flex:none}
+.sp-sheet[data-plate="bleed"] .sp-main{padding:0;gap:0;grid-template-rows:49% 1fr auto}
+.sp-sheet[data-plate="bleed"] .sp-plate{border-radius:0;padding:calc(3.4*var(--u));min-height:0}
+.sp-sheet[data-plate="bleed"] .sp-ev{margin:calc(3.2*var(--u));border-radius:calc(.4*var(--u))}
+.sp-sheet[data-plate="bleed"] .sp-foot{padding:0 calc(3.2*var(--u)) calc(3.2*var(--u))}
+.sp-sheet[data-orient="portrait"]{--u:1.414cqw;aspect-ratio:841/1189;grid-template-columns:1fr}
+.sp-page{display:grid;grid-template-rows:auto 1fr;min-height:0;padding:calc(4*var(--u));gap:calc(2.8*var(--u))}
+.sp-sheet[data-orient="portrait"] .sp-head{display:flex;flex-direction:column;gap:calc(1.7*var(--u))}
+.sp-sheet[data-orient="portrait"] .sp-head .h{height:calc(2.1*var(--u));width:78%;background:var(--ink);border-radius:calc(.3*var(--u))}
+.sp-sheet[data-orient="portrait"] .sp-head .ln{display:flex;flex-direction:column;gap:calc(1.05*var(--u))}
+.sp-sheet[data-orient="portrait"] .sp-head .ln i{display:block;height:calc(.85*var(--u));background:var(--ink-soft);opacity:.55;border-radius:calc(.3*var(--u))}
+.sp-sheet[data-orient="portrait"] .sp-main{grid-template-rows:auto 1fr auto auto}
+.sp-meth{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(1.6*var(--u))}
+.sp-meth i{display:block;height:calc(5*var(--u));background:var(--paper);border:1px solid var(--rule);border-left:calc(1*var(--u)) solid var(--ink-soft);border-radius:calc(.4*var(--u))}
+.pair{display:grid;grid-template-columns:1fr .707fr;gap:14px;align-items:start}
+.pair>*{min-width:0}
+.meters{display:grid;gap:15px}
+.meter .who{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx-3);margin-bottom:6px}
+
+.grey .sp-sheet{filter:grayscale(1) contrast(1.04)}
+.outline [data-cover="plate"]{outline:2px dashed var(--warn);outline-offset:-2px}
+
+/* ---- comparison ---- */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin:28px 0 8px}
+.compare>div{min-width:0}
+.compare h4{font-size:15px;font-weight:600;margin:0 0 3px}
+.compare .sub{font-size:13px;color:var(--tx-2);margin:0 0 14px;min-height:38px}
+.verdict{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;margin-top:12px;padding-top:10px;border-top:1px solid var(--hair);display:flex;justify-content:space-between;gap:12px}
+.verdict b{font-weight:500;color:var(--tx)}
+.verdict .bad{color:var(--warn)}
+.verdict .good{color:var(--ok)}
+
+/* ---- theme cards ---- */
+.themes{display:grid;gap:44px;margin-top:8px}
+.theme{background:var(--pg-2);border:1px solid var(--hair);border-radius:4px;overflow:hidden}
+.theme-head{display:flex;justify-content:space-between;align-items:baseline;gap:24px;padding:20px 24px 16px;border-bottom:1px solid var(--hair-2)}
+.theme-head h4{font-size:21px;font-weight:800;letter-spacing:-.01em;margin:0}
+.theme-head .ttl{display:flex;align-items:baseline;gap:12px;flex:none}
+.rank{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx-2);background:var(--pg);border:1px solid var(--hair);border-radius:2px;padding:3px 7px;white-space:nowrap}
+.theme-head .use{font-size:13.5px;color:var(--tx-2);margin:0;text-align:right;max-width:52ch}
+.theme-grid{display:grid;grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr);gap:0}
+.theme-left{padding:24px;border-right:1px solid var(--hair-2);min-width:0}
+.theme-right{padding:24px;min-width:0;display:flex;flex-direction:column;gap:20px}
+.swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:20px}
+.sw{min-width:0}
+.sw .chip{height:38px;border-radius:2px;border:1px solid rgba(0,0,0,.14)}
+.sw .r{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9px;letter-spacing:.04em;color:var(--tx-2);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sw .x{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9px;color:var(--tx-3)}
+.checks{width:100%}
+.checks .row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--hair-2);font-size:12.5px;color:var(--tx-2)}
+.checks .row:last-child{border-bottom:0}
+.checks .row .rt{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;color:var(--tx);text-align:right}
+.checks .row .fl{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:2px;min-width:44px;text-align:center}
+.fl.pass{background:#E4F0E9;color:var(--ok)}
+.fl.fail{background:#F7E2DC;color:var(--warn)}
+.fl.info{background:#EDECE8;color:var(--tx-2)}
+.meter{margin-top:2px}
+.meter .bar{height:9px;background:var(--hair-2);border-radius:2px;position:relative;overflow:hidden}
+.meter .bar i{display:block;height:100%;background:var(--tx)}
+.meter .bar s{position:absolute;left:0;top:0;bottom:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.85) 0 2px,transparent 2px 4px)}
+.meter .bar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--warn)}
+.meter .cap{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;color:var(--tx-2);margin-top:7px}
+.meter .cap b{font-weight:500;color:var(--tx)}
+
+/* ---- greyscale strip ---- */
+.strip{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px}
+.strip figure{margin:0;min-width:0}
+.strip figcaption{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx-3);margin-top:8px}
+.strip .sp-sheet{filter:grayscale(1) contrast(1.04)}
+
+/* ---- decisions ---- */
+ol.dec{counter-reset:d;list-style:none;padding:0;margin:20px 0 0;max-width:66ch}
+ol.dec li{counter-increment:d;position:relative;padding:0 0 18px 42px;font-size:15px;line-height:1.6;color:#2C2D31}
+ol.dec li::before{content:counter(d,decimal-leading-zero);position:absolute;left:0;top:1px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;color:var(--mark);letter-spacing:.08em}
+ol.dec li b{font-weight:600;color:var(--tx)}
+.scope{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:22px;max-width:860px}
+.scope>div{border-top:1px solid var(--hair);padding-top:12px}
+.scope ul{margin:8px 0 0;padding-left:18px}
+.scope li{font-size:13.5px;line-height:1.55;color:var(--tx-2);margin-bottom:5px}
+
+@media(max-width:960px){.wrap{padding:0 22px 80px}.deck,.theme-grid,.compare,.scope{grid-template-columns:1fr}.deck{gap:28px}.theme-left{border-right:0;border-bottom:1px solid var(--hair-2)}.sec-head,.body{grid-template-columns:1fr}.sec-head p,.body>*{grid-column:1}.strip{grid-template-columns:1fr 1fr}}
+
+/* ============ THEME DEFINITIONS — the deliverable of this plate ============ */
+[data-theme]{--accent-ink:#FFFFFF}
+[data-theme="canon"]{--paper:#FFFFFF;--ink:#17171B;--ink-soft:#55555F;--field:#EEF3F6;--panel:#1B1033;--panel-ink:#FFFFFF;--accent:#B34700;--accent-on-panel:#E69F00;--rule:#86929C}
+[data-theme="slate"]{--paper:#FCFCFD;--ink:#14181D;--ink-soft:#565E68;--field:#EDF1F4;--panel:#1E2933;--panel-ink:#FFFFFF;--accent:#0B5F8A;--accent-on-panel:#56B4E9;--rule:#85919B}
+[data-theme="bone"]{--paper:#FBF9F5;--ink:#1A1714;--ink-soft:#5E574E;--field:#F1EDE5;--panel:#2B2118;--panel-ink:#FBF9F5;--accent:#9B3A1F;--accent-on-panel:#E69F00;--rule:#948A7A}
+[data-theme="moss"]{--paper:#FBFCFA;--ink:#161A16;--ink-soft:#545C52;--field:#EAF0E9;--panel:#1C2A22;--panel-ink:#FFFFFF;--accent:#8A2E63;--accent-on-panel:#CC79A7;--rule:#879083}
+[data-theme="ash"]{--paper:#FFFFFF;--ink:#101114;--ink-soft:#5A5C61;--field:#F0F1F3;--panel:#212429;--panel-ink:#FFFFFF;--accent:#00625B;--accent-on-panel:#009E73;--rule:#8E9196}
+[data-theme="vermilion"]{--paper:#FFFFFF;--ink:#1A1417;--ink-soft:#5C545A;--field:#F6EFEE;--panel:#310C10;--panel-ink:#FFFFFF;--accent:#A3350B;--accent-on-panel:#D55E00;--rule:#9A8E8C}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1><span class="plate-no">Studio Plate 01</span>Theme layer — named, pre-validated palettes under an ink budget</h1>
+  <div class="meta">
+    <div><b>System</b>conference_assets v2</div>
+    <div><b>Status</b>For review</div>
+    <div><b>Date</b>2026-08-16</div>
+  </div>
+</header>
+
+<div class="deck">
+  <div>
+    <h2>Six themes, and the rule that shapes all six.</h2>
+    <p class="n">The v1 theming instruction was “override the nine role tokens in pairs.” That is a correct instruction and a bad system: it puts the one decision most likely to destroy the poster — contrast — in the hands of whoever is closest to the deadline. This plate replaces it with a <strong>closed set of six named themes</strong>, each validated before it ships.</p>
+    <p class="n">It also introduces one new rule. You print on fabric and in-house, and you would rather not spend ink on full-dark or fully-coloured grounds. That preference is not a preference — it is <em>arithmetic about a physical surface</em>, which is the warrant class this canon takes most seriously. So it becomes a token, a target, and a proof.</p>
+  </div>
+  <aside class="side">
+    <p><span class="lbl">Superseded in part</span></p>
+    <p><a href="02-palette-engine.html">Plate 02</a> withdraws the “closed set of six” (decision 3 below) and replaces it with a generator: the six survive as attested defaults, validated the same way. The ink budget and the contained plate stand.</p>
+    <p><span class="lbl">Reads on</span></p>
+    <p>Every number on this page is computed from the token values in the stylesheet at load, not typed in. Change a theme in the CSS and the checks and meters re-derive. The plate is the validator.</p>
+  </aside>
+</div>
+
+<div class="controls">
+  <button class="tog" id="t-grey" aria-pressed="false">Greyscale proof</button>
+  <button class="tog" id="t-outline" aria-pressed="false">Outline ink objects</button>
+  <span class="spacer"></span>
+  <span class="note" id="stamp">computing…</span>
+</div>
+
+<!-- ============================================================ 01 -->
+<section>
+  <div class="sec-head">
+    <span class="num">01</span>
+    <h3>The ink budget</h3>
+    <p>A poster is a physical object made of deposited pigment. Treating coverage as a designed quantity rather than an accident is the single change that gives this system a look of its own.</p>
+  </div>
+  <div class="body">
+    <p class="n">The #betterposter billboard is conventionally a full-bleed dark band across the top third of the sheet. On a 1189 × 841 mm surface that is roughly a third of a square metre of solid ink — expensive on an in-house roll, prone to banding, and on fabric prone to crocking along the fold. It is also, visually, the least interesting thing you can do with the format, and by now the most common.</p>
+    <p class="n">The alternative is not “less dark.” It is <strong>dark as a contained object</strong>: a plate that sits <em>on</em> the paper with margin around it, rather than a band that runs off the edge. It costs less ink — section 02 measures <span class="mono" id="saving">—</span> less coverage on the same content — it reads as a deliberate mark rather than a template default, and, because it now has an edge on all four sides, it gains a silhouette that is recognisable at 20 m before a single word resolves.</p>
+
+    <div class="formula">
+      <p class="eq">C = Σ ( A<sub>i</sub> / A<sub>sheet</sub> × ( 1 − Y<sub>i</sub> ) )</p>
+      <ul>
+        <li><b>A<sub>i</sub></b> — area of each painted region on the sheet</li>
+        <li><b>Y<sub>i</sub></b> — its WCAG relative luminance, so white paper contributes 0 and solid black contributes 1</li>
+        <li><b>C</b> — estimated coverage, the share of the sheet's area-weighted darkness</li>
+      </ul>
+    </div>
+    <p class="n" style="color:var(--tx-2);font-size:13.5px"><b>Honesty about this metric.</b> <code class="mono">C</code> approximates <em>perceived</em> ink, not CMYK total area coverage — it knows nothing about your profile, your substrate, or rich blacks. It is a relative instrument: good for comparing two layouts on the same printer, useless as an absolute prediction of cartridge life. Warrant: <code class="mono">[house, approximation]</code>. Verify it once against a real print and calibrate the ceiling.</p>
+
+    <table class="tk">
+      <thead><tr><th>New token</th><th>Value</th><th>What it constrains</th></tr></thead>
+      <tbody>
+        <tr><td class="k">--ink-plate-max</td><td class="v">22%</td><td>Maximum share of sheet area the dark takeaway plate may occupy. Above this the plate stops reading as an object and starts reading as a background.</td></tr>
+        <tr><td class="k">--ink-coverage-max</td><td class="v">0.30</td><td>Ceiling on <code class="mono">C</code> for the whole sheet. A design at 0.30 is dense but printable; the six themes on this plate measure <span class="mono" id="cov-range">—</span>.</td></tr>
+        <tr><td class="k">--ink-accent-events</td><td class="v">1</td><td>Not a colour rule — a <em>spending</em> rule. One accent event per sheet: the emphasised word in the claim, or the highlighted element in the figure. Never both.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <span class="lbl">A finding that fell out of the instrument</span>
+      <p><strong>A tinted ground is a printed tint.</strong> Warm and off-white papers look thrifty and measure expensive: covering a sheet in <code class="mono">#FBF9F5</code> means laying pigment across the entire surface, and the metric correctly charges for it. The meters below therefore report coverage split into <em>ground</em> and <em>marks</em>. Be precise about what matching the stock buys: it removes the ground, but not the field tint, which is printed on any substrate. So a warm theme is cheaper on warm stock than on white — and still not cheaper than a neutral. Choose the theme and the stock together, or leave the ground untinted.</p>
+    </div>
+
+    <div class="callout">
+      <span class="lbl">The rule, stated for the guidelines</span>
+      <p>No full-bleed dark grounds and no fully-coloured sheets. Dark is a contained object with paper on all four sides, capped at <code class="mono">--ink-plate-max</code>. The eye path across the poster is bought with a fixed ink allowance: one dark object, one accent event, everything else paper. <strong>A poster that spends its ink twice has no five-second layer.</strong></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 02 -->
+<section>
+  <div class="sec-head">
+    <span class="num">02</span>
+    <h3>Full bleed versus contained plate</h3>
+    <p>Same theme, same content, same type sizes. The only variable is whether the dark region has edges.</p>
+  </div>
+  <div class="body">
+    <div class="compare">
+      <div>
+        <h4>Full-bleed band <span class="lbl" style="margin-left:6px">v1 / canon</span></h4>
+        <p class="sub">The inherited layout. The band runs to trim on three sides and the evidence field starts where it stops. Sized here to the canon's own <code class="mono">--zone-takeaway-band: 37.7%</code>.</p>
+        <div class="specimen" data-theme="canon" data-plate="bleed"></div>
+        <div class="verdict"><span>plate share <b class="v-plate">—</b></span><span>coverage C <b class="v-cov">—</b></span></div>
+      </div>
+      <div>
+        <h4>Contained plate <span class="lbl" style="margin-left:6px">v2 proposal</span></h4>
+        <p class="sub">The plate floats in the evidence field with margin on all four sides. It acquires a silhouette, and the field becomes the poster's ground rather than a leftover.</p>
+        <div class="specimen" data-theme="canon"></div>
+        <div class="verdict"><span>plate share <b class="v-plate">—</b></span><span>coverage C <b class="v-cov">—</b></span></div>
+      </div>
+    </div>
+    <p class="n" style="margin-top:26px">The saving is real but secondary. The reason to prefer the right-hand sheet is that it has a <em>shape</em>. A band is a template; a plate at a fixed proportion, in a fixed position, with a fixed margin, is a mark — and it is the same mark on the portrait sheet and on the flash-talk slide. That is the signature layer from the consultation, obtained for free out of the ink rule rather than bolted on as decoration.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 03 -->
+<section>
+  <div class="sec-head">
+    <span class="num">03</span>
+    <h3>The six themes</h3>
+    <p>Each is a complete nine-role set, validated on load for prose contrast, graphic contrast, accent legibility on both grounds, greyscale separation, and ink coverage. Both A0 surfaces are shown at <em>one physical scale</em> — 841 mm and 1189 mm of paper drawn at the same millimetres-per-pixel, which is why the portrait sheet stands taller. Read the claim type across the pair: it is the same glyph height on both, because the type scale is absolute and a sheet does not become more legible by being rotated. Landscape carries the silent presenter bar; portrait forfeits it, because a single-column narrative puts your body across the middle of the sheet. Applied with a single attribute: <code class="mono">data-theme</code>.</p>
+  </div>
+  <div class="body">
+    <div class="themes">
+
+      <article class="theme" data-theme="canon">
+        <div class="theme-head"><div class="ttl"><h4>Canon</h4><span class="rank"></span></div><p class="use">The inherited default, carried forward unchanged so existing work is not orphaned. Indigo plate, burnt-orange accent.</p></div>
+        <div class="theme-grid"><div class="theme-left"><div class="swatches"></div><div class="checks"></div></div><div class="theme-right"><div class="pair"><div class="specimen"></div><div class="specimen" data-orient="portrait"></div></div><div class="meters"><div class="meter"></div><div class="meter"></div></div></div></div>
+      </article>
+
+      <article class="theme" data-theme="slate">
+        <div class="theme-head"><div class="ttl"><h4>Slate</h4><span class="rank"></span></div><p class="use">Cool neutral, blue accent. The safe institutional default — reads as engineering rather than as a brand. Use when the work is instrumentation, methods, or infrastructure.</p></div>
+        <div class="theme-grid"><div class="theme-left"><div class="swatches"></div><div class="checks"></div></div><div class="theme-right"><div class="pair"><div class="specimen"></div><div class="specimen" data-orient="portrait"></div></div><div class="meters"><div class="meter"></div><div class="meter"></div></div></div></div>
+      </article>
+
+      <article class="theme" data-theme="bone">
+        <div class="theme-head"><div class="ttl"><h4>Bone</h4><span class="rank"></span></div><p class="use">Warm paper, warm near-black — the kindest to fabric, where a cool black often prints with a blue cast. It is not the thrifty option: its ground and its field tint are both heavier than the neutrals, so it costs the most ink in the set on white stock and, once the ground is discounted, on warm stock too. Choose it for cast, not for coverage.</p></div>
+        <div class="theme-grid"><div class="theme-left"><div class="swatches"></div><div class="checks"></div></div><div class="theme-right"><div class="pair"><div class="specimen"></div><div class="specimen" data-orient="portrait"></div></div><div class="meters"><div class="meter"></div><div class="meter"></div></div></div></div>
+      </article>
+
+      <article class="theme" data-theme="moss">
+        <div class="theme-head"><div class="ttl"><h4>Moss</h4><span class="rank"></span></div><p class="use">Green-neutral ground with a reddish-purple accent — maximally separated in hue from the ground, and Okabe-Ito safe. Use for field, ecological, and organismal work.</p></div>
+        <div class="theme-grid"><div class="theme-left"><div class="swatches"></div><div class="checks"></div></div><div class="theme-right"><div class="pair"><div class="specimen"></div><div class="specimen" data-orient="portrait"></div></div><div class="meters"><div class="meter"></div><div class="meter"></div></div></div></div>
+      </article>
+
+      <article class="theme" data-theme="ash">
+        <div class="theme-head"><div class="ttl"><h4>Ash</h4><span class="rank"></span></div><p class="use">Pure neutral with a bluish-green accent and an untinted ground. Designed to lose nothing in greyscale, so it is the pick when the poster will be photocopied, photographed badly, or reprinted mono.</p></div>
+        <div class="theme-grid"><div class="theme-left"><div class="swatches"></div><div class="checks"></div></div><div class="theme-right"><div class="pair"><div class="specimen"></div><div class="specimen" data-orient="portrait"></div></div><div class="meters"><div class="meter"></div><div class="meter"></div></div></div></div>
+      </article>
+
+      <article class="theme" data-theme="vermilion">
+        <div class="theme-head"><div class="ttl"><h4>Vermilion</h4><span class="rank"></span></div><p class="use">Oxblood plate, vermilion accent — the most saturated plate in the set and the loudest at distance. Reserve it for a claim that has to win a crowded hall, and expect to justify the cartridge.</p></div>
+        <div class="theme-grid"><div class="theme-left"><div class="swatches"></div><div class="checks"></div></div><div class="theme-right"><div class="pair"><div class="specimen"></div><div class="specimen" data-orient="portrait"></div></div><div class="meters"><div class="meter"></div><div class="meter"></div></div></div></div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 04 -->
+<section>
+  <div class="sec-head">
+    <span class="num">04</span>
+    <h3>Greyscale proof</h3>
+    <p>All six, desaturated. The canon treats greyscale as a conservative sufficiency test rather than a CVD simulation — stricter than deutan or protan vision, and simultaneously the mono-laser check.</p>
+  </div>
+  <div class="body">
+    <div class="strip" id="strip"></div>
+    <p class="n" style="margin-top:24px">What to look for: the plate must still separate from the field, the accent must still separate from the surrounding ink, and the single highlighted bar in the figure must still be the one your eye lands on. If a theme survives here it survives the department printer, a phone photograph in bad light, and every common colour-vision deficiency.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 05 -->
+<section>
+  <div class="sec-head">
+    <span class="num">05</span>
+    <h3>What this plate asks you to decide</h3>
+    <p>Five decisions. Everything downstream — the chart kit's palette, the pictogram stroke weight, the hero illustration's ink allowance — inherits from them.</p>
+  </div>
+  <div class="body">
+    <ol class="dec">
+      <li><b>Contained plate over full bleed.</b> This is the load-bearing one: it sets the silhouette that becomes the system's signature across all three surfaces. Accepting it means re-cutting the two posters and the slide in section 06 of the roadmap.</li>
+      <li><b>The ink budget becomes canon.</b> Three new tokens, one new proof, one new sentence in the guidelines. The ceiling of 22% plate share and C ≤ 0.30 is my proposal, not a measurement — calibrate it against one real print on your fabric and your roll before it hardens.</li>
+      <li><b>Six themes, closed set.</b> <s>Named, validated, applied by attribute.</s> <em>Withdrawn — see <a href="02-palette-engine.html">Plate 02</a>. The rule becomes: any palette may be generated, only generated palettes may be installed.</em></li>
+      <li><b>Are these the right six?</b> They cover cool / warm / neutral / green / high-impact plus the inherited default. If your institute mandates a colour, one of these should become it rather than a seventh being added.</li>
+      <li><b>One accent event per sheet.</b> Stricter than v1's “one accent.” It governs where you spend, not what you own — and it is what makes the eye path predictable.</li>
+    </ol>
+    <div class="scope">
+      <div>
+        <p class="lbl">This plate does not decide</p>
+        <ul>
+          <li>Typefaces or the type scale — unchanged from v1</li>
+          <li>Zone proportions and layout geometry</li>
+          <li>Chart forms and the categorical scale (Plate 02)</li>
+          <li>Pictogram construction (Plate 03)</li>
+          <li>Whether the hero illustration gets its own ink allowance</li>
+        </ul>
+      </div>
+      <div>
+        <p class="lbl">Known soft spots</p>
+        <ul>
+          <li>The coverage metric is uncalibrated against a real substrate</li>
+          <li>Specimens are thumbnails; they prove contrast and coverage, not legibility at distance</li>
+          <li>Bone's warm black may read brown under warm hall lighting — worth one test print</li>
+          <li><span id="ceiling-pair">—</span> sit closest to the coverage ceiling and will be the first to breach it once a hero illustration is added</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+const THEMES=['canon','slate','bone','moss','ash','vermilion'];
+const ROLES=['paper','field','ink','ink-soft','panel','panel-ink','accent','accent-on-panel','rule'];
+const CHECKS=[
+  ['ink','paper',4.5,'prose on paper'],
+  ['ink-soft','paper',4.5,'soft prose on paper'],
+  ['ink','field',4.5,'prose on evidence field'],
+  ['panel-ink','panel',4.5,'takeaway on plate'],
+  ['accent','paper',4.5,'accent text on paper'],
+  ['accent-on-panel','panel',4.5,'accent on plate'],
+  ['rule','paper',3,'hairlines & graphics']
+];
+const PLATE_MAX=0.22, COV_MAX=0.30;
+
+function hex2rgb(h){h=h.trim();if(h.startsWith('#')){h=h.slice(1);if(h.length===3)h=h.split('').map(c=>c+c).join('');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}const m=h.match(/[\d.]+/g);return m?[+m[0],+m[1],+m[2]]:[255,255,255]}
+function lum(c){const[r,g,b]=hex2rgb(c);const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4)};return 0.2126*f(r)+0.7152*f(g)+0.0722*f(b)}
+function ratio(a,b){const l1=lum(a),l2=lum(b);return(Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05)}
+function tok(el,n){return getComputedStyle(el).getPropertyValue('--'+n).trim()}
+
+const SPECIMEN=`<div class="sp-sheet" data-cover>
+  <div class="sp-bar" data-cover><div class="h"></div><div class="ln"><i style="width:100%"></i><i style="width:96%"></i><i style="width:88%"></i></div><div class="ln"><i style="width:100%"></i><i style="width:92%"></i><i style="width:70%"></i></div></div>
+  <div class="sp-main" data-cover>
+    <div class="sp-plate" data-cover="plate"><span>X halves Y under Z — and the <em>mechanism</em> is not the obvious one.</span></div>
+    <div class="sp-ev" data-cover><div class="cap"></div><div class="sp-chart"><i style="height:34%"></i><i style="height:52%"></i><i style="height:41%"></i><i class="hit" style="height:88%"></i><i style="height:47%"></i><i style="height:29%"></i><i style="height:38%"></i></div></div>
+    <div class="sp-foot"><div class="lm"></div><div class="qr"></div></div>
+  </div>
+  </div>
+</div>`;
+
+const SPECIMEN_P=`<div class="sp-sheet" data-orient="portrait" data-cover>
+  <div class="sp-page">
+  <div class="sp-head"><div class="h"></div><div class="ln"><i style="width:100%"></i><i style="width:72%"></i></div></div>
+  <div class="sp-main" data-cover>
+    <div class="sp-plate" data-cover="plate"><span>X halves Y under Z — and the <em>mechanism</em> is not the obvious one.</span></div>
+    <div class="sp-ev" data-cover><div class="cap"></div><div class="sp-chart"><i style="height:34%"></i><i style="height:52%"></i><i style="height:41%"></i><i class="hit" style="height:88%"></i><i style="height:47%"></i><i style="height:29%"></i></div></div>
+    <div class="sp-meth"><i data-cover></i><i data-cover></i><i data-cover></i></div>
+    <div class="sp-foot"><div class="lm"></div><div class="qr"></div></div>
+  </div>
+  </div>
+</div>`;
+
+function buildSpecimens(){document.querySelectorAll('.specimen').forEach(s=>{if(!s.firstElementChild){const port=s.dataset.orient==='portrait';s.innerHTML=port?SPECIMEN_P:SPECIMEN;const sh=s.firstElementChild;if(s.dataset.plate)sh.setAttribute('data-plate',s.dataset.plate)}})}
+
+function sameColour(a,b){const x=hex2rgb(a),y=hex2rgb(b);return Math.abs(x[0]-y[0])<3&&Math.abs(x[1]-y[1])<3&&Math.abs(x[2]-y[2])<3}
+
+function coverage(sheet){
+  const R=sheet.getBoundingClientRect(),A=R.width*R.height;if(!A)return null;
+  const paper=tok(sheet.closest('[data-theme]')||sheet,'paper');
+  const els=[sheet].concat([].slice.call(sheet.querySelectorAll('[data-cover]')));
+  const box=el=>{const r=el.getBoundingClientRect();return r.width*r.height};
+  const nearest=o=>o.parentElement?o.parentElement.closest('[data-cover]'):null;
+  let marks=0,ground=0,plate=0;
+  els.forEach(el=>{
+    const bg=getComputedStyle(el).backgroundColor;
+    if(!bg||bg==='rgba(0, 0, 0, 0)')return;
+    let net=box(el);
+    els.forEach(o=>{if(o!==el&&el.contains(o)&&nearest(o)===el)net-=box(o)});
+    if(net<=0)return;
+    const cost=(net/A)*(1-lum(bg));
+    if(sameColour(bg,paper))ground+=cost; else marks+=cost;
+  });
+  [].slice.call(sheet.querySelectorAll('[data-cover="plate"]')).forEach(el=>{plate+=box(el)/A});
+  return{c:Math.min(marks+ground,1),marks:marks,ground:ground,plate:plate};
+}
+
+function swatches(host,scope){
+  host.innerHTML=ROLES.map(r=>{
+    const v=tok(scope,r);
+    return `<div class="sw"><div class="chip" style="background:${v}"></div><div class="r">${r}</div><div class="x">${v.toUpperCase()}</div></div>`;
+  }).join('');
+}
+
+function checks(host,scope){
+  let rows=CHECKS.map(([a,b,min,label])=>{
+    const v=ratio(tok(scope,a),tok(scope,b)),ok=v>=min;
+    return `<div class="row"><span>${label}</span><span class="rt">${v.toFixed(2)}:1</span><span class="fl ${ok?'pass':'fail'}">${ok?'pass':'fail'}</span></div>`;
+  });
+  const sep=ratio(tok(scope,'accent'),tok(scope,'ink'));
+  rows.push(`<div class="row"><span>accent vs ink, mono separation</span><span class="rt">${sep.toFixed(2)}:1</span><span class="fl info">${sep>=1.6?'clear':'underline carries'}</span></div>`);
+  host.innerHTML=rows.join('');
+}
+
+function meter(host,sheet,label){
+  const m=coverage(sheet);if(!m)return m;
+  const w=Math.min(m.c/COV_MAX,1)*100;
+  const gw=Math.min(m.ground/COV_MAX,1)*100;
+  host.innerHTML=`<div class="who">${label||''}</div><div class="bar"><i style="width:${w}%"></i><s style="width:${gw}%"></s><u style="left:calc(100% - 1px)"></u></div>
+  <div class="cap"><span>C <b>${(m.c*100).toFixed(1)}%</b> — marks ${(m.marks*100).toFixed(1)}% · ground ${(m.ground*100).toFixed(1)}%</span><span>plate <b>${(m.plate*100).toFixed(1)}%</b> / ${(PLATE_MAX*100).toFixed(0)}%</span></div>`;
+  return m;
+}
+
+function measureAll(){
+  const results=[];
+  document.querySelectorAll('.theme').forEach(card=>{
+    swatches(card.querySelector('.swatches'),card);
+    checks(card.querySelector('.checks'),card);
+    const sheets=card.querySelectorAll('.sp-sheet'),hosts=card.querySelectorAll('.meter');
+    sheets.forEach((sh,i)=>{
+      const m=meter(hosts[i],sh,i===0?'A0 landscape':'A0 portrait');
+      if(m&&i===0)results.push({card:card,c:m.c,marks:m.marks});
+    });
+  });
+  results.slice().sort((a,b)=>a.marks-b.marks).forEach((r,i)=>{
+    const el=r.card.querySelector('.rank');
+    if(el)el.textContent='marks '+(i+1)+'/'+results.length;
+  });
+  if(results.length){
+    const lo=Math.min(...results.map(r=>r.c)),hi=Math.max(...results.map(r=>r.c));
+    const rng=document.getElementById('cov-range');
+    if(rng)rng.textContent=(lo*100).toFixed(1)+'% – '+(hi*100).toFixed(1)+'%';
+    const cp=document.getElementById('ceiling-pair');
+    if(cp&&results.length>=2)cp.textContent=results.slice().sort((a,b)=>b.c-a.c).slice(0,2).map(r=>r.card.querySelector('h4').textContent).join(' and ');
+  }
+  let bleed=null,held=null;
+  document.querySelectorAll('.compare>div').forEach(col=>{
+    const sheet=col.querySelector('.sp-sheet');if(!sheet)return;
+    const m=coverage(sheet);if(!m)return;
+    if(sheet.getAttribute('data-plate')==='bleed')bleed=m; else held=m;
+    const p=col.querySelector('.v-plate'),c=col.querySelector('.v-cov');
+    p.textContent=(m.plate*100).toFixed(1)+'%';p.className='v-plate '+(m.plate>PLATE_MAX?'bad':'good');
+    c.textContent=(m.c*100).toFixed(1)+'%';c.className='v-cov '+(m.c>COV_MAX?'bad':'good');
+  });
+  const sv=document.getElementById('saving');
+  if(sv&&bleed&&held&&bleed.c>0)sv.textContent=Math.round((1-held.c/bleed.c)*100)+'%';
+  let fails=0;
+  document.querySelectorAll('.fl.fail').forEach(()=>fails++);
+  document.getElementById('stamp').textContent=fails===0
+    ? THEMES.length+' themes · '+(CHECKS.length*THEMES.length)+' contrast checks · all pass'
+    : fails+' contrast check'+(fails>1?'s':'')+' failing';
+}
+
+function buildStrip(){
+  const strip=document.getElementById('strip');
+  strip.innerHTML=THEMES.map(t=>`<figure data-theme="${t}"><div class="specimen"></div><figcaption>${t}</figcaption></figure>`).join('');
+}
+
+buildStrip();
+buildSpecimens();
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(measureAll)}
+requestAnimationFrame(()=>requestAnimationFrame(measureAll));
+addEventListener('resize',()=>{clearTimeout(window.__r);window.__r=setTimeout(measureAll,180)});
+
+function bind(id,cls){const b=document.getElementById(id);b.addEventListener('click',()=>{const on=b.getAttribute('aria-pressed')==='true';b.setAttribute('aria-pressed',String(!on));document.body.classList.toggle(cls,!on)})}
+bind('t-grey','grey');bind('t-outline','outline');
+</script>
+</body>
+</html>

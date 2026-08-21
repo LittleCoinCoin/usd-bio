@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio Plate 02 — Palette Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="plate.css">
+<style>
+/* ---- the lab ---- */
+.lab{display:grid;grid-template-columns:360px minmax(0,1fr);gap:36px;align-items:start;background:var(--pg-2);border:1px solid var(--hair);border-radius:4px;padding:26px;margin:8px 0 0}
+.wheel-wrap{position:relative;width:320px;height:320px;margin:0 auto 26px}
+canvas.wheel{width:320px;height:320px;display:block;border-radius:50%;cursor:crosshair}
+.hdl{position:absolute;width:22px;height:22px;padding:0;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 1px 3px rgba(0,0,0,.3);cursor:grab;touch-action:none}
+.hdl:focus-visible{outline:2px solid var(--tx);outline-offset:3px}
+.hdl[data-base="1"]{width:26px;height:26px;border-width:3px}
+.hdl b{position:absolute;left:50%;top:calc(100% + 4px);transform:translateX(-50%);font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9px;letter-spacing:.08em;color:var(--tx-2);background:var(--pg-2);padding:0 3px;border-radius:2px;font-weight:400;white-space:nowrap}
+.hdl s{position:absolute;left:50%;top:calc(100% + 16px);transform:translateX(-50%);display:flex;gap:2px}
+.hdl s i{display:block;width:8px;height:8px;border-radius:50%;border:1px solid rgba(0,0,0,.4)}
+.plane{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;color:var(--tx-3);text-align:center;margin:0 0 18px;line-height:1.5}
+.ctl{display:grid;gap:13px}
+.ctl label{display:block;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx-3);margin-bottom:5px}
+.ctl select,.ctl input[type=text],.ctl input[type=number]{width:100%;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;padding:7px 8px;border:1px solid var(--hair);border-radius:2px;background:var(--pg);color:var(--tx)}
+.ctl input[type=range]{width:100%;accent-color:var(--tx)}
+.ctl .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ctl .val{float:right;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;color:var(--tx-2);letter-spacing:.06em}
+.ctl .hint{font-size:12px;line-height:1.45;color:var(--tx-2);margin:2px 0 0}
+.mandate{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center}
+.mandate button{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:7px 9px;border:1px solid var(--hair);background:var(--pg);border-radius:2px;cursor:pointer;color:var(--tx-2)}
+.mandate button:hover{border-color:var(--tx-3);color:var(--tx)}
+
+.roles{display:grid;gap:0;margin-bottom:20px}
+.rrow{display:grid;grid-template-columns:34px 1fr 78px 148px 62px 88px;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--hair-2)}
+.rrow .chip{height:26px;border-radius:2px;border:1px solid rgba(0,0,0,.16)}
+.rrow .nm{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;color:var(--tx)}
+.rrow .hx,.rrow .lch,.rrow .sl{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;color:var(--tx-2)}
+.rrow .sl{text-align:right;letter-spacing:.08em;text-transform:uppercase;font-size:9px;color:var(--tx-3)}
+.rrow[data-fix="1"] .lch{color:var(--mark)}
+.rrow .adj{display:flex;align-items:center;gap:4px;justify-content:flex-end}
+.rrow .adj input{width:58px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;padding:4px 5px;border:1px solid var(--hair);border-radius:2px;background:var(--pg)}
+.rrow[data-lock="1"] .adj input{border-color:var(--mark);color:var(--mark)}
+.rrow .adj button{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;line-height:1;padding:4px 6px;border:1px solid var(--hair);background:var(--pg);border-radius:2px;cursor:pointer;color:var(--tx-3)}
+.rrow .adj button:hover{color:var(--warn);border-color:var(--warn)}
+.roles-note{font-size:11.5px;color:var(--tx-3);margin:0 0 8px}
+.out-cols{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+.out-cols h5,.lab h5{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx-3);margin:0 0 9px;font-weight:400}
+.log{margin:0;padding:0;list-style:none}
+.log li{font-size:12px;line-height:1.5;color:var(--tx-2);padding:5px 0;border-bottom:1px solid var(--hair-2)}
+.log li b{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;color:var(--tx);font-weight:400}
+.log li.none{color:var(--tx-3);border:0}
+.warns{margin:16px 0 0;padding:0;list-style:none}
+.warns li{font-size:12.5px;line-height:1.5;color:var(--warn);padding:7px 0 7px 14px;border-left:2px solid var(--warn);margin-bottom:7px;background:#FBF3F0}
+.warns li.clean{color:var(--ok);border-color:var(--ok);background:#F0F6F2}
+.export{background:var(--pg);border:1px solid var(--hair);border-radius:2px;padding:12px 14px;margin:16px 0 0;overflow-x:auto;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;line-height:1.65;color:var(--tx);white-space:pre-wrap;word-break:break-all}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:16px}
+.shelf .card{border:1px solid var(--hair);border-radius:3px;padding:11px;background:var(--pg-2)}
+.shelf .card .sws{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;margin-bottom:8px}
+.shelf .card .sws i{display:block;height:20px;border-radius:1px}
+.shelf .card .nm{font-size:13px;font-weight:600;margin-bottom:2px}
+.shelf .card .mt{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;color:var(--tx-3);margin-bottom:8px}
+.shelf .card .btns{display:flex;gap:6px}
+.shelf .card button{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:4px 7px;border:1px solid var(--hair);background:var(--pg);border-radius:2px;cursor:pointer;color:var(--tx-2)}
+.shelf .empty{font-size:13px;color:var(--tx-3);grid-column:1/-1}
+
+.proof{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.72fr);gap:26px;margin-top:26px}
+.proof .meters{margin-top:14px}
+.vision{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:22px}
+.vision figure{margin:0;min-width:0}
+.vision figcaption{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx-3);margin-top:7px}
+.vision figcaption s{text-decoration:none;display:block;color:var(--tx-2);letter-spacing:0;text-transform:none;font-size:10px;margin-top:2px}
+
+.rules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;margin-top:8px}
+.rule-card{border:1px solid var(--hair);border-radius:3px;background:var(--pg-2);padding:14px;display:flex;flex-direction:column;gap:9px}
+.rule-card.on{border-color:var(--tx);box-shadow:inset 0 0 0 1px var(--tx)}
+.rule-card h4{font-size:14.5px;font-weight:700;margin:0}
+.rule-card .sws{display:grid;grid-auto-flow:column;gap:3px;height:30px}
+.rule-card .sws i{display:block;border-radius:1px;border:1px solid rgba(0,0,0,.12)}
+.rule-card p{font-size:12px;line-height:1.5;color:var(--tx-2);margin:0;flex:1}
+.rule-card .ft{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;color:var(--tx-3);border-top:1px solid var(--hair-2);padding-top:8px}
+.rule-card .ft b{color:var(--tx);font-weight:500}
+.rule-card button{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border:1px solid var(--hair);background:var(--pg);border-radius:2px;cursor:pointer;color:var(--tx-2)}
+
+table.fit td.sw i{display:inline-block;width:13px;height:13px;border-radius:2px;border:1px solid rgba(0,0,0,.15);margin-right:2px;vertical-align:-2px}
+@media(max-width:1080px){.lab{grid-template-columns:1fr}.out-cols,.proof{grid-template-columns:1fr}.vision{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1><span class="plate-no">Studio Plate 02</span>Palette engine — a colour wheel that can only emit installable themes</h1>
+  <div class="meta">
+    <div><b>System</b>conference_assets v2</div>
+    <div><b>Status</b>For review</div>
+    <div><b>Date</b>2026-08-16</div>
+  </div>
+</header>
+
+<div class="deck">
+  <div>
+    <h2>The six themes were right. Closing the set was wrong.</h2>
+    <p class="n">Plate 01 shipped six validated themes and then made a mistake: it treated the <em>list</em> as the deliverable. A list of six cannot absorb an institute colour, a funder's mandated blue, or a second poster in the same session that must not look like the first. The deliverable was never the list — it was <strong>the validation</strong>. This plate keeps the validation and replaces the list with a generator.</p>
+    <p class="n">The reference point is Adobe's colour wheel, which is the right interaction and the wrong output. It hands you five swatches with no roles, no lightness contract, and no idea what surface they will be printed on. A poster theme is nine named roles under a contrast contract and an ink ceiling. So this wheel keeps the harmony rules and the drag, and adds the only thing that makes the output usable: <strong>hue is the only dimension the author gets to choose.</strong></p>
+  </div>
+  <aside class="side">
+    <p><span class="lbl">Reads on</span></p>
+    <p>Everything below is computed live from the wheel state. The six themes from Plate 01 are no longer definitions — section 04 re-derives them from the generator and reports how far off it lands, per role, in ΔE.</p>
+  </aside>
+</div>
+
+<div class="controls">
+  <button class="tog" id="t-grey" aria-pressed="false">Greyscale proof</button>
+  <button class="tog" id="t-outline" aria-pressed="false">Outline ink objects</button>
+  <button class="act" id="b-random">Roll a legal palette</button>
+  <span class="spacer"></span>
+  <span class="note" id="stamp">computing…</span>
+</div>
+
+<!-- ============================================================ 01 -->
+<section>
+  <div class="sec-head">
+    <span class="num">01</span>
+    <h3>What a wheel has to own before it can be trusted</h3>
+    <p>Two rules make the difference between a palette generator and a theme generator. Both are unglamorous and both are load-bearing.</p>
+  </div>
+  <div class="body">
+    <p class="n"><strong>Rule one: the author owns hue, the system owns lightness.</strong> WCAG contrast is a function of relative luminance, which is very nearly a function of lightness alone. If an author can set lightness, contrast becomes something you discover after printing. So every role has a fixed lightness target in OKLCH, and the wheel can rotate hue freely underneath it — the seven contrast checks from Plate 01 hold by construction rather than by luck.</p>
+    <p class="n"><strong>Rule two: the sheet has three jobs, not five swatches.</strong> A poster needs a neutral family (paper, field, ink, rule), a plate hue, and one accent hue. That is three hue slots. A triad gives three, a square four, compound four — the extra slots are not a bonus, they are the mechanism by which a poster ends up with two accents and no five-second layer. The generator therefore assigns slots to jobs explicitly and tells you what it discarded.</p>
+
+    <table class="tk">
+      <thead><tr><th>Dimension</th><th>Owned by</th><th>Why it sits there</th></tr></thead>
+      <tbody>
+        <tr><td class="k">hue</td><td class="v">the wheel</td><td>Identity. It is the one dimension where a lab, a funder, or a taste can be accommodated without touching legibility. Harmony rules operate here and nowhere else.</td></tr>
+        <tr><td class="k">lightness</td><td class="v">the role recipe</td><td>Contrast, greyscale survival, and the readability of the plate all follow from L. Fixed targets per role, adjusted only by the repair pass below, never by the author.</td></tr>
+        <tr><td class="k">chroma</td><td class="v">recipe × one global temperament</td><td>Saturation is where ink is spent and where CVD confusions are made. One slider scales the whole set; per-role chroma stays in fixed proportion.</td></tr>
+        <tr><td class="k">role count</td><td class="v">the token vocabulary</td><td>Exactly nine, always all nine. A generator that emits five anonymous swatches has produced something no template can consume.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="formula">
+      <p class="eq">L, C ← recipe(role, temperament, tint) &nbsp;·&nbsp; h ← slot(harmony rule, base hue)</p>
+      <ul>
+        <li><b>repair pass</b> — each failing contrast check moves one named lightness, away from its partner, in 0.01 steps until it passes</li>
+        <li><b>lever</b> — which side moves is fixed per check, so the same input always produces the same output and the log can name it</li>
+        <li><b>refusal</b> — if the bounds are reached the palette is reported unbuildable rather than silently shipped</li>
+      </ul>
+    </div>
+    <div class="callout">
+      <span class="lbl">What this borrows and what it refuses</span>
+      <p>Borrowed from Adobe's wheel: the harmony rules, the draggable markers, the sense that one gesture moves a whole set. Refused: <strong>the free colour picker</strong>. There is no field on this page where you can type a lightness, because that is the field that produces unreadable posters. The escape hatch is a mandated hex — the generator will rotate the wheel to <em>put</em> that hue in a slot, and then re-derive legal lightnesses around it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 02 -->
+<section>
+  <div class="sec-head">
+    <span class="num">02</span>
+    <h3>The wheel</h3>
+    <p>Drag a marker to rotate the harmony; drag outward to spend chroma. The disc is drawn in the accent's own lightness plane, so the grey rim is the real sRGB gamut edge at that lightness — not a decoration. The dashed ring is the recipe's chroma ceiling: everything outside it is unreachable on purpose.</p>
+  </div>
+  <div class="body">
+    <div class="lab">
+      <div>
+        <div class="wheel-wrap" id="wheel-wrap"><canvas class="wheel" id="wheel" width="320" height="320"></canvas></div>
+        <p class="plane" id="plane">—</p>
+        <div class="ctl">
+          <div><label>Harmony rule</label><select id="c-rule"></select><p class="hint" id="rule-hint">—</p></div>
+          <div class="two">
+            <div><label>Plate hue slot</label><select id="c-plate"></select></div>
+            <div><label>Accent hue slot</label><select id="c-accent"></select></div>
+          </div>
+          <div><label>Rule hue slot <span class="val">optional</span></label><select id="c-rulehue"></select><p class="hint">Hairlines and chart strokes default to the neutral hue. Give them their own slot only when a rule emits a spare one.</p></div>
+          <div><label>Base hue <span class="val" id="v-hue">—</span></label><input type="range" id="c-hue" min="0" max="359" step="1"></div>
+          <div><label>Chroma temperament <span class="val" id="v-sat">—</span></label><input type="range" id="c-sat" min="0.1" max="1" step="0.01"></div>
+          <div><label>Ground tint <span class="val" id="v-tint">—</span></label><input type="range" id="c-tint" min="0" max="1" step="0.01"><p class="hint">Tinting the paper is printing a tint. Zero means the ground is the substrate and costs nothing.</p></div>
+          <div><label>Mandated colour</label><div class="mandate"><input type="text" id="c-hex" value="#0072B2" spellcheck="false"><button id="b-as-accent">as accent</button><button id="b-as-plate">as plate</button></div><p class="hint">Rotates the wheel so the harmony puts that hue in the chosen slot. The hue is honoured; its lightness is not.</p></div>
+          <div><label>Theme name</label><input type="text" id="c-name" value="draft" spellcheck="false"></div>
+        </div>
+      </div>
+      <div>
+        <h5>The nine roles — hue from the wheel, L and C from the recipe</h5>
+        <p class="roles-note">L is editable per role for a mandated exception. An overridden role is marked red and drops out of the repair pass — the checks stay live, so a fail will show.</p>
+        <div class="roles" id="roles"></div>
+        <div class="out-cols">
+          <div>
+            <h5>Contrast contract</h5>
+            <div class="checks" id="checks"></div>
+          </div>
+          <div>
+            <h5>Repair log — which lightness moved, and why</h5>
+            <ul class="log" id="repairs"></ul>
+            <h5 style="margin-top:18px">Colour vision, worst pair per type</h5>
+            <ul class="log" id="cvd"></ul>
+          </div>
+        </div>
+        <ul class="warns" id="warns"></ul>
+        <h5 style="margin-top:22px">Export — paste into <code>tokens.css</code></h5>
+        <div class="export" id="css-out">—</div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button class="act" id="b-copy">Copy CSS</button>
+          <button class="tog" id="b-save">Save to shelf</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="proof">
+      <div>
+        <h5>A0 landscape — silent bar, contained plate</h5>
+        <div class="specimen" id="sp-l" data-scope></div>
+        <div class="meters"><div class="meter" id="m-l"></div></div>
+      </div>
+      <div>
+        <h5>A0 portrait</h5>
+        <div class="specimen" id="sp-p" data-orient="portrait" data-scope></div>
+        <div class="meters"><div class="meter" id="m-p"></div></div>
+      </div>
+    </div>
+
+    <div class="vision" id="vision"></div>
+
+    <p class="n" style="margin-top:26px">The CVD panels are the engine's own matrices applied to the nine role values, not a CSS filter — the same numbers that produce the ΔE column above. Treat them as an approximation of dichromacy at full severity: useful for catching an accent that dissolves into the field, not a substitute for asking a colleague.</p>
+
+    <h5 style="margin-top:30px">Shelf — palettes you have kept this session</h5>
+    <div class="shelf" id="shelf"></div>
+  </div>
+</section>
+
+<!-- ============================================================ 03 -->
+<section>
+  <div class="sec-head">
+    <span class="num">03</span>
+    <h3>Seven rules, and what each one is for on a sheet read at three metres</h3>
+    <p>All seven built at the current base hue and temperament, so the comparison is like-for-like. The number that matters is not how pretty the strip is; it is how many hue slots you have to throw away to install it.</p>
+  </div>
+  <div class="body">
+    <div class="rules-grid" id="rules"></div>
+    <div class="callout">
+      <span class="lbl">The recommendation, stated plainly</span>
+      <p><strong>Complement for a claim that must win a hall; analogous or monochrome for evidence-dense work.</strong> Split complement is the useful middle when the plate should differ from the ink family. Triad, square and compound are included so that choosing them is a decision rather than an accident — each hands you a hue with no job attached, and the discipline of this system is that such a hue gets discarded, not spent.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 04 -->
+<section>
+  <div class="sec-head">
+    <span class="num">04</span>
+    <h3>The six, re-read as generator states</h3>
+    <p>Each Plate 01 theme is fitted back onto the wheel: its rule, base hue, temperament and tint are recovered by minimising total per-role error, then the generator rebuilds all nine roles. Mean error under about ΔE 4 (OKLab, ×100) is a match; the maximum column names where the hand-tuned original was doing something the recipe will not do.</p>
+  </div>
+  <div class="body">
+    <table class="tk fit" id="fit">
+      <thead><tr><th>Theme</th><th>Fitted state</th><th>Original / rebuilt</th><th>Worst role</th><th>ΔE mean / max</th><th>C</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="n" style="margin-top:22px" id="fit-note">—</p>
+    <div class="callout">
+      <span class="lbl">Consequence for Plate 01</span>
+      <p>The six stop being definitions and become <strong>attested instances</strong>: named wheel states, kept in the guidelines because they have been proofed and because a default is worth having. Decision 3 of Plate 01 — “six themes, closed set” — is withdrawn. What replaces it is narrower and stronger: <em>any palette may be generated; only generated palettes may be installed.</em></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 05 -->
+<section>
+  <div class="sec-head">
+    <span class="num">05</span>
+    <h3>What the generator refuses to emit</h3>
+    <p>An open generator is only safe if its refusals are explicit. These are checked on every state; a refusal is reported in the warnings panel and blocks the export stamp.</p>
+  </div>
+  <div class="body">
+    <table class="tk">
+      <thead><tr><th>Refusal</th><th>Test</th><th>Lever offered</th></tr></thead>
+      <tbody>
+        <tr><td>Unreadable prose, plate or accent</td><td class="v">7 checks, 4.5:1 · rules 3:1</td><td>Repair pass moves one named lightness; if the bounds are hit, the palette is declared unbuildable.</td></tr>
+        <tr><td>Coverage over the ink ceiling</td><td class="v">C ≤ 0.30</td><td>Drop the ground tint first (it is charged across the whole sheet), then lighten the plate or cut its share.</td></tr>
+        <tr><td>An accent confusable with the categorical scale</td><td class="v">ΔE ≥ 14 vs <code>--cat-1..8</code></td><td>Rotate the accent slot. The Okabe-Ito scale is not generated and not negotiable — the wheel governs identity, not data.</td></tr>
+        <tr><td>An accent that dies in greyscale</td><td class="v">accent vs ink ≥ 1.6:1</td><td>None automatic: either rotate to a lighter or darker hue, or accept that the emphasis is carried by underline and weight.</td></tr>
+        <tr><td>An accent that dissolves under dichromacy</td><td class="v">ΔE ≥ 10 on all four pairs, three vision types</td><td>Rotate the accent slot away from the plate's hue family.</td></tr>
+        <tr><td>More hues than the sheet has jobs</td><td class="v">slots ≤ 3</td><td>Reported, not blocked — a discarded slot is legal, a spent one is not.</td></tr>
+      </tbody>
+    </table>
+    <p class="n" style="margin-top:20px">One check from Plate 01 is deliberately <em>not</em> in this list: there is no test that a palette is beautiful, distinctive, or appropriate to the work. That judgement is the author's, and the wheel exists to make it cheap to exercise. The system's claim is narrower — <strong>whatever you choose will be legible, printable, and CVD-survivable</strong>.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 06 -->
+<section>
+  <div class="sec-head">
+    <span class="num">06</span>
+    <h3>What this plate asks you to decide</h3>
+    <p>Four decisions, one of which reverses a decision from Plate 01.</p>
+  </div>
+  <div class="body">
+    <ol class="dec">
+      <li><b>Open the theme layer.</b> Replace the closed set of six with the generator plus six attested defaults. This is the reversal; everything else follows from it.</li>
+      <li><b>Hue is authored, lightness is not.</b> The recipe's L targets become canon, and <code>tokens.css</code> gains a comment saying so. If you would rather authors could set lightness with a warning, say now — it is a one-line change here and an unfixable class of bad poster downstream.</li>
+      <li><b>Three hue slots is the ceiling.</b> Rules that emit four remain available but must discard. The alternative is to remove square and compound from the rule list entirely; I have kept them so the discard is visible, but I would not defend that hard.</li>
+      <li><b>The refusal set in section 05.</b> Especially the two numbers I invented: ΔE ≥ 14 against the categorical scale, and ΔE ≥ 10 for dichromacy. They are plausible and untested. One afternoon with a colour-blind colleague and a test print would let us replace both with something earned.</li>
+    </ol>
+    <div class="scope">
+      <div>
+        <p class="lbl">This plate does not decide</p>
+        <ul>
+          <li>The categorical data scale — still Okabe-Ito, still fixed (Plate 03, chart kit)</li>
+          <li>Type, geometry, or the zone proportions</li>
+          <li>Whether the contained plate stays at 22% of the sheet</li>
+          <li>How a theme is chosen for a given piece of work — that is a guidelines question, not an engine one</li>
+        </ul>
+      </div>
+      <div>
+        <p class="lbl">Known soft spots</p>
+        <ul>
+          <li>Chroma is one global slider; a palette wanting a quiet plate and a loud accent cannot say so</li>
+          <li>The repair pass moves lightness only, so a hue with little available chroma quietly desaturates instead</li>
+          <li>Ink coverage here is the reference schedule, not a measured layout — the live meters measure, the rule cards estimate</li>
+          <li>Dichromacy is modelled at full severity only, which is stricter than most real vision</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script src="palette-engine.js"></script>
+<script src="specimen.js"></script>
+<script>
+const V1={
+  canon:{paper:'#FFFFFF',ink:'#17171B','ink-soft':'#55555F',field:'#EEF3F6',panel:'#1B1033','panel-ink':'#FFFFFF',accent:'#B34700','accent-on-panel':'#E69F00',rule:'#86929C'},
+  slate:{paper:'#FCFCFD',ink:'#14181D','ink-soft':'#565E68',field:'#EDF1F4',panel:'#1E2933','panel-ink':'#FFFFFF',accent:'#0B5F8A','accent-on-panel':'#56B4E9',rule:'#85919B'},
+  bone:{paper:'#FBF9F5',ink:'#1A1714','ink-soft':'#5E574E',field:'#F1EDE5',panel:'#2B2118','panel-ink':'#FBF9F5',accent:'#9B3A1F','accent-on-panel':'#E69F00',rule:'#948A7A'},
+  moss:{paper:'#FBFCFA',ink:'#161A16','ink-soft':'#545C52',field:'#EAF0E9',panel:'#1C2A22','panel-ink':'#FFFFFF',accent:'#00625B','accent-on-panel':'#009E73',rule:'#879083'},
+  ash:{paper:'#FFFFFF',ink:'#101114','ink-soft':'#5A5C61',field:'#F0F1F3',panel:'#212429','panel-ink':'#FFFFFF',accent:'#8A2E63','accent-on-panel':'#CC79A7',rule:'#8E9196'},
+  vermilion:{paper:'#FFFFFF',ink:'#1A1417','ink-soft':'#5C545A',field:'#F6EFEE',panel:'#310C10','panel-ink':'#FFFFFF',accent:'#A3350B','accent-on-panel':'#D55E00',rule:'#9A8E8C'}
+};
+const KEY='plate02.palette.v1',SKEY='plate02.shelf.v1',MAXC=0.26,R=150,CX=160,CY=160;
+const clamp=PE.clamp,mod=PE.mod;
+let state=Object.assign({rule:'split',hue:262,sat:0.62,tint:0.10,plateSlot:1,accentSlot:2,ruleSlot:null,overrides:{},name:'draft'},read(KEY)||{});
+let res=null,handles=[],dragging=false,shelf=read(SKEY)||[];
+
+function read(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+const $=id=>document.getElementById(id);
+
+/* ---------- wheel ---------- */
+const cv=$('wheel'),ctx=cv.getContext('2d');let lastPlane=-1;
+function drawDisc(L){
+  if(Math.abs(L-lastPlane)<0.002)return;lastPlane=L;
+  const dpr=Math.min(2,window.devicePixelRatio||1),S=320;
+  cv.width=S*dpr;cv.height=S*dpr;
+  const img=ctx.createImageData(cv.width,cv.height),d=img.data;
+  const maxC=[];for(let h=0;h<360;h++)maxC.push(PE.maxChroma(L,h));
+  const cx=cv.width/2,cy=cv.height/2,rad=cv.width/2-1;
+  for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++){
+    const dx=x-cx,dy=cy-y,r=Math.hypot(dx,dy),i=(y*cv.width+x)*4;
+    if(r>rad){d[i+3]=0;continue}
+    const h=mod(Math.atan2(dy,dx)*180/Math.PI,360),C=(r/rad)*MAXC;
+    if(C>maxC[Math.round(h)%360]){d[i]=222;d[i+1]=220;d[i+2]=214;d[i+3]=255;continue}
+    const lin=PE.lchLin(L,C,h);
+    d[i]=PE.l2s(lin[0]);d[i+1]=PE.l2s(lin[1]);d[i+2]=PE.l2s(lin[2]);d[i+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+  ctx.save();ctx.scale(dpr,dpr);ctx.setLineDash([3,4]);ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.25;
+  ctx.beginPath();ctx.arc(160,160,(0.15/MAXC)*159,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);ctx.strokeStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.arc(160,160,159,0,Math.PI*2);ctx.stroke();ctx.restore();
+}
+function place(el,h,r){const a=h*Math.PI/180,w=el.offsetWidth||22;el.style.left=(CX+Math.cos(a)*r-w/2)+'px';el.style.top=(CY-Math.sin(a)*r-w/2)+'px'}
+function handleRadius(){return clamp((res.roles.accent.C/MAXC)*R,7,R-6)}
+function paintWheel(){
+  drawDisc(res.roles.accent.L);
+  const hs=res.hues,wrap=$('wheel-wrap');
+  if(handles.length!==hs.length){
+    handles.forEach(h=>h.remove());
+    handles=hs.map((_,i)=>{
+      const b=document.createElement('button');b.className='hdl';b.type='button';b.dataset.i=i;
+      b.setAttribute('aria-label','hue slot '+(i+1));b.innerHTML='<b></b><s></s>';wrap.appendChild(b);bind(b);return b;
+    });
+  }
+  const r=handleRadius();
+  const REP={neutral:'ink',plate:'panel',accent:'accent',rule:'rule'};
+  hs.forEach((h,i)=>{
+    const el=handles[i];place(el,h,r);
+    el.style.background=PE.oklch2hex(0.62,res.roles.accent.C*1.05,h);
+    el.dataset.base=i===0?'1':'0';
+    const jobs=[];if(i===0)jobs.push('neutral');if(i===state.plateSlot)jobs.push('plate');if(i===state.accentSlot)jobs.push('accent');if(state.ruleSlot===i)jobs.push('rule');
+    el.querySelector('b').textContent=jobs.length?jobs.join('+'):'unused';
+    el.querySelector('s').innerHTML=jobs.map(j=>'<i style="background:'+res.roles[REP[j]].hex+'" title="--'+REP[j]+' '+res.roles[REP[j]].hex+'"></i>').join('');
+  });
+  $('plane').innerHTML='accent plane L '+res.roles.accent.L.toFixed(3)+' · C '+res.roles.accent.C.toFixed(3)+
+    ' · h '+res.hueFor.a.toFixed(0)+'°<br>dashed ring = recipe chroma ceiling 0.15 · grey rim = sRGB gamut at this L<br>marker fill previews hue at this plane, not the finished token — the dots below each label are the true role colours.';
+}
+function bind(el){
+  const from=e=>{
+    const rect=cv.getBoundingClientRect();
+    const dx=e.clientX-rect.left-160*(rect.width/320),dy=160*(rect.width/320)-(e.clientY-rect.top);
+    const k=320/rect.width,ang=mod(Math.atan2(dy,dx)*180/Math.PI,360),rr=Math.hypot(dx,dy)*k;
+    const off=PE.HARMONY[state.rule].offsets[+el.dataset.i]||0;
+    state.hue=mod(ang-off,360);
+    state.sat=clamp((rr/R)*MAXC/0.150,0.1,1);
+    render();
+  };
+  el.addEventListener('pointerdown',e=>{e.preventDefault();dragging=true;el.setPointerCapture(e.pointerId);from(e)});
+  el.addEventListener('pointermove',e=>{if(dragging)from(e)});
+  el.addEventListener('pointerup',()=>{dragging=false});
+  el.addEventListener('keydown',e=>{
+    const k=e.key;let hit=true;
+    if(k==='ArrowLeft')state.hue=mod(state.hue+(e.shiftKey?10:2),360);
+    else if(k==='ArrowRight')state.hue=mod(state.hue-(e.shiftKey?10:2),360);
+    else if(k==='ArrowUp')state.sat=clamp(state.sat+0.03,0.1,1);
+    else if(k==='ArrowDown')state.sat=clamp(state.sat-0.03,0.1,1);
+    else hit=false;
+    if(hit){e.preventDefault();render()}
+  });
+}
+cv.addEventListener('pointerdown',e=>{
+  const rect=cv.getBoundingClientRect(),k=320/rect.width;
+  const dx=(e.clientX-rect.left)*k-160,dy=160-(e.clientY-rect.top)*k;
+  const ang=mod(Math.atan2(dy,dx)*180/Math.PI,360),rr=Math.hypot(dx,dy);
+  let bi=0,bd=1e9;
+  res.hues.forEach((h,i)=>{const d=Math.abs(180-Math.abs(180-Math.abs(h-ang)));if(d<bd){bd=d;bi=i}});
+  const off=PE.HARMONY[state.rule].offsets[bi]||0;
+  state.hue=mod(ang-off,360);state.sat=clamp((rr/R)*MAXC/0.150,0.1,1);render();
+});
+
+/* ---------- output ---------- */
+function paintRoles(){
+  const fixed={};res.repairs.forEach(r=>fixed[r.role]=r);
+  $('roles').innerHTML=res.order.map(r=>{
+    const o=res.roles[r],f=fixed[r];
+    return '<div class="rrow" data-fix="'+(f?1:0)+'" data-lock="'+(o.locked?1:0)+'"><div class="chip" style="background:'+o.hex+'"></div>'+
+      '<div class="nm">--'+r+'</div><div class="hx">'+o.hex+'</div>'+
+      '<div class="lch">L '+o.L.toFixed(3)+' · C '+o.C.toFixed(3)+' · h '+o.h.toFixed(0)+'°'+(f?' ↺':'')+'</div>'+
+      '<div class="sl">'+({n:'neutral',p:'plate',a:'accent',r:'rule'}[o.slot])+'</div>'+
+      '<div class="adj"><input type="number" min="0.04" max="0.995" step="0.005" value="'+o.L.toFixed(3)+'" data-l-role="'+r+'">'+
+      (o.locked?'<button type="button" data-reset-role="'+r+'" title="reset to recipe">×</button>':'')+'</div></div>';
+  }).join('');
+  $('checks').innerHTML=res.checks.map(c=>
+    '<div class="row"><span>'+c.label+'</span><span class="rt">'+c.val.toFixed(2)+':1</span>'+
+    '<span class="fl '+(c.pass?'pass':'fail')+'">'+(c.pass?'pass':'fail')+'</span></div>').join('')+
+    '<div class="row"><span>accent vs ink, mono separation</span><span class="rt">'+res.mono.toFixed(2)+':1</span>'+
+    '<span class="fl info">'+(res.mono>=1.6?'clear':'underline carries')+'</span></div>'+
+    '<div class="row"><span>accent vs nearest categorical</span><span class="rt">ΔE '+res.cat.d.toFixed(0)+'</span>'+
+    '<span class="fl '+(res.cat.d>=14?'pass':'fail')+'">'+res.cat.at+'</span></div>';
+  $('repairs').innerHTML=res.repairs.length?res.repairs.map(r=>
+    '<li><b>--'+r.role+'</b> '+r.dir+(r.dir==='locked'?'':', L '+r.from.toFixed(3)+' → '+r.to.toFixed(3))+' — '+r.label+(r.ok?'':r.locked?' <span style="color:var(--warn)">(both sides locked, could not repair)</span>':' <span style="color:var(--warn)">(bounds hit)</span>')+'</li>').join('')
+    :'<li class="none">Nothing to repair — the recipe cleared all seven checks at this hue.</li>';
+  $('cvd').innerHTML=res.cvd.map(c=>{
+    const w=c.pairs.slice().sort((a,b)=>a.d-b.d)[0];
+    return '<li><b>'+({protan:'Protanopia',deutan:'Deuteranopia',tritan:'Tritanopia'}[c.type])+'</b> ΔE '+w.d.toFixed(0)+
+      ' — '+w.label+' <span class="fl '+(w.pass?'pass':'fail')+'" style="float:right">'+(w.pass?'clear':'tight')+'</span></li>';
+  }).join('');
+  $('warns').innerHTML=res.warnings.length?res.warnings.map(w=>'<li>'+w+'</li>').join('')
+    :'<li class="clean">Installable: nine roles, seven checks, ink ceiling, categorical separation and three vision types all clear.</li>';
+  $('css-out').textContent=PE.css(res,$('c-name').value);
+  $('stamp').textContent=(res.pass&&!res.warnings.length?'legal palette · ':'review warnings · ')+
+    PE.HARMONY[state.rule].label.toLowerCase()+' · h'+state.hue.toFixed(0)+'° · C '+(res.ink.c*100).toFixed(1)+'%';
+}
+
+/* ---------- proof ---------- */
+function paintProof(){
+  ['sp-l','sp-p'].forEach(id=>SP.apply($(id),res.roles));
+  const ml=SP.coverage($('sp-l').querySelector('.sp-sheet'),res.roles.paper.hex);
+  const mp=SP.coverage($('sp-p').querySelector('.sp-sheet'),res.roles.paper.hex);
+  SP.meter($('m-l'),ml,'measured · A0 landscape');
+  SP.meter($('m-p'),mp,'measured · A0 portrait');
+  const vis=$('vision');
+  if(!vis.firstElementChild){
+    vis.innerHTML=[['none','Greyscale'],['protan','Protanopia'],['deutan','Deuteranopia'],['tritan','Tritanopia']]
+      .map(([t,l])=>'<figure data-v="'+t+'"><div class="specimen" data-scope></div><figcaption>'+l+'<s></s></figcaption></figure>').join('');
+    SP.build(vis);
+  }
+  vis.querySelectorAll('figure').forEach(f=>{
+    const t=f.dataset.v,host=f.querySelector('.specimen'),m={};
+    res.order.forEach(r=>{
+      const hex=res.roles[r].hex;
+      m[r]={hex:t==='none'?greyOf(hex):PE.cvdHex(hex,t)};
+    });
+    SP.apply(host,m);
+    const pair=t==='none'?res.mono.toFixed(2)+':1 accent vs ink'
+      :'ΔE '+res.cvd.find(c=>c.type===t).worst.toFixed(0)+' worst pair';
+    f.querySelector('s').textContent=pair;
+  });
+}
+function greyOf(hex){const y=PE.lum(hex),v=Math.round(PE.l2s(y));return PE.rgb2hex([v,v,v])}
+
+/* ---------- rule comparison ---------- */
+function paintRules(){
+  $('rules').innerHTML=PE.RULES.map(rule=>{
+    const n=PE.HARMONY[rule].offsets.length,d=PE.assignDefaults(rule);
+    const st=Object.assign({},state,{rule:rule,plateSlot:d.plateSlot,accentSlot:d.accentSlot,ruleSlot:null,overrides:{}});
+    const r=PE.build(st),cols=['field','rule','panel','accent','accent-on-panel','ink'];
+    return '<div class="rule-card'+(rule===state.rule?' on':'')+'"><h4>'+PE.HARMONY[rule].label+'</h4>'+
+      '<div class="sws">'+cols.map(c=>'<i style="background:'+r.roles[c].hex+'"></i>').join('')+'</div>'+
+      '<p>'+PE.HARMONY[rule].use+'</p>'+
+      '<div class="ft"><span>slots <b>'+n+'</b>'+(n>3?' · discard '+(n-3):'')+'</span><span>C <b>'+(r.ink.c*100).toFixed(1)+'%</b></span>'+
+      '<span>'+(r.pass?'<b>legal</b>':'check')+'</span></div>'+
+      '<button data-rule="'+rule+'">Load</button></div>';
+  }).join('');
+  $('rules').querySelectorAll('button[data-rule]').forEach(b=>b.addEventListener('click',()=>{
+    state.rule=b.dataset.rule;
+    Object.assign(state,PE.assignDefaults(state.rule));
+    state.ruleSlot=null;
+    render();
+  }));
+}
+
+/* ---------- fitting the v1 six ---------- */
+const angD=(a,b)=>Math.abs(180-Math.abs(180-Math.abs(mod(a,360)-mod(b,360))));
+function fit(t){
+  const f=PE.hex2oklch(t.field),ink=PE.hex2oklch(t.ink),pan=PE.hex2oklch(t.panel),acc=PE.hex2oklch(t.accent);
+  const nh=f.C>0.006?f.h:ink.h, useN=f.C>0.006||ink.C>0.008, useP=pan.C>0.010;
+  let best=null;
+  PE.RULES.forEach(rule=>{
+    const offs=PE.HARMONY[rule].offsets;
+    for(let h=0;h<360;h+=1){
+      const hues=offs.map(o=>mod(h+o,360));
+      const eN=useN?angD(hues[0],nh):0;
+      for(let pi=0;pi<offs.length;pi++){
+        if(!useP&&pi>0)continue;
+        for(let ai=0;ai<offs.length;ai++){
+          const err=eN+(useP?angD(hues[pi],pan.h):0)+angD(hues[ai],acc.h)+offs.length*4+(offs.length>3?30:0);
+          if(!best||err<best.err)best={err:err,rule:rule,hue:h,plateSlot:pi,accentSlot:ai};
+        }
+      }
+    }
+  });
+  let win=null;
+  for(let si=0;si<=8;si++)for(let ti=0;ti<=4;ti++){
+    const st={rule:best.rule,hue:best.hue,sat:0.2+si*0.1,tint:ti*0.15,plateSlot:best.plateSlot,accentSlot:best.accentSlot};
+    const r=PE.build(st,true);let worst=0,wr='',sum=0;
+    PE.ROLES.forEach(role=>{const d=PE.dE(t[role],r.roles[role].hex);sum+=d;if(d>worst){worst=d;wr=role}});
+    if(!win||sum<win.sum)win={state:st,worst:worst,role:wr,sum:sum,mean:sum/PE.ROLES.length};
+  }
+  win.res=PE.build(win.state);
+  return win;
+}
+function paintFit(){
+  const rows=Object.keys(V1).map(name=>{
+    const t=V1[name],F=fit(t),st=F.state;
+    const sw=(o)=>['paper','field','panel','accent','accent-on-panel','ink'].map(k=>'<i style="background:'+o[k]+'"></i>').join('');
+    return{name:name,F:F,html:'<tr><td><b>'+name+'</b></td>'+
+      '<td class="v">'+PE.HARMONY[st.rule].label+'<br>h '+st.hue.toFixed(0)+'° · C '+st.sat.toFixed(2)+' · tint '+st.tint.toFixed(2)+'</td>'+
+      '<td class="sw">'+sw(t)+'<br>'+sw(mapHex(F.res.roles))+'</td>'+
+      '<td class="k">--'+F.role+'</td>'+
+      '<td class="v">'+F.mean.toFixed(1)+' / '+F.worst.toFixed(1)+'</td>'+
+      '<td class="v">'+(F.res.ink.c*100).toFixed(1)+'%</td></tr>'};
+  });
+  $('fit').querySelector('tbody').innerHTML=rows.map(r=>r.html).join('');
+  const good=rows.filter(r=>r.F.mean<=4).length;
+  const bad=rows.slice().sort((a,b)=>b.F.worst-a.F.worst)[0];
+  const onPanel=rows.filter(r=>r.F.role==='accent-on-panel').length;
+  $('fit-note').innerHTML='<strong>'+good+' of '+rows.length+'</strong> re-derive with a mean per-role error under ΔE 4 — close enough that a print would not show it. '+
+    'The worst single role is <strong>'+bad.name+'</strong> at ΔE '+bad.F.worst.toFixed(1)+' on <code>--'+bad.F.role+'</code>, and '+onPanel+
+    ' of the six fail hardest on the same role. That is not a fitting artefact, it is a finding: <strong>the Plate 01 themes used a different hue for the accent on the plate than for the accent on paper</strong>, borrowing the nearest Okabe-Ito value for the dark ground. '+
+    'The generator ties both to one hue slot, because two hues doing one job is exactly the second accent the canon forbids. Where a fitted theme differs from its Plate 01 twin, <em>the fitted one is the correct value</em>.';;
+}
+function mapHex(roles){const o={};Object.keys(roles).forEach(k=>o[k]=roles[k].hex);return o}
+
+/* ---------- shelf ---------- */
+function paintShelf(){
+  $('shelf').innerHTML=shelf.length?shelf.map((s,i)=>{
+    const r=PE.build(s.state);
+    return '<div class="card"><div class="sws">'+PE.ROLES.map(k=>'<i style="background:'+r.roles[k].hex+'"></i>').join('')+'</div>'+
+      '<div class="nm">'+s.name+'</div><div class="mt">'+PE.HARMONY[s.state.rule].label+' · h'+s.state.hue.toFixed(0)+'° · C '+(r.ink.c*100).toFixed(1)+'%</div>'+
+      '<div class="btns"><button data-load="'+i+'">Load</button><button data-del="'+i+'">Delete</button></div></div>';
+  }).join(''):'<p class="empty">Nothing kept yet. Save a palette to compare two sheets in the same session — the commonest reason to need more than six themes.</p>';
+  $('shelf').querySelectorAll('button[data-load]').forEach(b=>b.addEventListener('click',()=>{
+    const s=shelf[+b.dataset.load];state=Object.assign({},s.state,{name:s.name});$('c-name').value=s.name;syncInputs();render();
+  }));
+  $('shelf').querySelectorAll('button[data-del]').forEach(b=>b.addEventListener('click',()=>{
+    shelf.splice(+b.dataset.del,1);save(SKEY,shelf);paintShelf();
+  }));
+}
+
+/* ---------- controls ---------- */
+function slotOptions(sel,n,val){
+  const labels=PE.HARMONY[state.rule].slots;
+  sel.innerHTML=Array.from({length:n},(_,i)=>'<option value="'+i+'"'+(i===val?' selected':'')+'>'+(i+1)+' — '+labels[i]+'</option>').join('');
+}
+function ruleHueOptions(sel,n,val){
+  const labels=PE.HARMONY[state.rule].slots;
+  sel.innerHTML='<option value="">— tied to neutral —</option>'+Array.from({length:n},(_,i)=>'<option value="'+i+'"'+(i===val?' selected':'')+'>'+(i+1)+' — '+labels[i]+'</option>').join('');
+}
+function syncInputs(){
+  const n=PE.HARMONY[state.rule].offsets.length;
+  $('c-rule').value=state.rule;$('c-hue').value=Math.round(state.hue);$('c-sat').value=state.sat;$('c-tint').value=state.tint;
+  slotOptions($('c-plate'),n,clamp(state.plateSlot,0,n-1));slotOptions($('c-accent'),n,clamp(state.accentSlot,0,n-1));
+  ruleHueOptions($('c-rulehue'),n,state.ruleSlot==null?'':clamp(state.ruleSlot,0,n-1));
+  $('v-hue').textContent=state.hue.toFixed(0)+'°';$('v-sat').textContent=state.sat.toFixed(2);
+  $('v-tint').textContent=state.tint===0?'none':state.tint.toFixed(2);
+  $('rule-hint').textContent=PE.HARMONY[state.rule].use;
+}
+function render(){
+  state.plateSlot=clamp(state.plateSlot,0,PE.HARMONY[state.rule].offsets.length-1);
+  state.accentSlot=clamp(state.accentSlot,0,PE.HARMONY[state.rule].offsets.length-1);
+  if(state.ruleSlot!=null)state.ruleSlot=clamp(state.ruleSlot,0,PE.HARMONY[state.rule].offsets.length-1);
+  res=PE.build(state);
+  syncInputs();paintWheel();paintRoles();paintProof();paintRules();
+  save(KEY,state);
+}
+$('c-rule').innerHTML=PE.RULES.map(r=>'<option value="'+r+'">'+PE.HARMONY[r].label+'</option>').join('');
+$('c-rule').addEventListener('change',e=>{
+  state.rule=e.target.value;
+  Object.assign(state,PE.assignDefaults(state.rule));
+  state.ruleSlot=null;
+  render();
+});
+$('c-plate').addEventListener('change',e=>{state.plateSlot=+e.target.value;render()});
+$('c-accent').addEventListener('change',e=>{state.accentSlot=+e.target.value;render()});
+$('c-rulehue').addEventListener('change',e=>{state.ruleSlot=e.target.value===''?null:+e.target.value;render()});
+$('c-hue').addEventListener('input',e=>{state.hue=+e.target.value;render()});
+$('c-sat').addEventListener('input',e=>{state.sat=+e.target.value;render()});
+$('c-tint').addEventListener('input',e=>{state.tint=+e.target.value;render()});
+$('roles').addEventListener('change',e=>{
+  if(e.target.matches('input[data-l-role]')){
+    const role=e.target.dataset.lRole,v=clamp(parseFloat(e.target.value)||0,0.04,0.995);
+    state.overrides=state.overrides||{};state.overrides[role]=v;render();
+  }
+});
+$('roles').addEventListener('click',e=>{
+  if(e.target.matches('button[data-reset-role]')){
+    const role=e.target.dataset.resetRole;
+    if(state.overrides)delete state.overrides[role];render();
+  }
+});
+$('c-name').addEventListener('input',()=>{state.name=$('c-name').value;$('css-out').textContent=PE.css(res,state.name);save(KEY,state)});
+function mandate(slotKey){
+  const h=PE.hex2oklch($('c-hex').value).h;
+  const idx=slotKey==='a'?state.accentSlot:state.plateSlot;
+  const off=PE.HARMONY[state.rule].offsets[idx]||0;
+  state.hue=mod(h-off,360);render();
+}
+$('b-as-accent').addEventListener('click',()=>mandate('a'));
+$('b-as-plate').addEventListener('click',()=>mandate('p'));
+$('b-copy').addEventListener('click',()=>{
+  const t=PE.css(res,state.name);
+  if(navigator.clipboard)navigator.clipboard.writeText(t);
+  $('b-copy').textContent='Copied';setTimeout(()=>$('b-copy').textContent='Copy CSS',1200);
+});
+$('b-save').addEventListener('click',()=>{
+  shelf.unshift({name:$('c-name').value||'untitled',state:Object.assign({},state)});
+  shelf=shelf.slice(0,12);save(SKEY,shelf);paintShelf();
+});
+$('b-random').addEventListener('click',()=>{
+  for(let i=0;i<40;i++){
+    const rules=['mono','analogous','complement','split'];
+    const st={rule:rules[Math.floor(Math.random()*rules.length)],hue:Math.random()*360,
+      sat:0.35+Math.random()*0.5,tint:Math.random()<0.5?0:Math.random()*0.5,plateSlot:0,accentSlot:0};
+    const n=PE.HARMONY[st.rule].offsets.length;st.accentSlot=n-1;
+    const r=PE.build(st);
+    if(r.pass&&!r.warnings.length){state=Object.assign(st,{name:state.name});render();return}
+  }
+});
+function tog(id,cls){const b=$(id);b.addEventListener('click',()=>{const on=b.getAttribute('aria-pressed')==='true';b.setAttribute('aria-pressed',String(!on));document.body.classList.toggle(cls,!on)})}
+tog('t-grey','grey');tog('t-outline','outline');
+
+$('c-name').value=state.name||'draft';
+SP.build(document);
+render();paintFit();paintShelf();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(paintProof);
+addEventListener('resize',()=>{clearTimeout(window.__r);window.__r=setTimeout(paintProof,180)});
+</script>
+</body>
+</html>

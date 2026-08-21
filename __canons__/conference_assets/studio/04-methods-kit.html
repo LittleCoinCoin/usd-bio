@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio Plate 04 — Methods Diagram Primitives</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="plate.css">
+<style>
+.themebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.themebar select{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;padding:6px 8px;border:1px solid var(--hair);border-radius:2px;background:var(--pg-2);color:var(--tx)}
+.prim-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px}
+.prim{background:var(--pg-2);border:1px solid var(--hair);border-radius:4px;padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px}
+.prim .box{aspect-ratio:16/9;background:var(--field,#eee)}
+.prim .box svg{display:block}
+.prim h5{margin:0;font-size:13px;font-weight:700}
+.prim p{margin:0;font-size:12px;line-height:1.5;color:var(--tx-2)}
+.grey .box{filter:grayscale(1) contrast(1.04)}
+
+.diagram-box{background:var(--field,#eee);border:1px solid var(--hair);border-radius:4px;padding:22px 20px}
+.diagram-box svg{display:block}
+.grey .diagram-box{filter:grayscale(1) contrast(1.04)}
+.diagram-ft{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.diagram-ft p{margin:0;font-size:12.5px;color:var(--tx-2)}
+
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:8px}
+.compare h4{font-size:14px;font-weight:700;margin:0 0 3px}
+.compare .sub{font-size:12.5px;color:var(--tx-2);margin:0 0 12px;min-height:34px}
+.old-chip{background:#F4EFE8;border-radius:6px;border-left:5px solid #B34700;padding:14px 16px;display:flex;flex-direction:column;gap:7px}
+.old-chip .h{height:8px;width:52%;background:#B34700;border-radius:3px;opacity:.7}
+.old-chip .ln{height:6px;background:#8b8478;border-radius:3px;opacity:.55}
+.old-chip .ln.w1{width:96%}.old-chip .ln.w2{width:88%}.old-chip .ln.w3{width:70%}
+.grey .old-chip{filter:grayscale(1) contrast(1.04)}
+
+@media(max-width:960px){.prim-grid{grid-template-columns:1fr 1fr}.compare{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1><span class="plate-no">Studio Plate 04</span>Methods diagram primitives — a closed set for drawing protocol, not writing it</h1>
+  <div class="meta">
+    <div><b>System</b>conference_assets v2</div>
+    <div><b>Status</b>For review</div>
+    <div><b>Date</b>2026-08-16</div>
+  </div>
+</header>
+
+<div class="deck">
+  <div>
+    <h2>The evidence base names this the format's weak point, and "protocol" is not only a clinical trial.</h2>
+    <p class="n">The RCT behind this canon found IMRAD-structured posters win on <em>details and rigor</em> by a wide margin — the guidelines already made methods and limitation mandatory sections on that basis. But "mandatory section" only guarantees the words exist; it says nothing about whether a stranger can reconstruct your method from across the aisle. §7's instruction — "methods are drawn, not written" — holds for a beam line, a synthesis route, a genomics pipeline, a CPU microarchitecture, a policy process, and a numerical experiment's parameter sweep, not only a two-arm trial. The first draft of this kit forgot that; this one doesn't.</p>
+    <p class="n">Two compositions cover the difference. <strong>Flow-with-magnitude</strong> is for any method where a real count shrinks or splits across stages — trial attrition, but equally a materials-screening funnel, a specimen count through field sampling, or simulation runs surviving convergence: a ribbon's width <em>is</em> that count, not decoration standing in for it. <strong>Plain sequence</strong> is for methods with no meaningful per-stage count at all — an optical bench, a computer architecture, a policy process, a computational pipeline — where the thing worth drawing is structure and order, not magnitude. Six marks compose both — <strong>ribbon, stage tick, direction chevron, magnitude badge, sequence axis, node+connector</strong> — closed, like the chart kit.</p>
+  </div>
+  <aside class="side">
+    <p><span class="lbl">Reads on</span></p>
+    <p>Section 03's protocol figure is live SVG from a plain data array, checked against whichever theme is loaded. Reroll it, or point the theme selector at Plate 02's lab palette.</p>
+  </aside>
+</div>
+
+<div class="controls">
+  <button class="tog" id="t-grey" aria-pressed="false">Greyscale proof</button>
+  <div class="themebar">
+    <span class="lbl">Theme</span>
+    <select id="c-theme"></select>
+  </div>
+  <span class="spacer"></span>
+  <button class="act" id="b-reroll">Reroll flow example</button>
+  <button class="act" id="b-reroll-seq">Reroll sequence example</button>
+</div>
+
+<!-- ============================================================ 01 -->
+<section>
+  <div class="sec-head">
+    <span class="num">01</span>
+    <h3>What a chip was standing in for</h3>
+    <p>v1's methods block is a rounded rectangle with a coloured left border and three lines of prose — the exact silhouette this canon's own anti-pattern list warns against elsewhere in the system. It survives because nothing replaced it. Below, the same protocol told both ways.</p>
+  </div>
+  <div class="body">
+    <div class="compare">
+      <div>
+        <h4>Text chip <span class="lbl" style="margin-left:6px">current</span></h4>
+        <p class="sub">Legible only as prose. A reader has to read every word to learn there were two arms, how many subjects, and how many were lost along the way — and the chip cannot show that last part at all.</p>
+        <div class="old-chip"><div class="h"></div><div class="ln w1"></div><div class="ln w2"></div><div class="ln w3"></div></div>
+      </div>
+      <div>
+        <h4>Attrition flow <span class="lbl" style="margin-left:6px">this plate</span></h4>
+        <p class="sub">Legible as shape before a word is read: one pool splits, one arm visibly thins more than the other, one bends away from standard care. Width is dropout — the diagram states a number the chip could only footnote.</p>
+        <div class="diagram-box" id="mini-compare" style="padding:14px"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 02 -->
+<section>
+  <div class="sec-head">
+    <span class="num">02</span>
+    <h3>The six marks</h3>
+    <p>Built once as marks, composed two ways in sections 03 and 04. Each mark holds the same type floor as the chart kit — 7.06mm / 20pt minimum — because a methods diagram read at the same distance as a data figure gets no exemption.</p>
+  </div>
+  <div class="body">
+    <div class="prim-grid" id="prim-grid"></div>
+    <div class="callout" style="margin-top:24px">
+      <span class="lbl">The one accent event, applied here</span>
+      <p>The accent fills exactly one condition — the one that deviates from the standard or baseline case — and marks exactly one point on it: where the deviation happens. Width and node fill, by contrast, are never accent-coloured; they stay <code class="mono">ink-soft</code> everywhere, so the reader's eye is pulled by colour to <em>which</em> condition and by shape to <em>how it changed</em>, never both at once.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 03 -->
+<section>
+  <div class="sec-head">
+    <span class="num">03</span>
+    <h3>Flow-with-magnitude, across five fields</h3>
+    <p>One shared pool splits into two conditions; ribbon width at every point is the real count there. The example rotates on reroll — the composition rule doesn't change, only the field does.</p>
+  </div>
+  <div class="body">
+    <div class="diagram-box"><div id="protocol-svg" style="aspect-ratio:620/150"></div></div>
+    <div class="diagram-ft"><p id="protocol-cap">—</p><span class="lbl" id="protocol-domain">—</span></div>
+    <p class="n" style="margin-top:20px">The composition rule is fixed, not templated per-poster: one shared origin, conditions diverge left to right in the order they were formed, an axis (time, iteration, or whatever the method actually steps through) runs along the bottom when there is one, magnitude badges always trail their ribbon. A reader who has seen one of these posters can read the next one's methods without re-learning the layout — the same "portable literacy" argument the canon already makes for the fixed zone geometry.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 04 -->
+<section>
+  <div class="sec-head">
+    <span class="num">04</span>
+    <h3>Plain sequence — when nothing has a meaningful width</h3>
+    <p>An optical bench, a CPU pipeline, a policy process and a bioinformatics pipeline have no headcount to shrink. Structure and order are the whole story, so the ribbon disappears and a plain node chain replaces it — shape carries meaning (rect = process, diamond = decision, cylinder = data store), and a connector's line style (solid, dashed, dotted) can mark a required, optional, or inferred step.</p>
+  </div>
+  <div class="body">
+    <div class="diagram-box"><div id="seq-svg" style="aspect-ratio:560/100"></div></div>
+    <div class="diagram-ft"><p id="seq-cap">—</p><span class="lbl" id="seq-domain">—</span></div>
+  </div>
+</section>
+
+<!-- ============================================================ 04 -->
+<section>
+  <div class="sec-head">
+    <span class="num">05</span>
+    <h3>What this plate asks you to decide</h3>
+    <p>Three decisions.</p>
+  </div>
+  <div class="body">
+    <ol class="dec">
+      <li><b>Two compositions, one closed set of six marks.</b> Flow-with-magnitude (ribbon, stage tick, magnitude badge, sequence axis) for anything with a real count that changes; plain sequence (node, connector) for anything that doesn't. Between them: trials, screening funnels, field sampling, simulation sweeps, optical setups, hardware block diagrams, bioinformatics pipelines, policy processes. Confirm this is the actual range of methods your posters need — a genuinely branching decision tree (not a fixed fan-out) is still unserved by either.</li>
+      <li><b>The domain examples are illustrative, not exhaustive.</b> Five flow domains and four sequence domains rotate through sections 03–04 so the composition reads as general-purpose rather than clinical-only. If your own methods cluster around a domain not shown, say which — it's a data-generator change, not a new primitive.</li>
+      <li><b>One accent event, carried by colour alone.</b> Width and node fill stay neutral everywhere so the diagram never argues with itself about whether size or colour is the signal. The accent marks one condition and, on it, one deviation point.</li>
+    </ol>
+    <div class="scope">
+      <div>
+        <p class="lbl">This plate does not decide</p>
+        <ul>
+          <li>The hero illustration slot and its ink allowance</li>
+          <li>Pictogram construction for repeated concepts</li>
+          <li>A true branching decision tree (as opposed to a fixed fan-out from one origin)</li>
+        </ul>
+      </div>
+      <div>
+        <p class="lbl">Known soft spots</p>
+        <ul>
+          <li>Flow width uses √n so area, not width, tracks magnitude fairly — correct for perception, but means two conditions differing 4× in count look closer than 4× wide. State the badges; never let the ribbon alone carry an exact ratio claim.</li>
+          <li>The fixed origin-then-fan layout comfortably fits two or three conditions; four or more will crowd the vertical spread and hasn't been stress-tested.</li>
+          <li>Plain sequence assumes a single left-to-right chain; a real fork (e.g. a policy process with two review paths) currently has to be drawn as two separate sequence figures.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script src="palette-engine.js"></script>
+<script src="methods-kit.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const KEY2='plate02.palette.v1';
+function read(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+const ATTESTED={
+  canon:{rule:'complement',hue:272,sat:0.55,tint:0},
+  slate:{rule:'complement',hue:203,sat:0.45,tint:0.04},
+  bone:{rule:'analogous',hue:28,sat:0.42,tint:0.42},
+  moss:{rule:'complement',hue:142,sat:0.4,tint:0.06},
+  ash:{rule:'complement',hue:174,sat:0.42,tint:0},
+  vermilion:{rule:'analogous',hue:9,sat:0.6,tint:0}
+};
+let themeKey='canon',themeState=Object.assign({},ATTESTED.canon);
+if(read(KEY2)){themeKey='lab';themeState=read(KEY2)}
+let res=PE.build(themeState);
+
+function populateThemeSelect(){
+  const opts=[];
+  if(read(KEY2))opts.push('<option value="lab">Current lab palette (Plate 02)</option>');
+  Object.keys(ATTESTED).forEach(k=>opts.push('<option value="'+k+'">'+k[0].toUpperCase()+k.slice(1)+'</option>'));
+  $('c-theme').innerHTML=opts.join('');$('c-theme').value=themeKey;
+}
+$('c-theme').addEventListener('change',e=>{
+  themeKey=e.target.value;
+  themeState=themeKey==='lab'?(read(KEY2)||themeState):Object.assign({},ATTESTED[themeKey]);
+  res=PE.build(themeState);renderAll();
+});
+
+const N=(a,b)=>Math.round(a+Math.random()*(b-a));
+const FLOW_DOMAINS=[
+  {domain:'Clinical trial',trunkLabel:'Enrolled',pair:['Standard care','Revised protocol'],stages:['Baseline','Mid-study','Completion'],unit:'',dev:v=>' deviates at '},
+  {domain:'Materials screening (chemistry)',trunkLabel:'Compounds synthesised',pair:['Route A','Route B'],stages:['Synthesised','Characterised','Selected'],unit:' compounds',dev:v=>' loses candidates fastest after '},
+  {domain:'Field ecology sampling',trunkLabel:'Plots surveyed',pair:['Site — undisturbed','Site — grazed'],stages:['Surveyed','Identified','Retained for analysis'],unit:' plots',dev:v=>' drops the most plots after '},
+  {domain:'Numerical experiment sweep',trunkLabel:'Parameter configurations',pair:['Solver A','Solver B'],stages:['Run','Converged','Reported'],unit:' runs',dev:v=>' fails to converge most often after '},
+  {domain:'ML ablation study',trunkLabel:'Candidate configurations',pair:['Baseline model','Proposed variant'],stages:['Trained','Validated','Held-out test'],unit:' configs',dev:v=>' is pruned hardest at '}
+];
+const SEQ_DOMAINS=[
+  {domain:'Optics (physics)',steps:[{label:'Laser source',param:'532nm'},{label:'Beam splitter',param:'50/50'},{label:'Sample chamber',param:'4K',emphasis:true},{label:'Detector',param:'APD'}]},
+  {domain:'CPU microarchitecture',steps:[{label:'Fetch'},{label:'Decode'},{label:'Execute',param:'OoO issue',emphasis:true},{label:'Writeback'}]},
+  {domain:'Genomics pipeline (comp-bio)',steps:[{label:'Raw reads',param:'FASTQ',shape:'cylinder'},{label:'QC filter',param:'Phred\u226530'},{label:'Alignment',param:'BWA-MEM',emphasis:true},{label:'Variants',param:'VCF',shape:'cylinder'}]},
+  {domain:'Policy process',steps:[{label:'Draft proposal'},{label:'Contested?',shape:'diamond',emphasis:true},{label:'Committee review',param:'amended',link:'dashed'},{label:'Enactment'}]}
+];
+let PD={},SQ={};
+function attrite(n0,steps,heavy){
+  const out=[n0];for(let i=1;i<steps;i++)out.push(Math.max(4,Math.round(out[i-1]*(1-(heavy?N(8,22):N(2,10))/100))));
+  return out;
+}
+function genProtocol(){
+  const d=FLOW_DOMAINS[N(0,FLOW_DOMAINS.length-1)],dev=N(1,d.stages.length-1);
+  const total=N(90,160),split=0.5+N(-8,8)/100,n0a=Math.round(total*split),n0b=total-n0a;
+  const armA={label:d.pair[0],stages:d.stages,n:attrite(n0a,d.stages.length,false),unit:d.unit,emphasis:false};
+  const armB={label:d.pair[1],stages:d.stages,n:attrite(n0b,d.stages.length,true),unit:d.unit,deviateAt:dev,deviateLabel:d.stages[dev],emphasis:true};
+  PD={trunk:{label:d.trunkLabel,n:total},ticks:d.stages.map((s,i)=>({at:d.stages.length===1?0:i/(d.stages.length-1),label:s})),
+    arms:[armA,armB],domain:d.domain,
+    cap:'<em>'+d.pair[1]+'</em>'+d.dev()+'<em>'+d.stages[dev]+'</em> and ends with fewer than '+d.pair[0]+'.'};
+}
+function genSeq(){
+  const d=SEQ_DOMAINS[N(0,SEQ_DOMAINS.length-1)];
+  SQ={steps:d.steps,domain:d.domain,cap:'A plain sequence: structure and order carry the method, not a headcount — no ribbon width applies here.'};
+}
+genProtocol();genSeq();
+
+function setCap(el,html){el.innerHTML=html.replace(/<em>(.*?)<\/em>/g,(m,g)=>'<em style="font-style:normal;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:2px;color:'+res.roles.accent.hex+'">'+g+'</em>')}
+
+function drawPrimGrid(){
+  const r=res.roles,nMax=60;
+  const boxes=[
+    (function(){const pts=[{x:14,y:40,hw:MK.hw(58,nMax)},{x:70,y:40,hw:MK.hw(58,nMax)},{x:140,y:26,hw:MK.hw(34,nMax)},{x:190,y:26,hw:MK.hw(19,nMax)}];
+      return '<div class="box"><svg viewBox="0 0 200 80" width="100%" height="100%">'+MK.ribbon(pts,r,{emphasis:true})+'</svg></div>'})(),
+    (function(){return '<div class="box"><svg viewBox="0 0 200 80" width="100%" height="100%">'+MK.stageTick(100,40,MK.hw(34,nMax),'Deviates',r,{emphasis:true})+'</svg></div>'})(),
+    (function(){return '<div class="box"><svg viewBox="0 0 200 80" width="100%" height="100%">'+MK.chevron(100,40,r,{emphasis:true})+'</svg></div>'})(),
+    (function(){const b1=MK.nBadge(50,28,'n=42',r,{}),b2=MK.nBadge(50,28,'n=19',r,{emphasis:true});
+      return '<div class="box"><svg viewBox="0 0 200 80" width="100%" height="100%"><g transform="translate(0,0)">'+b1.svg+'</g><g transform="translate(0,26)">'+b2.svg+'</g></svg></div>'})(),
+    (function(){return '<div class="box"><svg viewBox="0 0 200 80" width="100%" height="100%">'+MK.timeline(14,40,172,[{at:0,label:'Day 0'},{at:.5,label:'Day 7'},{at:1,label:'Day 14'}],r)+'</svg></div>'})(),
+    (function(){return '<div class="box"><svg viewBox="0 0 200 80" width="100%" height="100%">'+MK.node(14,26,60,28,'Process',r,{})+MK.connector(78,40,108,40,r,{style:'dashed'})+MK.node(112,20,46,46,'Decision?',r,{shape:'diamond',emphasis:true})+'</svg></div>'})()
+  ];
+  const names=['Ribbon','Stage tick','Direction chevron','Magnitude badge','Sequence axis','Node + connector'];
+  const subs=[
+    'Width at every point is a real headcount, interpolated smoothly between named stages — not a lane drawn to a fixed size.',
+    'Crosses a ribbon to name one step. Drawn plain for reference points, accent-weight only for the single step where a condition deviates.',
+    'A minimal pointer marking flow direction — the tip of a connector, or a ribbon\u2019s leading edge.',
+    'The magnitude a ribbon ends in, in whatever unit the field actually uses — n=, compounds, plots, runs. The mark is generic; the caller supplies the unit.',
+    'A shared schedule or step axis along the bottom, only when the method actually steps through something. An invented axis is worse than none.',
+    'The plain-sequence pair: rect (process), diamond (decision), circle (state/actor), or cylinder (data store), joined by a solid, dashed or dotted connector. Section 04.'
+  ];
+  $('prim-grid').innerHTML=names.map((n,i)=>'<div class="prim"><h5>'+n+'</h5>'+boxes[i]+'<p>'+subs[i]+'</p></div>').join('');
+}
+
+function drawProtocol(){
+  $('protocol-svg').innerHTML=MK.funnel({w:620,h:150,roles:res.roles,trunk:PD.trunk,ticks:PD.ticks,arms:PD.arms});
+  setCap($('protocol-cap'),PD.cap);
+  $('protocol-domain').textContent=PD.domain;
+}
+function drawMiniCompare(){
+  $('mini-compare').innerHTML=MK.funnel({w:280,h:110,roles:res.roles,trunk:PD.trunk,arms:PD.arms});
+}
+function drawSeq(){
+  $('seq-svg').innerHTML=MK.sequence({w:560,h:100,roles:res.roles,steps:SQ.steps});
+  $('seq-cap').textContent=SQ.cap;
+  $('seq-domain').textContent=SQ.domain;
+}
+$('b-reroll').addEventListener('click',()=>{genProtocol();drawProtocol();drawMiniCompare()});
+$('b-reroll-seq').addEventListener('click',()=>{genSeq();drawSeq()});
+
+function applyRolesToScope(){document.documentElement.style.setProperty('--paper',res.roles.paper.hex);document.documentElement.style.setProperty('--field',res.roles.field.hex);
+  PE.ROLES.forEach(r=>document.documentElement.style.setProperty('--'+r,res.roles[r].hex));}
+
+function renderAll(){applyRolesToScope();drawPrimGrid();drawProtocol();drawMiniCompare();drawSeq()}
+function tog(id,cls){const b=$(id);b.addEventListener('click',()=>{const on=b.getAttribute('aria-pressed')==='true';b.setAttribute('aria-pressed',String(!on));document.body.classList.toggle(cls,!on)})}
+tog('t-grey','grey');
+populateThemeSelect();renderAll();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(renderAll);
+</script>
+</body>
+</html>
