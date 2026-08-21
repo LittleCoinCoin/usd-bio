@@ -103,3 +103,24 @@ external MaBoSS binary fails at `dyld: Library not loaded: @rpath/libsbml.5.dyli
 pyMaBoSS then dies on a missing `res_probtraj.csv`, which looks like a parsing bug
 rather than a library-path one. Use the external binary, not `cmaboss`: `run_maboss.py`
 records that the compiled backend returns a wrong node set and empty state labels.
+
+## mod-units: where the unit strings come from (correcting an earlier claim)
+
+I asserted, in the plan and in the `mod-units` brief, that **no `bio:` attribute
+carries a unit string anywhere in the USD layers**, and that the units are asserted by
+`data/element_properties.py`. The implementer pushed back and was right on both counts.
+Verified 2026-08-21 against the composed stage:
+
+- **`bio:ddgUnits` exists and is authored**, value `"kcal/mol"`, on three prims —
+  `/p53_MDM2_complex/integration/{F19A,L26A,W23A}`. So the ΔΔG row's unit *is* on the
+  stage, alongside its value.
+- `data/element_properties.py` contains **none** of the strings `amu`, `Å` or `kcal/mol`
+  (grep count 0 for each). Those units are domain convention tied to the cited
+  literature, plus `README.md` and `CLAUDE.md` — not assertions in that module.
+
+The accurate position: units are **partly** on the stage. `bio:ddgUnits` is stored;
+mass/radius units are not stored anywhere in the layers and are convention. A readback
+figure should therefore read `bio:ddgUnits` from the stage rather than typing
+`"kcal/mol"`, and be explicit that the remaining four unit strings are convention.
+Uniform provenance across rows is the weaker goal here — "read it, don't type it" is
+the whole point of the tile, so it wins wherever the data actually exists.
