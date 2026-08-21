@@ -64,24 +64,45 @@ authors ``CreateDisplayColorAttr([Gf.Vec3f(0.5, 0.5, 0.5)])`` directly on
 every bond, a neutral grey with no per-element hue to begin with (verified
 by the achromatic-hue gate below, not assumed).
 
-Framing: TWO candidates are rendered and both are left on disk
-(``fig-composition-A.png``, ``fig-composition-B.png``) --
+Framing: the PI has DECIDED between two candidates that were both rendered
+during development (see figures/README.md's "fig-composition, round 3"
+entry for the full record). The deliverable this module writes is exactly
+``fig-composition.png`` -- the job's naming contract is one of the six
+literal names (``mod-text``, ``mod-units``, ``fig-composition``,
+``fig-curves``, ``mod-state``, ``mod-display``), so there is exactly one
+file at that name, never a suffixed variant:
 
-  - **A**: the whole complex (818 atoms), oriented by PCA so the longest
-    principal axis runs horizontally. The real 1YCR principal-axis extents
-    (SVD over all 818 atom centers) are ~41.8 x 29.4 x 25.5 Angstrom -- an
-    in-plane aspect of ~1.42:1 against the frame's 3.3336:1, so even a
-    perfectly-oriented camera can only fill ~43% of the width (1.42/3.3336)
-    before the object's own shape, not the camera, becomes the limit.
-  - **B**: an interface crop centred on Chain_B's own centroid, oriented
-    by Chain_B's OWN principal axes (Chain_B alone measures ~2.08:1,
-    already much closer to the frame's own aspect), which fills far more
-    of the strip, puts Trp23's accent at a legible size, and shows MDM2 as
-    a deliberately cropped cradle around the peptide rather than the whole
-    assembly.
+  - **Candidate B (SHIPPED, written as ``fig-composition.png``)**: an
+    interface crop centred on the p53-MDM2 binding interface, oriented by
+    Chain_B's OWN principal axes (Chain_B alone measures ~2.08:1, close to
+    the frame's own 3.3336:1), recentred vertically off the full structure
+    (see :func:`_recentre_vertically`) so the crop reads as deliberate
+    rather than slipped. Fills ~76.1% of the frame width and puts Trp23's
+    accent at a legible size.
+  - **Candidate A (REJECTED, kept for reference as
+    ``fig-composition-alt-whole-complex.png``, NOT a deliverable name)**:
+    the whole complex (818 atoms), oriented by PCA so the longest principal
+    axis runs horizontally. The real 1YCR principal-axis extents (SVD over
+    all 818 atom centers) are ~41.8 x 29.4 x 25.5 Angstrom -- an in-plane
+    aspect of ~1.42:1 against the frame's 3.3336:1, so even a
+    perfectly-oriented camera can only fill ~43% of the width (measured:
+    39.5%) before the object's own shape, not the camera, becomes the
+    limit. The PI reviewed both and chose B for width fill and Trp23
+    prominence over showing all 818 atoms in frame -- see the "known
+    tension" note below and in the README.
 
-``fig-composition`` (this module's registered name) returns candidate B as
-the default -- see the bottom of :func:`build_fig_composition` for why.
+``fig-composition`` (this module's registered name) always renders BOTH --
+candidate A stays buildable for anyone revisiting the framing decision --
+but returns only the shipped candidate B path, since that is the only one
+that may occupy the deliverable name.
+
+Known tension, recorded rather than hidden: the poster's own header for
+this tile reads "818 atoms, 834 bonds", and the shipped crop (candidate B)
+puts a substantial share of those atoms outside the frame -- MDM2 is
+cropped, not fully shown. The PI was offered the option of rewording the
+header to match the crop and DECLINED it, so the figure and its caption
+are knowingly in slight tension; this is an accepted PI decision, not an
+oversight.
 
 Distortion: an ORTHOGRAPHIC camera (:func:`render_support.
 author_oriented_orthographic_camera`), not the perspective camera
@@ -148,6 +169,19 @@ ACCENT_ATOM_NAMES = tuple(n for n in _TRP_ATOM_NAMES if n not in _ALA_KEEP)
 # of edge atoms).
 PADDING_A = 1.1
 PADDING_B = 1.3
+
+# Output filenames. FIG_COMPOSITION_FILENAME is the literal deliverable name
+# the job's naming contract requires -- one of exactly six fixed names
+# across the poster's figure set ("mod-text", "mod-units", "fig-composition",
+# "fig-curves", "mod-state", "mod-display") -- and MUST contain the SHIPPED
+# candidate (B). ALT_FILENAME is deliberately NOT a contract name (no
+# "fig-composition" prefix collision, no ambiguity that it could be mistaken
+# for the deliverable): candidate A is real work, kept buildable for anyone
+# revisiting the framing decision, but it must never occupy the deliverable
+# slot -- see the module docstring's "Known tension" note for why B, not A,
+# shipped.
+FIG_COMPOSITION_FILENAME = "fig-composition.png"
+ALT_FILENAME = "fig-composition-alt-whole-complex.png"
 
 
 def _hex_to_rgb01(hex_str: str) -> "tuple[float, float, float]":
@@ -424,31 +458,53 @@ def build_fig_composition(theme: Theme, out_dir: str) -> str:
         note="candidate B center AFTER vertical recentring off the full structure (was Chain_B's own centroid)",
     )
 
-    # -- render both candidates, always -----------------------------------
-    out_a = os.path.join(out_dir, "fig-composition-A.png")
+    # -- render both candidates, always -- but only B may occupy the
+    # deliverable name -----------------------------------------------------
+    # Candidate A (REJECTED by the PI): kept buildable under a name that
+    # cannot be mistaken for the deliverable -- see ALT_FILENAME's own
+    # comment and the module docstring's "Known tension" note.
+    out_alt = os.path.join(out_dir, ALT_FILENAME)
     rs.render_oriented(
-        STAGE_PATH, out_a, rs.POSTER_WIDTH_PX, REPRESENTATION, frame_a,
+        STAGE_PATH, out_alt, rs.POSTER_WIDTH_PX, REPRESENTATION, frame_a,
         root_path=ROOT_PATH, display_color_overrides=overrides, padding=PADDING_A,
     )
-    fill_a = prov(round(_measure_width_fill(out_a), 4), source=out_a, note="candidate A measured width fill")
+    fill_alt = prov(
+        round(_measure_width_fill(out_alt), 4), source=out_alt,
+        note="candidate A (REJECTED, reference only) measured width fill",
+    )
 
-    out_b = os.path.join(out_dir, "fig-composition-B.png")
+    # Candidate B (SHIPPED by PI decision): the ONLY candidate permitted at
+    # the literal deliverable filename.
+    out_shipped = os.path.join(out_dir, FIG_COMPOSITION_FILENAME)
     rs.render_oriented(
-        STAGE_PATH, out_b, rs.POSTER_WIDTH_PX, REPRESENTATION, frame_b,
+        STAGE_PATH, out_shipped, rs.POSTER_WIDTH_PX, REPRESENTATION, frame_b,
         root_path=ROOT_PATH, display_color_overrides=overrides, padding=PADDING_B,
     )
-    fill_b = prov(round(_measure_width_fill(out_b), 4), source=out_b, note="candidate B measured width fill")
-
-    print(
-        f"fig-composition: candidate A width_fill={fill_a}  candidate B width_fill={fill_b}  "
-        f"-- registering B as the default (fills more of the strip, legible Trp23, "
-        f"MDM2 reads as a deliberately cropped cradle -- see module docstring)"
+    fill_shipped = prov(
+        round(_measure_width_fill(out_shipped), 4), source=out_shipped,
+        note="candidate B (SHIPPED, deliverable) measured width fill",
     )
 
-    # Candidate B is the default: it fills substantially more of the strip
-    # (~72% vs A's ~40%, both MEASURED above, not assumed), puts Trp23's
-    # accent at a legible size (every individual accented atom keeps a
-    # >1 Angstrom clearance from the frame edge at PADDING_B=1.3 -- see the
-    # gate block below), and directly serves this tile's own claim (a
-    # named residue's mutation-relevant atoms, not just "atoms exist").
-    return out_b
+    prov(
+        "PI decision: B ships. Reason: B fills 76.1% of the frame width vs "
+        "A's 39.5%, and the PI chose fill + Trp23 prominence over showing "
+        "all 818 atoms in one frame. The PI declined to reword the tile's "
+        "'818 atoms, 834 bonds' header to match the crop, so the shipped "
+        "figure and its caption are knowingly in slight tension -- MDM2 is "
+        "cropped, not fully shown -- an accepted PI decision, not an "
+        "oversight. Candidate A is retained on disk for reference only, "
+        "under a non-deliverable filename.",
+        note="framing decision record",
+    )
+
+    print(
+        f"fig-composition: SHIPPED candidate B ({FIG_COMPOSITION_FILENAME}) width_fill={fill_shipped}  "
+        f"REJECTED candidate A, reference only ({ALT_FILENAME}) width_fill={fill_alt}  "
+        f"-- PI chose B for fill + Trp23 prominence; see module docstring 'Known tension' note"
+    )
+
+    # Only the shipped deliverable path may be returned here -- the harness
+    # treats this function's return value as THE figure's output, and the
+    # job's naming contract is exactly one file per one of the six fixed
+    # names.
+    return out_shipped

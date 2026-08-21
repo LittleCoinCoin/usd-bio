@@ -250,3 +250,43 @@ for the constant and the same table inline.
 Final candidate B, both fixes applied: width fill 76.1%, greyscale overlap 5.5% (down
 from 52.6%); candidate A: width fill 39.5% (shape-limited, unchanged), greyscale overlap
 3.0%.
+
+## fig-composition, round 3: the PI decides, and a naming-contract fix
+
+The PI reviewed both candidates and **decided: candidate B ships.** They also declined
+to add a second (size-based) cue for the accent, accepting the measured 5.5% greyscale
+overlap from round 2 as sufficient — no further accent work is planned.
+
+**Naming-contract violation, found and fixed.** The job's six deliverables have exactly
+six fixed names — `mod-text`, `mod-units`, `fig-composition`, `fig-curves`, `mod-state`,
+`mod-display` — one file per name. Round 2 shipped `fig-composition-A.png` and
+`fig-composition-B.png`; there was no `fig-composition.png` at all, which is a contract
+violation regardless of which candidate the PI eventually chose. Fixed: the registered
+`fig-composition` figure now writes the shipped candidate (B) to exactly
+`fig-composition.png` (`fig_composition.FIG_COMPOSITION_FILENAME`), and returns that
+path — the only path the harness's `--only fig-composition` run or any downstream
+consumer should ever see. Candidate A stays real, buildable work — useful for anyone
+revisiting the framing decision — but is written under
+`fig-composition-alt-whole-complex.png` (`fig_composition.ALT_FILENAME`), a name that
+cannot be mistaken for a deliverable and is documented in-module and here as a
+**rejected alternative kept for reference only**, with the one-line reason: it fills
+39.5% of the frame width against B's 76.1%, and the PI chose fill and Trp23 prominence
+over showing all 818 atoms in one frame.
+
+**Known tension, recorded plainly rather than left for someone to rediscover.** The
+tile's own poster header reads "818 atoms, 834 bonds" (`mod-display`'s companion text,
+not this module), and the shipped crop (candidate B) puts a substantial share of those
+atoms and bonds outside the frame — MDM2 is cropped, not fully shown, by design, to keep
+Trp23 legible and the width filled. The PI was offered the option of rewording the
+header to match the crop and **declined it**. The figure and its caption are therefore
+knowingly in slight tension: an accepted PI trade-off, not an oversight, and not
+something this module can (or should) resolve on its own by changing the header text
+itself, which belongs to a different tile.
+
+No change to the underlying rendering mechanism in this round: orthographic camera,
+PCA-based framing, the two rounds of color fixes (bond neutralisation, `_INK_CEILING_SCALE`),
+and the vertical recentring all carry over unchanged — verified by re-running gates 1–7
+against the renamed files and getting IDENTICAL numbers to round 2 (5.51% overlap for
+the shipped candidate, 2.99% for the alt, Sphere=818/Cylinder=834, both PNGs exactly
+2560×768 RGBA with transparent corners, orthographic isotropy unaffected since
+`render_support.py` was not touched this round).
