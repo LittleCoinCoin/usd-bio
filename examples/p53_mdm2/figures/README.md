@@ -68,3 +68,38 @@ unmodified viewer.
   with matplotlib, so the script re-runs anywhere without a font install. Advance widths are
   near-identical (0.602 vs 0.600 em). Revisit by committing the TTF if the mismatch against
   the poster's own live `<pre>` block reads badly in proof.
+
+## mod-state: where the discrete state actually comes from
+
+The brief assumed Boolean node state was stored. It is not. The stage carries only
+continuous per-node probabilities (`bio:maboss:prob:<node>`, 500 frames) and
+`maboss/output/` holds only `.bnd`/`.cfg`. Thresholding those probabilities would mean
+inventing a cut-off, which the job forbids.
+
+MaBoSS itself resolves this. `get_states_probtraj()` returns the occupancy of each
+**network state** — and a network state IS a Boolean vector over the five nodes, so it
+is discrete by construction with nothing invented. Probed 2026-08-21 on the committed
+W23A model: 500 frames × 19 distinct network states.
+
+Taking the modal (most probable) state per frame gives a genuinely stepped trajectory
+with **no flicker** — 500 frames resolve into just four segments:
+
+| frames | modal network state |
+|--:|:--|
+| 11 | `Mdm2N -- Dam` |
+| 29 | `Dam` |
+| 34 | `p53_h -- p53 -- Mdm2C -- Dam` |
+| 426 | `p53_h -- p53 -- Mdm2C` |
+
+Per-node, under the modal state: p53 / p53_h / Mdm2C on for 460 of 500 frames,
+Mdm2N for 11, Dam for 74. So the figure is a 5-row × 500-column on/off raster with four
+hard vertical transitions — unmistakably discrete, sharing tile 4's time axis without
+duplicating its claim. Consistent with the stored W23A time-average P(p53 up) = 0.861.
+
+### Trap
+
+`run_maboss.ensure_backend()` **must** be called before `maboss.load`. Without it the
+external MaBoSS binary fails at `dyld: Library not loaded: @rpath/libsbml.5.dylib` and
+pyMaBoSS then dies on a missing `res_probtraj.csv`, which looks like a parsing bug
+rather than a library-path one. Use the external binary, not `cmaboss`: `run_maboss.py`
+records that the compiled backend returns a wrong node set and empty state labels.
