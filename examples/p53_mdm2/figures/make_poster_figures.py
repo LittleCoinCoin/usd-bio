@@ -64,8 +64,25 @@ import matplotlib.pyplot as plt  # noqa: E402  (after matplotlib.use)
 
 # ---------------------------------------------------------------------------
 # Canvas contract -- measured values, not re-derived. See figures/README.md.
+#
+# CANVAS_MM[1] (height) is PIXEL-DERIVED, not the raw measured 64.48 mm.
+# Two of the six poster figures are rendered by usdrecord at exactly
+# RASTER_WIDTH_PX x RASTER_HEIGHT_PX (integers, by construction -- usdrecord
+# cannot emit a fractional-pixel height either). If matplotlib's figures were
+# sized from the raw 64.48 mm instead, float rounding at the save boundary
+# (2.538583...in * 302.5217...dpi = 767.98, which floors to 767 px) would
+# make the two families of figures land on different pixel heights, and a
+# poster-side ``fit="contain"`` scale-to-tile would then rescale them by two
+# different factors -- silently breaking the cross-figure type-size parity
+# the 22pt floor exists to guarantee. So: derive the figure height from the
+# integer RASTER_HEIGHT_PX instead of from the mm measurement. The resulting
+# height is 64.4823 mm against the measured 64.48 mm -- a 0.0023 mm
+# difference, four orders of magnitude below anything printable -- while the
+# raster save now lands on RASTER_HEIGHT_PX exactly, by construction rather
+# than by luck. Width is unaffected: RASTER_WIDTH_PX / _DPI is identically
+# CANVAS_MM[0] / 25.4, so the width stays exactly the measured 214.94 mm.
 # ---------------------------------------------------------------------------
-CANVAS_MM = (214.94, 64.48)          # (width, height) of the poster slot
+CANVAS_MM = (214.94, 64.48)          # (width, height) of the poster slot, AS MEASURED
 CANVAS_RATIO = 3.3336                # width : height, as measured
 RASTER_WIDTH_PX = 2560
 RASTER_HEIGHT_PX = 768
@@ -73,8 +90,11 @@ MIN_TYPE_PT = 22                     # hard floor, enforced in type_pt()
 
 # DPI chosen so that CANVAS_MM[0] (in inches) times dpi lands exactly on
 # RASTER_WIDTH_PX -- i.e. a raster save at this dpi is exactly 2560 px wide.
-_FIGSIZE_IN = (CANVAS_MM[0] / 25.4, CANVAS_MM[1] / 25.4)
-_DPI = RASTER_WIDTH_PX / _FIGSIZE_IN[0]
+_DPI = RASTER_WIDTH_PX / (CANVAS_MM[0] / 25.4)
+# Figure size derived FROM the integer pixel targets (not from CANVAS_MM),
+# so width_in * dpi == RASTER_WIDTH_PX and height_in * dpi == RASTER_HEIGHT_PX
+# exactly, by construction, rather than approximately, by luck.
+_FIGSIZE_IN = (RASTER_WIDTH_PX / _DPI, RASTER_HEIGHT_PX / _DPI)
 
 # Deliberate substitution for the canon's --font-mono (JetBrains Mono is not
 # installed on this machine and is not a matplotlib-resolvable family).
@@ -403,6 +423,86 @@ def build_nothing(theme: Theme, out_dir: str) -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
+# Harness self-check
+# ---------------------------------------------------------------------------
+def selfcheck(tmp_dir: str) -> bool:
+    """Exercise the two properties the harness promises about its own output,
+    using a pair of throwaway files it deletes when done:
+
+    1. raster pixel-exactness -- a PNG saved via make_figure()/save_figure()
+       must be exactly (RASTER_WIDTH_PX, RASTER_HEIGHT_PX), not off by one in
+       either dimension. This is the gate the coordinator's integration
+       review found missing: matplotlib's own float rounding at the save
+       boundary can otherwise land one pixel short of the contract, which
+       would silently disagree with the usdrecord-rendered figures at the
+       exact same nominal size.
+    2. SVG determinism -- two independent saves of an identical figure must
+       be byte-for-byte identical, so re-running the harness against
+       unchanged inputs never perturbs a committed SVG's diff.
+
+    Returns:
+        True if both checks pass. Prints a line per check either way, and
+        prints any failure detail to stderr.
+    """
+    import hashlib
+
+    from PIL import Image
+
+    ok = True
+    theme = resolve_theme("slate")
+
+    # -- 1. raster pixel-exactness ------------------------------------------------
+    png_path = os.path.join(tmp_dir, "_selfcheck_raster.png")
+    fig, _ax = make_figure(theme=theme)
+    save_figure(fig, png_path, ext="png")
+    plt.close(fig)
+    try:
+        with Image.open(png_path) as im:
+            size = im.size
+    finally:
+        os.remove(png_path)
+    want = (RASTER_WIDTH_PX, RASTER_HEIGHT_PX)
+    if size == want:
+        print(f"OK   raster size: PIL reports {size}")
+    else:
+        print(
+            f"FAIL raster size: PIL reports {size}, want {want}",
+            file=sys.stderr,
+        )
+        ok = False
+
+    # -- 2. SVG determinism --------------------------------------------------
+    svg_a = os.path.join(tmp_dir, "_selfcheck_a.svg")
+    svg_b = os.path.join(tmp_dir, "_selfcheck_b.svg")
+    digests = []
+    try:
+        for path in (svg_a, svg_b):
+            fig, ax = make_figure(theme=theme)
+            ax.text(
+                0.5, 0.5, "selfcheck", fontsize=type_pt(24),
+                color=theme.ink, ha="center", va="center",
+            )
+            save_figure(fig, path, ext="svg")
+            plt.close(fig)
+            with open(path, "rb") as fh:
+                digests.append(hashlib.sha256(fh.read()).hexdigest())
+    finally:
+        for path in (svg_a, svg_b):
+            if os.path.exists(path):
+                os.remove(path)
+    if digests[0] == digests[1]:
+        print(f"OK   svg determinism: sha256={digests[0]}")
+    else:
+        print(
+            f"FAIL svg determinism: {digests[0]} != {digests[1]}",
+            file=sys.stderr,
+        )
+        ok = False
+
+    return ok
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 def run_figure(name: str, theme: Theme, out_dir: str) -> Optional[str]:
@@ -455,12 +555,22 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         metavar="DIR",
         help="directory figures are written into (default: figures/output)",
     )
+    parser.add_argument(
+        "--selfcheck",
+        action="store_true",
+        help="run the harness self-check (raster pixel-exactness + SVG "
+        "determinism) against throwaway files, then exit",
+    )
     return parser
 
 
 def main(argv: Optional[list] = None) -> int:
     parser = _build_arg_parser()
     args = parser.parse_args(argv)
+
+    if args.selfcheck:
+        os.makedirs(args.out_dir, exist_ok=True)
+        return 0 if selfcheck(args.out_dir) else 1
 
     if args.list:
         for name in sorted(FIGURES):
