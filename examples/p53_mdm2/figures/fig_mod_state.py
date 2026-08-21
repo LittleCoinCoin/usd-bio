@@ -36,14 +36,54 @@ Contract for this tile (see figures/README.md for the full canvas contract)
 - Ink/greyscale only -- NO accent on this tile (the accent is reserved for
   Trp23 / the W23A curve elsewhere); "off" cells are rendered in the
   theme's own ``field`` token (so they blend into the poster tile under
-  any theme) and "on" cells in ``ink``.
+  any theme) and "on" cells are shaded between ``field`` and ``ink`` --
+  see "Honesty fix" below.
 - No title, no legend, no caption; axis labels are required and present
   (y: the five node names as category labels; x: "frame").
 
+Honesty fix: ON-cell tone encodes the modal state's occupancy
+---------------------------------------------------------------
+An adversarial review of the first version of this figure (which drew every
+ON cell as flat, full-strength ink) found a real defect: the "modal" network
+state is only ever an argmax over the ensemble, and for large stretches of
+the trajectory it is a MINORITY of that ensemble. Measured on this exact run,
+modal-state occupancy ranges from 0.283363 (frame 39) to 0.882683 (frame
+252), mean 0.751071258, median 0.835438 -- and 86 of 500 frames (17.2% of
+the tile's width) have the "winning" state below 0.5 occupancy. Segments 1-3
+(frames 0-73) never exceed 0.44 occupancy; segment 4 does not clear 0.5
+until roughly 12 frames into its 426-frame run. Drawing all of that in flat,
+maximum-strength ink claimed a certainty the data does not have, exactly
+across the transitions -- the visually interesting part of the tile.
+
+The fix: every ON cell's ink tone is linearly mapped from that frame's
+modal-state occupancy, using the run's own measured [min, max] occupancy
+range (not the full [0, 1] scale, which would waste most of the tile's
+tonal range on certainty values this model never reaches) --
+
+    tone_fraction(occ) = TONE_FLOOR + (1 - TONE_FLOOR) *
+                          (occ - occ_min) / (occ_max - occ_min)
+
+with ``TONE_FLOOR = 0.35`` (see the constant below), so the least-certain
+ON cell (occupancy 0.283363) still renders at 35% of the way from ``field``
+to ``ink`` -- a measured 0.298 luminance margin below the OFF/field tone,
+comfortably above the noise floor -- and the most-certain ON cell (occupancy
+0.882683) renders at full ink. OFF cells are unaffected: always exactly
+``field``, one single colour, never confusable with even the palest ON cell.
+Both endpoints of the blend (``field``, ``ink``) are the tile's existing
+neutral tokens, so this stays ink/greyscale-only -- no new hue, no accent.
+
+Per-frame tone variation is compatible with "hard vertical step edges":
+``imshow(..., interpolation="nearest")`` never blends across neighbouring
+columns, so each frame is still one flat-coloured rectangle -- it is just
+that the rectangle's own shade now tracks that frame's occupancy instead of
+being a constant. The Boolean on/off pattern itself (which segments exist,
+where they start and end) is completely unchanged from the first version
+and is asserted identically.
+
 Run this file directly (``python fig_mod_state.py``) to execute the full
 gate suite described in the task brief and print real output, including
-the segment table, per-node ON counts, and two-run determinism/byte-
-identity checks.
+the segment table, per-node ON counts, the occupancy range and the tone
+range it maps to, and two-run determinism/byte-identity checks.
 """
 
 from __future__ import annotations
@@ -98,6 +138,28 @@ EXPECTED_ON_COUNTS: Dict[str, int] = {
 # to be in the same neighbourhood.
 RECORDED_P53_TIME_AVG = 0.861
 
+# Modal-state OCCUPANCY (how much of the ensemble the "winning" state
+# actually carries at each frame) -- probed on the same run, on the same
+# committed model, same seed. This is what the adversarial review found
+# missing from the first version of this figure: the raster's on/off
+# pattern was honest, but drawing every ON cell in flat full-strength ink
+# implied the modal state was near-certain everywhere, which it is not.
+EXPECTED_OCC_MIN = 0.283363
+EXPECTED_OCC_MIN_FRAME = 39
+EXPECTED_OCC_MAX = 0.882683
+EXPECTED_OCC_MAX_FRAME = 252
+EXPECTED_OCC_MEAN = 0.751071258
+EXPECTED_OCC_MEDIAN = 0.835438
+EXPECTED_FRAMES_BELOW_HALF = 86
+
+# ON-cell ink tone floor: an ON cell's tone is linearly mapped from that
+# frame's modal-state occupancy over the run's own measured [occ_min,
+# occ_max] range onto [TONE_FLOOR, 1.0] (1.0 == full ink). The floor exists
+# so that even the least-certain ON cell in this run (occupancy 0.283363)
+# is unmistakably darker than an OFF cell -- see _tone_luminance_margin()
+# and gate 3 below, which measure that separation rather than assuming it.
+TONE_FLOOR = 0.35
+
 
 def _state_on_set(label: str) -> set:
     """Parse a MaBoSS state label (' -- '-joined ON node names) into a set.
@@ -120,6 +182,10 @@ def run_modal_states(variant: str = VARIANT):
     Returns:
         modal_labels: list[str], length 500 -- the argmax-occupancy network
             state label at each frame.
+        modal_occ: list[float], length 500 -- that same state's own
+            occupancy fraction at each frame (i.e. ``states_df.max(axis=1)``,
+            the numerator of the argmax) -- how much of the ensemble the
+            "winning" state actually carries, NOT a per-node probability.
         matrix: np.ndarray, shape (5, 500), dtype uint8 -- matrix[i, f] == 1
             iff NODES[i] is ON in modal_labels[f].
         p53_time_avg: float -- get_nodes_probtraj()'s time-average P(p53 up)
@@ -145,6 +211,7 @@ def run_modal_states(variant: str = VARIANT):
 
     states_df = result.get_states_probtraj()  # occupancy per network state
     modal_labels = [str(x) for x in states_df.idxmax(axis=1).tolist()]
+    modal_occ = [float(x) for x in states_df.max(axis=1).tolist()]
 
     nodes_df = result.get_nodes_probtraj()     # continuous P(node up)
     p53_time_avg = float(nodes_df["p53"].mean())
@@ -168,7 +235,7 @@ def run_modal_states(variant: str = VARIANT):
         "derivation": "argmax over get_states_probtraj() network-state "
                        "occupancy per frame -- not a threshold",
     }
-    return modal_labels, matrix, p53_time_avg, info
+    return modal_labels, modal_occ, matrix, p53_time_avg, info
 
 
 def _segments(labels: List[str]) -> List[Tuple[int, str]]:
@@ -211,19 +278,119 @@ def _check_expected(modal_labels: List[str], matrix: np.ndarray):
     return segs, counts
 
 
+def _check_occupancy(modal_occ: List[float]) -> Dict[str, float]:
+    """Assert the modal-state occupancy statistics against the probed
+    expectation (README.md / the adversarial-review report) -- same
+    drift-reporting philosophy as :func:`_check_expected`: a mismatch here
+    means the model or run changed, and that matters more than the figure.
+    """
+    occ_min = min(modal_occ)
+    occ_max = max(modal_occ)
+    occ_min_frame = modal_occ.index(occ_min)
+    occ_max_frame = modal_occ.index(occ_max)
+    mean = sum(modal_occ) / len(modal_occ)
+    sorted_occ = sorted(modal_occ)
+    n = len(sorted_occ)
+    median = (sorted_occ[n // 2] if n % 2 else
+              (sorted_occ[n // 2 - 1] + sorted_occ[n // 2]) / 2.0)
+    below_half = sum(1 for o in modal_occ if o < 0.5)
+
+    stats = {
+        "occ_min": occ_min, "occ_min_frame": occ_min_frame,
+        "occ_max": occ_max, "occ_max_frame": occ_max_frame,
+        "mean": mean, "median": median, "frames_below_half": below_half,
+    }
+    checks = [
+        (abs(occ_min - EXPECTED_OCC_MIN) < 1e-9, "occ_min", occ_min, EXPECTED_OCC_MIN),
+        (occ_min_frame == EXPECTED_OCC_MIN_FRAME, "occ_min_frame", occ_min_frame, EXPECTED_OCC_MIN_FRAME),
+        (abs(occ_max - EXPECTED_OCC_MAX) < 1e-9, "occ_max", occ_max, EXPECTED_OCC_MAX),
+        (occ_max_frame == EXPECTED_OCC_MAX_FRAME, "occ_max_frame", occ_max_frame, EXPECTED_OCC_MAX_FRAME),
+        (abs(mean - EXPECTED_OCC_MEAN) < 1e-6, "mean", mean, EXPECTED_OCC_MEAN),
+        (abs(median - EXPECTED_OCC_MEDIAN) < 1e-6, "median", median, EXPECTED_OCC_MEDIAN),
+        (below_half == EXPECTED_FRAMES_BELOW_HALF, "frames_below_half", below_half, EXPECTED_FRAMES_BELOW_HALF),
+    ]
+    bad = [(name, got, want) for ok, name, got, want in checks if not ok]
+    if bad:
+        raise AssertionError(f"modal-state occupancy drift: {bad!r}")
+    return stats
+
+
+def _hex_to_rgb(hex_color: str) -> Tuple[float, float, float]:
+    hex_color = hex_color.lstrip("#")
+    return tuple(int(hex_color[i:i + 2], 16) / 255.0 for i in (0, 2, 4))  # type: ignore[return-value]
+
+
+def _lerp_rgb(a: Tuple[float, float, float], b: Tuple[float, float, float],
+              t: float) -> Tuple[float, float, float]:
+    return (a[0] + (b[0] - a[0]) * t,
+            a[1] + (b[1] - a[1]) * t,
+            a[2] + (b[2] - a[2]) * t)
+
+
+def _rgb_luminance(rgb: Tuple[float, float, float]) -> float:
+    r, g, b = rgb
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _tone_fraction(occ: np.ndarray, occ_min: float, occ_max: float) -> np.ndarray:
+    """Map occupancy (over the run's own measured [occ_min, occ_max] range,
+    NOT the theoretical [0, 1] range -- see the module docstring's "Honesty
+    fix" section for why) onto an ink-tone fraction in [TONE_FLOOR, 1.0].
+    """
+    return TONE_FLOOR + (1.0 - TONE_FLOOR) * (occ - occ_min) / (occ_max - occ_min)
+
+
+def _build_rgba(matrix: np.ndarray, tone: np.ndarray,
+                 field_rgb: Tuple[float, float, float],
+                 ink_rgb: Tuple[float, float, float]) -> np.ndarray:
+    """Assemble the (rows, cols, 4) RGBA image actually drawn by imshow.
+
+    Factored out of :func:`build_mod_state` so the gate suite can inspect
+    exactly the array that gets rendered (not a re-implementation of it) --
+    an OFF cell is always exactly ``field_rgb``; an ON cell is ``field_rgb``
+    blended toward ``ink_rgb`` by that column's tone fraction. No smoothing
+    across columns happens here or in the ``interpolation="nearest"`` imshow
+    call that consumes this array -- each column is one flat RGBA value.
+    """
+    n_rows, n_cols = matrix.shape
+    on_color_per_frame = np.array(
+        [_lerp_rgb(field_rgb, ink_rgb, float(t)) for t in tone]
+    )  # shape (n_cols, 3)
+    image = np.empty((n_rows, n_cols, 3), dtype=np.float64)
+    image[:, :, :] = field_rgb  # default: OFF everywhere
+    on_mask = matrix.astype(bool)
+    for col in range(n_cols):
+        rows_on = on_mask[:, col]
+        if rows_on.any():
+            image[rows_on, col, :] = on_color_per_frame[col]
+    alpha = np.ones((n_rows, n_cols, 1), dtype=np.float64)
+    return np.concatenate([image, alpha], axis=2)
+
+
 # ---------------------------------------------------------------------------
 # Figure
 # ---------------------------------------------------------------------------
 @figure("mod-state", ext="svg")
 def build_mod_state(theme: Theme, out_dir: str) -> str:
-    modal_labels, matrix, p53_time_avg, info = run_modal_states(VARIANT)
+    modal_labels, modal_occ, matrix, p53_time_avg, info = run_modal_states(VARIANT)
     segs, counts = _check_expected(modal_labels, matrix)
+    occ_stats = _check_occupancy(modal_occ)
 
     if matrix.shape != (len(NODES), N_FRAMES):
         raise AssertionError(f"raster shape {matrix.shape}, want (5, 500)")
     uniq = set(np.unique(matrix).tolist())
     if not uniq <= {0, 1}:
-        raise AssertionError(f"raster not strictly binary: values {uniq}")
+        raise AssertionError(f"on/off pattern not strictly binary: values {uniq}")
+
+    field_rgb = _hex_to_rgb(theme.field)
+    ink_rgb = _hex_to_rgb(theme.ink)
+    occ_arr = np.asarray(modal_occ, dtype=np.float64)
+    tone = _tone_fraction(occ_arr, occ_stats["occ_min"], occ_stats["occ_max"])
+    if tone.min() < TONE_FLOOR - 1e-9 or tone.max() > 1.0 + 1e-9:
+        raise AssertionError(
+            f"tone fraction escaped [{TONE_FLOOR}, 1.0]: "
+            f"[{tone.min()!r}, {tone.max()!r}]"
+        )
 
     prov(info["bnd"], note="W23A .bnd model, byte-identical Pipeline-3 emission")
     prov(info["cfg"], note="W23A .cfg (seed_pseudorandom=100, thread_count=1)")
@@ -232,11 +399,14 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
     prov(segs, note="modal network-state run-length segments; argmax over "
                      "get_states_probtraj() occupancy, not a threshold")
     prov(counts, note="per-node ON frame count under the modal state")
+    prov(occ_stats, note="modal-state occupancy stats (get_states_probtraj() "
+                         ".max(axis=1)); drives the ON-cell tone mapping")
+    prov(TONE_FLOOR, note="ON-cell ink-tone floor; least-certain ON cell "
+                          "(occupancy occ_min) renders at this fraction of "
+                          "the field->ink blend, most-certain at 1.0")
     prov(p53_time_avg, note="get_nodes_probtraj() time-average P(p53 up); "
                             "sanity cross-check only, distinct statistic from "
                             "the modal-state ON fraction")
-
-    from matplotlib.colors import ListedColormap
 
     fig, base_ax = make_figure(theme)
     base_ax.set_visible(False)  # only used to get a correctly-sized,
@@ -258,17 +428,20 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
         spine.set_color(theme.rule)
         spine.set_linewidth(1.2)
 
-    # Ink/greyscale only: "off" cells take the theme's own field token (so
-    # they read as empty/blend with the poster tile under any theme), "on"
-    # cells take ink. No accent anywhere on this tile.
-    cmap = ListedColormap([theme.field, theme.ink])
+    # Ink/greyscale only, and honest about confidence: an OFF cell is always
+    # exactly `field` (one single colour). An ON cell is `field` blended
+    # toward `ink` by that frame's tone fraction -- pale for a barely-
+    # majority modal state, full ink only where the ensemble is genuinely
+    # settled. No accent, no new hue: both blend endpoints are this tile's
+    # existing neutral tokens.
+    rgba = _build_rgba(matrix, tone, field_rgb, ink_rgb)
+
     ax.imshow(
-        matrix,
-        cmap=cmap,
-        vmin=0,
-        vmax=1,
+        rgba,
         aspect="auto",
-        interpolation="nearest",  # hard steps -- no smoothing/anti-aliasing
+        interpolation="nearest",  # hard steps -- no smoothing/anti-aliasing,
+                                  # even though the per-column colour itself
+                                  # now varies continuously with occupancy
         origin="upper",
     )
 
@@ -334,12 +507,6 @@ def _assert_no_label_clipping(fig, ax) -> Dict[str, float]:
 #   PYTHONPATH=<OpenUSD lib/python>:<repo>/examples <forOUSD python> \
 #       examples/p53_mdm2/figures/fig_mod_state.py
 # ---------------------------------------------------------------------------
-def _hex_to_luminance(hex_color: str) -> float:
-    hex_color = hex_color.lstrip("#")
-    r, g, b = (int(hex_color[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
-
-
 def _run_gates() -> bool:
     import hashlib
     import re
@@ -348,9 +515,11 @@ def _run_gates() -> bool:
 
     ok = True
     theme = resolve_theme("slate")
+    field_rgb = _hex_to_rgb(theme.field)
+    ink_rgb = _hex_to_rgb(theme.ink)
 
     print("=== gate 1: segment table + per-node ON counts (asserted) ===")
-    modal_labels, matrix, p53_time_avg, info = run_modal_states(VARIANT)
+    modal_labels, modal_occ, matrix, p53_time_avg, info = run_modal_states(VARIANT)
     try:
         segs, counts = _check_expected(modal_labels, matrix)
         for n, s in segs:
@@ -361,21 +530,85 @@ def _run_gates() -> bool:
         print(f"  FAIL: {exc}", file=sys.stderr)
         ok = False
 
+    print("\n=== gate 1b: modal-state occupancy stats (asserted) ===")
+    try:
+        occ_stats = _check_occupancy(modal_occ)
+        print(f"  min {occ_stats['occ_min']:.6f} (frame {occ_stats['occ_min_frame']})   "
+              f"max {occ_stats['occ_max']:.6f} (frame {occ_stats['occ_max_frame']})   "
+              f"mean {occ_stats['mean']:.6f}   median {occ_stats['median']:.6f}")
+        print(f"  frames with occupancy < 0.5: {occ_stats['frames_below_half']} "
+              f"of {len(modal_occ)} ({100 * occ_stats['frames_below_half'] / len(modal_occ):.1f}%)")
+        print("  OK: matches the recorded adversarial-review probe exactly")
+    except AssertionError as exc:
+        print(f"  FAIL: {exc}", file=sys.stderr)
+        ok = False
+        occ_stats = None
+
     print("\n=== gate 2: determinism across two independent runs (seed=100) ===")
-    modal_labels_b, matrix_b, _, _ = run_modal_states(VARIANT)
-    if modal_labels == modal_labels_b and np.array_equal(matrix, matrix_b):
-        print("  OK: identical modal-state sequence and derived matrix on rerun")
+    modal_labels_b, modal_occ_b, matrix_b, _, _ = run_modal_states(VARIANT)
+    if (modal_labels == modal_labels_b and np.array_equal(matrix, matrix_b)
+            and modal_occ == modal_occ_b):
+        print("  OK: identical modal-state sequence, occupancy, and derived "
+              "matrix on rerun")
     else:
-        print("  FAIL: rerun produced a different modal-state sequence/matrix",
+        print("  FAIL: rerun produced a different modal-state sequence/"
+              "occupancy/matrix", file=sys.stderr)
+        ok = False
+
+    print("\n=== gate 3: ON tones fall inside the intended band; OFF is one "
+          "distinct value ===")
+    occ_arr = np.asarray(modal_occ, dtype=np.float64)
+    tone = _tone_fraction(occ_arr, occ_stats["occ_min"], occ_stats["occ_max"])
+    rgba = _build_rgba(matrix, tone, field_rgb, ink_rgb)
+    on_mask = matrix.astype(bool)
+    off_pixels = rgba[~on_mask][:, :3]
+    on_pixels = rgba[on_mask][:, :3]
+    off_unique = np.unique(off_pixels, axis=0)
+    tone_min, tone_max = float(tone.min()), float(tone.max())
+    print(f"  occupancy range measured: [{occ_stats['occ_min']:.6f}, "
+          f"{occ_stats['occ_max']:.6f}]")
+    print(f"  tone range mapped to:     [{tone_min:.6f}, {tone_max:.6f}]  "
+          f"(TONE_FLOOR={TONE_FLOOR}, 1.0=full ink)")
+    print(f"  distinct OFF colours in the rendered array: {len(off_unique)}")
+    tone_ok = (abs(tone_min - TONE_FLOOR) < 1e-9 and abs(tone_max - 1.0) < 1e-9
+               and tone.min() >= TONE_FLOOR - 1e-9 and tone.max() <= 1.0 + 1e-9)
+    off_ok = (len(off_unique) == 1
+              and np.allclose(off_unique[0], np.array(field_rgb), atol=1e-12))
+    # every ON pixel's colour must actually be reachable by the field->ink
+    # blend at *some* tone in [TONE_FLOOR, 1.0] -- i.e. never paler than the
+    # floor and never past full ink.
+    field_arr, ink_arr = np.array(field_rgb), np.array(ink_rgb)
+    denom = ink_arr - field_arr
+    denom_safe = np.where(denom == 0, 1.0, denom)
+    implied_tone = (on_pixels - field_arr) / denom_safe
+    on_in_band = bool(np.all(implied_tone >= TONE_FLOOR - 1e-6) and
+                       np.all(implied_tone <= 1.0 + 1e-6))
+    if tone_ok and off_ok and on_in_band:
+        print(f"  OK: {len(on_pixels)} ON pixels all reconstruct to a tone in "
+              f"[{TONE_FLOOR}, 1.0]; {len(off_pixels)} OFF pixels are all "
+              f"exactly `field` ({theme.field})")
+    else:
+        print(f"  FAIL: tone_ok={tone_ok} off_ok={off_ok} on_in_band={on_in_band}",
               file=sys.stderr)
         ok = False
 
-    print("\n=== gate 3: raster is strictly binary ===")
-    uniq = sorted(set(np.unique(matrix).tolist()))
-    if set(uniq) <= {0, 1}:
-        print(f"  OK: unique cell values = {uniq}")
+    print("\n=== gate 3b: least-certain ON cell is unmistakably darker than "
+          "OFF (luminance margin) ===")
+    palest_on_rgb = _lerp_rgb(field_rgb, ink_rgb, TONE_FLOOR)
+    Y_field = _rgb_luminance(field_rgb)
+    Y_ink = _rgb_luminance(ink_rgb)
+    Y_palest_on = _rgb_luminance(palest_on_rgb)
+    margin = Y_field - Y_palest_on
+    MARGIN_THRESHOLD = 0.2
+    print(f"  field Y={Y_field:.4f}   palest-ON (tone={TONE_FLOOR}) "
+          f"Y={Y_palest_on:.4f}   full-ink Y={Y_ink:.4f}")
+    print(f"  luminance margin (field - palest_on) = {margin:.4f}   "
+          f"(threshold: > {MARGIN_THRESHOLD})")
+    if margin > MARGIN_THRESHOLD:
+        print("  OK: in greyscale (luminance alone), the palest possible ON "
+              "cell is still clearly separated from OFF -- never confusable")
     else:
-        print(f"  FAIL: unique cell values = {uniq}, expected subset of {{0, 1}}",
+        print(f"  FAIL: margin {margin:.4f} <= threshold {MARGIN_THRESHOLD}",
               file=sys.stderr)
         ok = False
 
@@ -461,15 +694,16 @@ def _run_gates() -> bool:
               file=sys.stderr)
         ok = False
 
-    print("\n=== gate 8: greyscale readability (colour removed) ===")
-    lum_ink = _hex_to_luminance(theme.ink)
-    lum_field = _hex_to_luminance(theme.field)
-    contrast = abs(lum_ink - lum_field)
-    print(f"  theme={theme.name}  ink={theme.ink} (Y={lum_ink:.3f})  "
-          f"field={theme.field} (Y={lum_field:.3f})  |dY|={contrast:.3f}")
+    print("\n=== gate 8: greyscale readability (colour removed), full ink vs "
+          "field ===")
+    contrast = abs(Y_ink - Y_field)
+    print(f"  theme={theme.name}  ink={theme.ink} (Y={Y_ink:.3f})  "
+          f"field={theme.field} (Y={Y_field:.3f})  |dY|={contrast:.3f}")
     if contrast > 0.3:
-        print("  OK: on/off encoded purely by luminance contrast (no hue used "
-              "for the distinction), readable with all colour removed")
+        print("  OK: on/off is encoded purely by luminance (no hue used for "
+              "the distinction), readable with all colour removed -- and "
+              "gate 3b above already confirmed the palest ON tone alone "
+              "still clears OFF by a comfortable margin")
     else:
         print("  FAIL: insufficient luminance contrast between ink and field",
               file=sys.stderr)
@@ -483,6 +717,11 @@ def _run_gates() -> bool:
     print(f"  MaBoSS version: {info['engine_version']}")
     print(f"  seed_pseudorandom: {info['seed']}  thread_count: {info['thread_count']}")
     print(f"  derivation: {info['derivation']}")
+    print(f"  tone mapping: field->ink blend, tone_fraction(occ) = "
+          f"{TONE_FLOOR} + {1 - TONE_FLOOR} * (occ - occ_min) / "
+          f"(occ_max - occ_min), NOT a threshold -- occupancy is itself an "
+          f"argmax over network-state occupancy, and its magnitude then "
+          f"linearly sets ink tone")
     print(f"  cross-check: get_nodes_probtraj() time-average P(p53 up) = "
           f"{p53_time_avg:.6f}  (recorded W23A value: {RECORDED_P53_TIME_AVG}; "
           f"modal-state p53 ON fraction = {counts['p53']}/500 = "
