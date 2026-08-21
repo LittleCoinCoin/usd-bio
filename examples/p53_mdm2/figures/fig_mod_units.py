@@ -11,28 +11,28 @@ file, which holds the literal expected values purely to assert the stage
 still agrees with them; if it ever disagrees, this module raises rather
 than silently drawing the (wrong) authored number.
 
-Units are a separate story. No ``bio:`` attribute on the class-template
-prims carries a unit string -- ``bio:atomicMass``, ``bio:vdwRadius`` and
-``bio:covalentRadius`` are bare floats (see ``builders/element_templates.py``
-and ``data/element_properties.py``) and ``metersPerUnit`` is stage metadata,
-not a bio: attribute at all. For those four rows the unit string is asserted
-by convention/documentation, not read from the stage, and this module cites
-the documentation file it came from rather than a USD attribute.
+Units are a mixed story, corrected once already (see
+``figures/README.md``, "mod-units: where the unit strings come from",
+commit 1abb9c4, which retracts the original brief's claim that no
+``bio:`` attribute carries a unit string). The accurate picture, verified
+against the composed stage:
 
-FINDING (see this module's provenance notes and the delivery report): the
-task brief for this tile states "No bio: attribute carries a unit string
-anywhere in the USD layers." That is false for the fifth row.
-``/p53_MDM2_complex/integration/W23A`` also carries a sibling
-``bio:ddgUnits`` token attribute set to the literal string ``"kcal/mol"``
-(authored in ``converters/ddmut_client.py`` and ``demos/run_end_to_end.py``,
-and visible composed into ``demos/p53_mdm2_integrated.usda``). This module
-still sources the ddG unit string from ``README.md`` rather than from that
-stage token, to keep all five rows' unit provenance uniform ("value from
-stage, unit from documentation") and because the brief was explicit that a
-figure must not imply the stage stores units -- but the existence of
-``bio:ddgUnits`` on the composed stage means that instruction's stated
-justification is not accurate for this attribute, and a reviewer should not
-take "units are never on this stage" as a verified fact from this file.
+- ``bio:atomicMass``, ``bio:vdwRadius`` and ``bio:covalentRadius`` on the
+  class-template prims are bare floats (see
+  ``builders/element_templates.py`` and ``data/element_properties.py``),
+  and ``metersPerUnit`` is stage metadata with no unit string attached.
+  For these four rows the unit is convention/documentation, not a stage
+  read, and this module cites the documentation source it came from
+  rather than a USD attribute -- and NOT ``data/element_properties.py``,
+  which (grep count 0) does not contain any of these unit strings itself.
+- The ddG row's unit token genuinely IS authored on the stage, as a
+  sibling attribute of the value at the same Scope. This module reads it
+  rather than typing it, per the governing rule of this tile: read it,
+  don't type it, wherever the data actually exists. Uniform provenance
+  across rows is the weaker goal and loses to that rule.
+
+The printed provenance block is explicit per-row about which of these two
+sources (stage vs. documentation/convention) backed each unit string.
 """
 
 from __future__ import annotations
@@ -75,11 +75,11 @@ CARBON_CLASS_PATH = "/_class_/C"
 # this script mutating variant state to get there.
 DDG_SCOPE_PATH = "/p53_MDM2_complex/integration/W23A"
 
-# Where the unit STRINGS come from -- documentation/convention, not bio:
-# attributes (see FINDING in the module docstring for the one exception).
+# Where FOUR of the five unit strings come from -- documentation/convention,
+# not a bio: attribute. The fifth (ddG) is read off the stage instead; see
+# build_mod_units() below.
 _ELEMENT_PROPS_DOC = "data/element_properties.py"
 _CLAUDE_MD_DOC = "../../CLAUDE.md"
-_EXAMPLE_README_DOC = "README.md"
 
 
 # ---------------------------------------------------------------------------
@@ -179,14 +179,17 @@ def build_mod_units(theme: Theme, out_dir: str) -> str:
         "metersPerUnit = 1e-10'; metersPerUnit itself is a dimensionless "
         "ratio with no unit string attached on the stage",
     )
+    # This one is NOT documentation/convention like the four above -- the
+    # unit token is genuinely authored on the stage, as a sibling attribute
+    # of the value already read into `ddg` above. Read it, don't type it.
     unit_ddg = prov(
-        "kcal/mol",
-        _EXAMPLE_README_DOC,
-        note="'DeltaDeltaG in kcal/mol' convention documented in the "
-        "example README; see this module's docstring FINDING -- a "
-        "bio:ddgUnits token with this same string also exists on the "
-        "composed stage at this Scope, which this figure deliberately "
-        "does not cite so all five rows read units the same way",
+        ddg_scope.GetAttribute("bio:ddgUnits").Get(),
+        usd_source(STAGE_REL_PATH, DDG_SCOPE_PATH, "bio:ddgUnits"),
+        note="stage-authored unit token, sibling of bio:ddgKcalPerMol at "
+        "the same Scope -- unlike the other four rows, this unit is read "
+        "from the stage, not typed from documentation (see "
+        "figures/README.md 'mod-units: where the unit strings come from', "
+        "commit 1abb9c4, correcting the original brief)",
     )
 
     # ---- gate: the stage must agree with the poster's claimed numbers ----
@@ -196,6 +199,7 @@ def build_mod_units(theme: Theme, out_dir: str) -> str:
         covalent_radius=covalent_radius,
         meters_per_unit=meters_per_unit,
         ddg=ddg,
+        ddg_units=unit_ddg,
     )
 
     rows = [
@@ -240,24 +244,26 @@ def build_mod_units(theme: Theme, out_dir: str) -> str:
 # ---------------------------------------------------------------------------
 # Gate: stage-vs-expected agreement.
 #
-# These five literals are the ONLY place the poster's claimed numbers exist
-# as literals in this file. Drawing code above formats whatever the stage
-# actually returned; it never touches these constants. If the stage
-# disagrees, this raises instead of letting the figure silently draw a
-# number the brief did not sign off on.
+# These literals are the ONLY place the poster's claimed numbers -- and the
+# one stage-authored unit string -- exist as literals in this file. Drawing
+# code above formats/reads whatever the stage actually returned; it never
+# touches these constants. If the stage disagrees, this raises instead of
+# letting the figure silently draw a number (or unit) the brief did not
+# sign off on.
 # ---------------------------------------------------------------------------
 _EXPECTED_ATOMIC_MASS_C = 12.011
 _EXPECTED_VDW_RADIUS_C = 1.7
 _EXPECTED_COVALENT_RADIUS_C = 0.76
 _EXPECTED_METERS_PER_UNIT = 1e-10
 _EXPECTED_DDG_W23A = -6.192
+_EXPECTED_DDG_UNITS = "kcal/mol"
 _TOL = 1e-4
 
 
 def _assert_matches_expected(
-    *, atomic_mass, vdw_radius, covalent_radius, meters_per_unit, ddg
+    *, atomic_mass, vdw_radius, covalent_radius, meters_per_unit, ddg, ddg_units
 ):
-    checks = [
+    numeric_checks = [
         ("bio:atomicMass (carbon)", atomic_mass, _EXPECTED_ATOMIC_MASS_C),
         ("bio:vdwRadius (carbon)", vdw_radius, _EXPECTED_VDW_RADIUS_C),
         ("bio:covalentRadius (carbon)", covalent_radius, _EXPECTED_COVALENT_RADIUS_C),
@@ -267,9 +273,14 @@ def _assert_matches_expected(
     disagreements = [
         f"  {label}: stage={value!r} expected={expected!r} "
         f"diff={abs(value - expected):.3g}"
-        for label, value, expected in checks
+        for label, value, expected in numeric_checks
         if abs(value - expected) > _TOL
     ]
+    if ddg_units != _EXPECTED_DDG_UNITS:
+        disagreements.append(
+            f"  bio:ddgUnits (W23A): stage={ddg_units!r} "
+            f"expected={_EXPECTED_DDG_UNITS!r}"
+        )
     if disagreements:
         raise AssertionError(
             "fig_mod_units: stage disagrees with the poster's claimed "
