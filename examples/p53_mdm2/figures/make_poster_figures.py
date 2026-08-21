@@ -48,6 +48,8 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import glob
+import importlib.util
 import inspect
 import json
 import os
@@ -61,6 +63,25 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt  # noqa: E402  (after matplotlib.use)
+
+# ---------------------------------------------------------------------------
+# Module identity alias.
+#
+# This file is meant to be run directly (`python make_poster_figures.py`),
+# which Python registers in sys.modules as "__main__" -- NOT under the name
+# "make_poster_figures". A discovered fig_*.py that does
+# `from make_poster_figures import figure` would therefore trigger Python to
+# load a SECOND, independent copy of this exact file under that name, which
+# would re-run this whole module top level (including a second figure
+# -discovery pass) and register into a FIGURES dict that the running
+# instance's --list/--only never look at. Pre-registering this already-
+# running module object under the plain name here means that import
+# resolves to the same module instead of loading a second copy. A no-op
+# .setdefault() when this module was already imported normally (by either
+# its bare name or "p53_mdm2.figures.make_poster_figures", now that the
+# figures/ directory is a package).
+# ---------------------------------------------------------------------------
+sys.modules.setdefault("make_poster_figures", sys.modules[__name__])
 
 # ---------------------------------------------------------------------------
 # Canvas contract -- measured values, not re-derived. See figures/README.md.
@@ -420,6 +441,69 @@ def build_nothing(theme: Theme, out_dir: str) -> Optional[str]:
     nothing, so its provenance block is expected to be empty.
     """
     return None
+
+
+# ---------------------------------------------------------------------------
+# Figure module discovery
+# ---------------------------------------------------------------------------
+# Six figure implementers running in parallel must not all edit THIS file --
+# that is a guaranteed six-way merge conflict in one file. Instead, each
+# implementer adds exactly one new file, `fig_<name>.py`, next to this
+# script; that file's own `@figure(...)`-decorated function registers
+# itself purely by being imported. Discovery below is what imports it.
+def _discover_figure_modules() -> None:
+    """Import every ``fig_*.py`` file next to this script, once each.
+
+    - Resolved from :data:`_HERE`, never ``os.getcwd()`` -- discovery works
+      regardless of the caller's current working directory.
+    - Loaded by absolute file path via :mod:`importlib`, so the figures
+      directory does not need to be on ``sys.path``.
+    - Processed in sorted filename order, so ``--list`` output (and any
+      import-order-sensitive side effect, e.g. rcParams tweaks) is
+      deterministic across runs and machines.
+    - Skips a module whose file is already loaded under ANY module name --
+      checked by resolved file path, not by the name it would be imported
+      under -- so a ``fig_foo.py`` already imported elsewhere as
+      ``p53_mdm2.figures.fig_foo`` (the figures/ package's own dotted form)
+      is not re-executed, and therefore not re-registered, here under the
+      bare name ``fig_foo``.
+    - An import that raises propagates as :class:`ImportError` naming the
+      offending module and file, rather than being swallowed. A figure
+      module that fails to register would otherwise surface only as
+      "unknown figure name" from :func:`main`, which sends a reader hunting
+      in exactly the wrong place.
+    """
+    loaded_files = {
+        os.path.realpath(mod.__file__)
+        for mod in list(sys.modules.values())
+        if getattr(mod, "__file__", None)
+    }
+    for path in sorted(glob.glob(os.path.join(_HERE, "fig_*.py"))):
+        real_path = os.path.realpath(path)
+        if real_path in loaded_files:
+            continue  # already imported under some other module name
+
+        mod_name = os.path.splitext(os.path.basename(path))[0]
+        spec = importlib.util.spec_from_file_location(mod_name, real_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(
+                f"figure module discovery: could not build an import spec "
+                f"for {mod_name!r} at {real_path!r}"
+            )
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[mod_name] = module
+        try:
+            spec.loader.exec_module(module)
+        except BaseException as exc:
+            sys.modules.pop(mod_name, None)
+            raise ImportError(
+                f"figure module {mod_name!r} ({real_path}) raised during "
+                f"import: {exc}"
+            ) from exc
+        loaded_files.add(real_path)
+
+
+_discover_figure_modules()
 
 
 # ---------------------------------------------------------------------------
