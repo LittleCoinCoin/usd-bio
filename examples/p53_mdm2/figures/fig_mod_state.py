@@ -41,49 +41,77 @@ Contract for this tile (see figures/README.md for the full canvas contract)
 - No title, no legend, no caption; axis labels are required and present
   (y: the five node names as category labels; x: "frame").
 
-Honesty fix: ON-cell tone encodes the modal state's occupancy
----------------------------------------------------------------
+Honesty fix, round 1: ON-cell tone encoded per-frame occupancy (SUPERSEDED)
+-----------------------------------------------------------------------------
 An adversarial review of the first version of this figure (which drew every
 ON cell as flat, full-strength ink) found a real defect: the "modal" network
 state is only ever an argmax over the ensemble, and for large stretches of
 the trajectory it is a MINORITY of that ensemble. Measured on this exact run,
 modal-state occupancy ranges from 0.283363 (frame 39) to 0.882683 (frame
 252), mean 0.751071258, median 0.835438 -- and 86 of 500 frames (17.2% of
-the tile's width) have the "winning" state below 0.5 occupancy. Segments 1-3
-(frames 0-73) never exceed 0.44 occupancy; segment 4 does not clear 0.5
-until roughly 12 frames into its 426-frame run. Drawing all of that in flat,
-maximum-strength ink claimed a certainty the data does not have, exactly
-across the transitions -- the visually interesting part of the tile.
+the tile's width) have the "winning" state below 0.5 occupancy.
 
-The fix: every ON cell's ink tone is linearly mapped from that frame's
-modal-state occupancy, using the run's own measured [min, max] occupancy
-range (not the full [0, 1] scale, which would waste most of the tile's
-tonal range on certainty values this model never reaches) --
+The first fix mapped every ON cell's tone from THAT FRAME's own occupancy,
+linearly, over the run's measured [occ_min, occ_max] range, onto
+[TONE_FLOOR, 1.0]. Rendering it exposed a second defect: segment 4 (426
+frames) climbs from ~0.41 to ~0.88 occupancy, and a per-frame tone tracks
+that climb as a smooth 178-frame ramp (frames ~74-252) -- 36% of the tile's
+width reading as a continuous fade-in. That is exactly the reading this
+tile must not admit: its entire reason for existing, next to a tile of
+continuous P(node up) curves over the same 500-frame axis, is to be
+unmistakably discrete. A second, harder look at the rendered figure (not
+just the numeric gates, which all legitimately passed) is what caught this
+-- the gates verified the tone band and the luminance margin correctly, but
+none of them could see that smooth per-frame variation reads as a gradient.
 
-    tone_fraction(occ) = TONE_FLOOR + (1 - TONE_FLOOR) *
-                          (occ - occ_min) / (occ_max - occ_min)
+Honesty fix, round 2: ONE FLAT TONE PER SEGMENT (current)
+-----------------------------------------------------------
+The on/off pattern is already segmented by construction -- the four runs of
+11 / 29 / 34 / 426 frames in :data:`EXPECTED_SEGMENTS`. Each ON cell's tone
+is now the MEAN occupancy of its whole segment, not its own frame's
+occupancy, mapped through the same field->ink blend:
 
-with ``TONE_FLOOR = 0.35`` (see the constant below), so the least-certain
-ON cell (occupancy 0.283363) still renders at 35% of the way from ``field``
-to ``ink`` -- a measured 0.298 luminance margin below the OFF/field tone,
-comfortably above the noise floor -- and the most-certain ON cell (occupancy
-0.882683) renders at full ink. OFF cells are unaffected: always exactly
-``field``, one single colour, never confusable with even the palest ON cell.
-Both endpoints of the blend (``field``, ``ink``) are the tile's existing
-neutral tokens, so this stays ink/greyscale-only -- no new hue, no accent.
+    tone_fraction(seg_mean) = TONE_FLOOR + (1 - TONE_FLOOR) *
+                               (seg_mean - lo) / (hi - lo)
 
-Per-frame tone variation is compatible with "hard vertical step edges":
-``imshow(..., interpolation="nearest")`` never blends across neighbouring
-columns, so each frame is still one flat-coloured rectangle -- it is just
-that the rectangle's own shade now tracks that frame's occupancy instead of
-being a constant. The Boolean on/off pattern itself (which segments exist,
-where they start and end) is completely unchanged from the first version
-and is asserted identically.
+where ``lo``/``hi`` are the min/max of the four SEGMENT MEANS themselves
+(0.371471 / 0.814733 on this run -- see :data:`EXPECTED_SEGMENT_MEANS`), not
+the per-frame occupancy extremes -- this is what makes the palest segment
+land exactly on ``TONE_FLOOR`` (still 0.35, still the same measured 0.2976
+luminance margin below OFF) and the darkest exactly on full ink, using the
+whole available tonal band for the only four values this figure now draws.
+Segments 1-3 (means 0.440 / 0.379 / 0.371) render pale; segment 4 (mean
+0.815) renders near-full ink. Result: four FLAT blocks with hard edges on
+both axes -- discrete in x (segment boundaries, unchanged) and discrete in
+tone (four values, not a continuum) -- which is the property round 1 broke.
+
+Accepted tradeoff (recorded here, not hidden): a flat per-segment tone
+cannot show that segment 4's own first ~12 frames are themselves below 0.5
+occupancy before it climbs past the ensemble majority -- 2.4% of the tile's
+width loses that within-segment nuance. Weighed against round 1's 36% of
+the tile misreading as a continuous gradient, this is the worthwhile side
+of the tradeoff. The within-segment occupancy range for every segment is
+still computed and printed (see :func:`_check_segment_means` and gate 1c)
+so the detail is on the record even though the ink itself no longer shows
+it. Separately, segments 2 and 3 (means 0.379 and 0.371 -- barely 0.008
+apart) end up with nearly the same tone almost regardless of how the tone
+range is normalized; gate 3c reports this rather than hiding it, and notes
+that the segment 2/3 boundary is still visually unambiguous anyway, because
+three whole rows (p53, p53_h, Mdm2C) flip from OFF to ON exactly there.
+
+OFF cells are unaffected by any of this: always exactly ``field``, one
+single colour, never confusable with even the palest ON segment. Both
+blend endpoints (``field``, ``ink``) are the tile's existing neutral
+tokens, so this stays ink/greyscale-only -- no new hue, no accent, in
+either round. The Boolean on/off pattern itself (which segments exist,
+where they start and end) has never changed since the first version and is
+asserted identically in every round.
 
 Run this file directly (``python fig_mod_state.py``) to execute the full
 gate suite described in the task brief and print real output, including
-the segment table, per-node ON counts, the occupancy range and the tone
-range it maps to, and two-run determinism/byte-identity checks.
+the segment table, per-node ON counts, per-segment occupancy stats, the
+four segment tones and their pairwise deltas, and two-run determinism/
+byte-identity checks.
 """
 
 from __future__ import annotations
@@ -152,12 +180,24 @@ EXPECTED_OCC_MEAN = 0.751071258
 EXPECTED_OCC_MEDIAN = 0.835438
 EXPECTED_FRAMES_BELOW_HALF = 86
 
-# ON-cell ink tone floor: an ON cell's tone is linearly mapped from that
-# frame's modal-state occupancy over the run's own measured [occ_min,
-# occ_max] range onto [TONE_FLOOR, 1.0] (1.0 == full ink). The floor exists
-# so that even the least-certain ON cell in this run (occupancy 0.283363)
-# is unmistakably darker than an OFF cell -- see _tone_luminance_margin()
-# and gate 3 below, which measure that separation rather than assuming it.
+# Per-segment MEAN occupancy, in segment order (round 2's honesty fix -- see
+# the module docstring). Full precision, not the 3-decimal figures quoted in
+# review conversation (0.440 / 0.379 / 0.372 / 0.815) -- those are what this
+# constant rounds to for display, not what it's compared against.
+EXPECTED_SEGMENT_MEANS: List[float] = [
+    0.44002399999999997,   # seg 1: 11 frames, 'Mdm2N -- Dam'
+    0.3789322758620689,    # seg 2: 29 frames, 'Dam'
+    0.37147135294117645,   # seg 3: 34 frames, 'p53_h -- p53 -- Mdm2C -- Dam'
+    0.8147331056338019,    # seg 4: 426 frames, 'p53_h -- p53 -- Mdm2C'
+]
+
+# ON-cell ink tone floor: an ON cell's tone is linearly mapped onto
+# [TONE_FLOOR, 1.0] (1.0 == full ink) -- see _tone_fraction(). The floor
+# exists so that even the palest segment is unmistakably darker than an OFF
+# cell -- see gate 3b, which measures that separation rather than assuming
+# it. (Round 1 normalized per-frame occupancy over the per-frame [occ_min,
+# occ_max] range; round 2 normalizes per-segment MEAN occupancy over the
+# four segment means' own [min, max] -- see _segment_tone_mapping().)
 TONE_FLOOR = 0.35
 
 
@@ -315,6 +355,79 @@ def _check_occupancy(modal_occ: List[float]) -> Dict[str, float]:
     return stats
 
 
+def _segment_slices(segs: List[Tuple[int, str]]) -> List[Tuple[int, int]]:
+    """(start, end) frame indices (end exclusive) for each segment in
+    run-length order, e.g. [(11,'A'),(29,'B')] -> [(0,11), (11,40)]."""
+    slices = []
+    start = 0
+    for n, _label in segs:
+        slices.append((start, start + n))
+        start += n
+    return slices
+
+
+def _check_segment_means(segs: List[Tuple[int, str]],
+                          modal_occ: List[float]) -> List[Dict[str, float]]:
+    """Per-segment occupancy stats (round 2's honesty-fix input) -- the MEAN
+    occupancy of each segment is what now sets that segment's flat ON tone;
+    the min/max are computed too, purely so the within-segment range that
+    the flat tone can no longer show is still on the record (see gate 1c
+    and the module docstring's "Accepted tradeoff" paragraph).
+
+    Asserts the four means against :data:`EXPECTED_SEGMENT_MEANS`, same
+    drift-reporting philosophy as :func:`_check_expected`.
+    """
+    stats = []
+    for (n, label), (start, end) in zip(segs, _segment_slices(segs)):
+        occ_slice = modal_occ[start:end]
+        mean = sum(occ_slice) / len(occ_slice)
+        stats.append({
+            "label": label, "start": start, "end": end - 1, "length": n,
+            "mean": mean, "min": min(occ_slice), "max": max(occ_slice),
+        })
+    means = [s["mean"] for s in stats]
+    if len(means) != len(EXPECTED_SEGMENT_MEANS):
+        raise AssertionError(
+            f"segment count drift: got {len(means)} segments, "
+            f"expected {len(EXPECTED_SEGMENT_MEANS)}"
+        )
+    bad = [(i, got, want) for i, (got, want) in
+           enumerate(zip(means, EXPECTED_SEGMENT_MEANS)) if abs(got - want) > 1e-9]
+    if bad:
+        raise AssertionError(f"per-segment mean-occupancy drift: {bad!r}")
+    return stats
+
+
+def _segment_tone_mapping(seg_stats: List[Dict[str, float]]
+                           ) -> Tuple[List[float], float, float]:
+    """Map each segment's MEAN occupancy onto a flat tone in
+    [TONE_FLOOR, 1.0], normalized over the four segment means' own [min,
+    max] range (not the per-frame occupancy range -- see the module
+    docstring) so the palest segment lands exactly on TONE_FLOOR and the
+    darkest exactly on full ink.
+
+    Returns:
+        (tones, lo, hi): tones is one flat tone fraction per segment, in
+        segment order; lo/hi are the segment-mean range used to normalize.
+    """
+    means = np.array([s["mean"] for s in seg_stats], dtype=np.float64)
+    lo, hi = float(means.min()), float(means.max())
+    tones = _tone_fraction(means, lo, hi)
+    return [float(t) for t in tones], lo, hi
+
+
+def _expand_segment_tone(segs: List[Tuple[int, str]], seg_tones: List[float],
+                          n_frames: int) -> np.ndarray:
+    """Broadcast each segment's single flat tone across its own frame range,
+    producing a length-``n_frames`` array with exactly one value per segment
+    (piecewise-constant, hard steps at segment boundaries -- never a ramp).
+    """
+    tone = np.empty(n_frames, dtype=np.float64)
+    for (start, end), t in zip(_segment_slices(segs), seg_tones):
+        tone[start:end] = t
+    return tone
+
+
 def _hex_to_rgb(hex_color: str) -> Tuple[float, float, float]:
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i:i + 2], 16) / 255.0 for i in (0, 2, 4))  # type: ignore[return-value]
@@ -375,6 +488,7 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
     modal_labels, modal_occ, matrix, p53_time_avg, info = run_modal_states(VARIANT)
     segs, counts = _check_expected(modal_labels, matrix)
     occ_stats = _check_occupancy(modal_occ)
+    seg_stats = _check_segment_means(segs, modal_occ)
 
     if matrix.shape != (len(NODES), N_FRAMES):
         raise AssertionError(f"raster shape {matrix.shape}, want (5, 500)")
@@ -384,13 +498,13 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
 
     field_rgb = _hex_to_rgb(theme.field)
     ink_rgb = _hex_to_rgb(theme.ink)
-    occ_arr = np.asarray(modal_occ, dtype=np.float64)
-    tone = _tone_fraction(occ_arr, occ_stats["occ_min"], occ_stats["occ_max"])
-    if tone.min() < TONE_FLOOR - 1e-9 or tone.max() > 1.0 + 1e-9:
+    seg_tones, seg_mean_lo, seg_mean_hi = _segment_tone_mapping(seg_stats)
+    if min(seg_tones) < TONE_FLOOR - 1e-9 or max(seg_tones) > 1.0 + 1e-9:
         raise AssertionError(
-            f"tone fraction escaped [{TONE_FLOOR}, 1.0]: "
-            f"[{tone.min()!r}, {tone.max()!r}]"
+            f"segment tone fraction escaped [{TONE_FLOOR}, 1.0]: "
+            f"{seg_tones!r}"
         )
+    tone = _expand_segment_tone(segs, seg_tones, N_FRAMES)
 
     prov(info["bnd"], note="W23A .bnd model, byte-identical Pipeline-3 emission")
     prov(info["cfg"], note="W23A .cfg (seed_pseudorandom=100, thread_count=1)")
@@ -400,10 +514,20 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
                      "get_states_probtraj() occupancy, not a threshold")
     prov(counts, note="per-node ON frame count under the modal state")
     prov(occ_stats, note="modal-state occupancy stats (get_states_probtraj() "
-                         ".max(axis=1)); drives the ON-cell tone mapping")
-    prov(TONE_FLOOR, note="ON-cell ink-tone floor; least-certain ON cell "
-                          "(occupancy occ_min) renders at this fraction of "
-                          "the field->ink blend, most-certain at 1.0")
+                         ".max(axis=1)); full-run diagnostic, no longer drives "
+                         "ink tone directly (see seg_stats/seg_tones below)")
+    prov([{**s, "tone": t} for s, t in zip(seg_stats, seg_tones)],
+         note="per-segment mean occupancy (and within-segment min/max, kept "
+              "for the record though the flat tone can't show it) and the "
+              "flat ink tone each segment renders at -- round 2's honesty "
+              "fix, see module docstring")
+    prov((seg_mean_lo, seg_mean_hi), note="segment-mean [lo, hi] used to "
+                                          "normalize seg_tones -- the palest "
+                                          "segment lands exactly on "
+                                          "TONE_FLOOR, the darkest on 1.0")
+    prov(TONE_FLOOR, note="ON-cell ink-tone floor; the palest segment "
+                          "renders at this fraction of the field->ink "
+                          "blend, the darkest at 1.0")
     prov(p53_time_avg, note="get_nodes_probtraj() time-average P(p53 up); "
                             "sanity cross-check only, distinct statistic from "
                             "the modal-state ON fraction")
@@ -430,18 +554,20 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
 
     # Ink/greyscale only, and honest about confidence: an OFF cell is always
     # exactly `field` (one single colour). An ON cell is `field` blended
-    # toward `ink` by that frame's tone fraction -- pale for a barely-
-    # majority modal state, full ink only where the ensemble is genuinely
-    # settled. No accent, no new hue: both blend endpoints are this tile's
-    # existing neutral tokens.
+    # toward `ink` by its SEGMENT's flat tone fraction -- pale for the three
+    # early minority-vote segments, full ink only for the settled segment-4
+    # plateau. `tone` is piecewise-constant per segment (built by
+    # _expand_segment_tone), so every column within a segment gets the
+    # identical RGBA value -- four flat blocks, not a ramp. No accent, no
+    # new hue: both blend endpoints are this tile's existing neutral tokens.
     rgba = _build_rgba(matrix, tone, field_rgb, ink_rgb)
 
     ax.imshow(
         rgba,
         aspect="auto",
-        interpolation="nearest",  # hard steps -- no smoothing/anti-aliasing,
-                                  # even though the per-column colour itself
-                                  # now varies continuously with occupancy
+        interpolation="nearest",  # hard steps on both axes -- no smoothing/
+                                  # anti-aliasing, and (round 2) no per-frame
+                                  # tone variation within a segment either
         origin="upper",
     )
 
@@ -544,72 +670,124 @@ def _run_gates() -> bool:
         ok = False
         occ_stats = None
 
+    print("\n=== gate 1c: per-segment occupancy (asserted) -- the honesty-fix "
+          "round-2 input ===")
+    seg_stats = _check_segment_means(segs, modal_occ)
+    for s in seg_stats:
+        print(f"  frames {s['start']:>3}-{s['end']:<3} ({s['length']:>3}f)  "
+              f"{s['label']!r:<32}  mean={s['mean']:.6f}  "
+              f"within-segment range=[{s['min']:.6f}, {s['max']:.6f}]")
+    print("  OK: matches the recorded per-segment-mean probe exactly")
+    print("  (within-segment range is printed for the record only -- the "
+          "flat per-segment tone below cannot show it; see the module "
+          "docstring's 'Accepted tradeoff' paragraph)")
+
+    seg_tones, seg_mean_lo, seg_mean_hi = _segment_tone_mapping(seg_stats)
+
     print("\n=== gate 2: determinism across two independent runs (seed=100) ===")
     modal_labels_b, modal_occ_b, matrix_b, _, _ = run_modal_states(VARIANT)
+    segs_b, _ = _check_expected(modal_labels_b, matrix_b)
+    seg_stats_b = _check_segment_means(segs_b, modal_occ_b)
+    seg_tones_b, _, _ = _segment_tone_mapping(seg_stats_b)
     if (modal_labels == modal_labels_b and np.array_equal(matrix, matrix_b)
-            and modal_occ == modal_occ_b):
-        print("  OK: identical modal-state sequence, occupancy, and derived "
-              "matrix on rerun")
+            and modal_occ == modal_occ_b and seg_tones == seg_tones_b):
+        print("  OK: identical modal-state sequence, occupancy, per-segment "
+              "means, and derived segment tones on rerun")
     else:
         print("  FAIL: rerun produced a different modal-state sequence/"
-              "occupancy/matrix", file=sys.stderr)
+              "occupancy/matrix/segment-tones", file=sys.stderr)
         ok = False
 
-    print("\n=== gate 3: ON tones fall inside the intended band; OFF is one "
-          "distinct value ===")
-    occ_arr = np.asarray(modal_occ, dtype=np.float64)
-    tone = _tone_fraction(occ_arr, occ_stats["occ_min"], occ_stats["occ_max"])
+    print("\n=== gate 3: exactly 4 distinct ON tones (one per segment), each "
+          "== its segment mean under the stated mapping; OFF is one distinct "
+          "value ===")
+    tone = _expand_segment_tone(segs, seg_tones, N_FRAMES)
     rgba = _build_rgba(matrix, tone, field_rgb, ink_rgb)
     on_mask = matrix.astype(bool)
     off_pixels = rgba[~on_mask][:, :3]
     on_pixels = rgba[on_mask][:, :3]
     off_unique = np.unique(off_pixels, axis=0)
-    tone_min, tone_max = float(tone.min()), float(tone.max())
-    print(f"  occupancy range measured: [{occ_stats['occ_min']:.6f}, "
-          f"{occ_stats['occ_max']:.6f}]")
-    print(f"  tone range mapped to:     [{tone_min:.6f}, {tone_max:.6f}]  "
-          f"(TONE_FLOOR={TONE_FLOOR}, 1.0=full ink)")
-    print(f"  distinct OFF colours in the rendered array: {len(off_unique)}")
-    tone_ok = (abs(tone_min - TONE_FLOOR) < 1e-9 and abs(tone_max - 1.0) < 1e-9
-               and tone.min() >= TONE_FLOOR - 1e-9 and tone.max() <= 1.0 + 1e-9)
-    off_ok = (len(off_unique) == 1
-              and np.allclose(off_unique[0], np.array(field_rgb), atol=1e-12))
-    # every ON pixel's colour must actually be reachable by the field->ink
-    # blend at *some* tone in [TONE_FLOOR, 1.0] -- i.e. never paler than the
-    # floor and never past full ink.
+    on_unique = np.unique(on_pixels, axis=0)
+    print(f"  segment-mean range used to normalize: [{seg_mean_lo:.6f}, "
+          f"{seg_mean_hi:.6f}]")
+    for s, t in zip(seg_stats, seg_tones):
+        expected_t = _tone_fraction(np.array([s["mean"]]), seg_mean_lo, seg_mean_hi)[0]
+        print(f"    segment {s['label']!r:<32} mean={s['mean']:.6f} -> "
+              f"tone={t:.6f}  (recomputed={expected_t:.6f})")
+    print(f"  distinct ON tones rendered: {len(on_unique)}   "
+          f"distinct OFF colours rendered: {len(off_unique)}")
     field_arr, ink_arr = np.array(field_rgb), np.array(ink_rgb)
     denom = ink_arr - field_arr
     denom_safe = np.where(denom == 0, 1.0, denom)
-    implied_tone = (on_pixels - field_arr) / denom_safe
-    on_in_band = bool(np.all(implied_tone >= TONE_FLOOR - 1e-6) and
-                       np.all(implied_tone <= 1.0 + 1e-6))
-    if tone_ok and off_ok and on_in_band:
-        print(f"  OK: {len(on_pixels)} ON pixels all reconstruct to a tone in "
-              f"[{TONE_FLOOR}, 1.0]; {len(off_pixels)} OFF pixels are all "
-              f"exactly `field` ({theme.field})")
+    # reconstruct the tone implied by each of the (<=4) distinct ON colours
+    # actually drawn, and match each back to a segment's own computed tone
+    implied_on_tones = sorted({round(float(((c - field_arr) / denom_safe)[0]), 9)
+                                for c in on_unique})
+    expected_on_tones = sorted({round(t, 9) for t in seg_tones})
+    exactly_four = len(on_unique) == len(seg_tones) == 4
+    tones_match = implied_on_tones == expected_on_tones
+    off_ok = (len(off_unique) == 1
+              and np.allclose(off_unique[0], field_arr, atol=1e-12))
+    band_ok = min(seg_tones) >= TONE_FLOOR - 1e-9 and max(seg_tones) <= 1.0 + 1e-9
+    if exactly_four and tones_match and off_ok and band_ok:
+        print(f"  OK: exactly {len(on_unique)} distinct ON tones, each equal "
+              f"to its segment's mean-occupancy tone; {len(off_pixels)} OFF "
+              f"pixels are all exactly `field` ({theme.field}); "
+              f"tone band=[{min(seg_tones):.6f}, {max(seg_tones):.6f}]")
     else:
-        print(f"  FAIL: tone_ok={tone_ok} off_ok={off_ok} on_in_band={on_in_band}",
-              file=sys.stderr)
+        print(f"  FAIL: exactly_four={exactly_four} tones_match={tones_match} "
+              f"off_ok={off_ok} band_ok={band_ok}", file=sys.stderr)
         ok = False
 
-    print("\n=== gate 3b: least-certain ON cell is unmistakably darker than "
-          "OFF (luminance margin) ===")
+    print("\n=== gate 3b: palest segment is unmistakably darker than OFF "
+          "(luminance margin) ===")
     palest_on_rgb = _lerp_rgb(field_rgb, ink_rgb, TONE_FLOOR)
     Y_field = _rgb_luminance(field_rgb)
     Y_ink = _rgb_luminance(ink_rgb)
     Y_palest_on = _rgb_luminance(palest_on_rgb)
     margin = Y_field - Y_palest_on
     MARGIN_THRESHOLD = 0.2
-    print(f"  field Y={Y_field:.4f}   palest-ON (tone={TONE_FLOOR}) "
+    print(f"  field Y={Y_field:.4f}   palest-segment tone={TONE_FLOOR:.4f} -> "
           f"Y={Y_palest_on:.4f}   full-ink Y={Y_ink:.4f}")
     print(f"  luminance margin (field - palest_on) = {margin:.4f}   "
           f"(threshold: > {MARGIN_THRESHOLD})")
     if margin > MARGIN_THRESHOLD:
-        print("  OK: in greyscale (luminance alone), the palest possible ON "
-              "cell is still clearly separated from OFF -- never confusable")
+        print("  OK: in greyscale (luminance alone), the palest segment's "
+              "flat tone is still clearly separated from OFF -- never "
+              "confusable")
     else:
         print(f"  FAIL: margin {margin:.4f} <= threshold {MARGIN_THRESHOLD}",
               file=sys.stderr)
+        ok = False
+
+    print("\n=== gate 3c: adjacent-segment tone separation (reported, not "
+          "papered over) ===")
+    ADJACENT_MARGIN_THRESHOLD = 0.05  # luminance units; see discussion below
+    seg_tone_lums = [_rgb_luminance(_lerp_rgb(field_rgb, ink_rgb, t)) for t in seg_tones]
+    all_pairs_clear = True
+    for i in range(len(seg_tones) - 1):
+        d_tone = abs(seg_tones[i + 1] - seg_tones[i])
+        d_lum = abs(seg_tone_lums[i + 1] - seg_tone_lums[i])
+        clear = d_lum > ADJACENT_MARGIN_THRESHOLD
+        all_pairs_clear = all_pairs_clear and clear
+        tag = "clear" if clear else "CLOSE"
+        print(f"    segment {i + 1} ({seg_stats[i]['label']!r}) vs "
+              f"segment {i + 2} ({seg_stats[i + 1]['label']!r}): "
+              f"tone {seg_tones[i]:.6f} -> {seg_tones[i + 1]:.6f}  "
+              f"(delta_tone={d_tone:.6f}, delta_Y={d_lum:.4f})  [{tag}]")
+    if all_pairs_clear:
+        print(f"  OK: every adjacent pair clears a {ADJACENT_MARGIN_THRESHOLD} "
+              f"luminance-unit separation")
+    else:
+        print(f"  NOTE (not a code defect): segments 2 and 3 have nearly "
+              f"identical MEAN occupancy in the underlying data (0.379 vs "
+              f"0.371, 0.008 apart) -- any linear tone mapping will make "
+              f"their tones close regardless of normalization range. Their "
+              f"boundary (frame 40) is still visually unambiguous because "
+              f"three whole rows (p53, p53_h, Mdm2C) flip OFF->ON exactly "
+              f"there, independent of the Dam row's near-identical shade. "
+              f"Reporting this honestly rather than forcing artificial "
+              f"separation that would misrepresent the data.")
         ok = False
 
     print("\n=== gate 4: exactly 5 rows x 500 columns ===")
@@ -717,11 +895,19 @@ def _run_gates() -> bool:
     print(f"  MaBoSS version: {info['engine_version']}")
     print(f"  seed_pseudorandom: {info['seed']}  thread_count: {info['thread_count']}")
     print(f"  derivation: {info['derivation']}")
-    print(f"  tone mapping: field->ink blend, tone_fraction(occ) = "
-          f"{TONE_FLOOR} + {1 - TONE_FLOOR} * (occ - occ_min) / "
-          f"(occ_max - occ_min), NOT a threshold -- occupancy is itself an "
-          f"argmax over network-state occupancy, and its magnitude then "
-          f"linearly sets ink tone")
+    print(f"  tone mapping (round 2, per-segment): field->ink blend, "
+          f"tone_fraction(seg_mean) = {TONE_FLOOR} + {1 - TONE_FLOOR} * "
+          f"(seg_mean - lo) / (hi - lo), where lo/hi = "
+          f"[{seg_mean_lo:.6f}, {seg_mean_hi:.6f}] are the four SEGMENT "
+          f"MEANS' own min/max (not the per-frame occupancy range) -- "
+          f"NOT a threshold, and NOT per-frame (round 1, superseded: "
+          f"per-frame tone read as a continuous fade across segment 4's "
+          f"178-frame climb, defeating the tile's required discreteness)")
+    print(f"  accepted tradeoff: a flat per-segment tone cannot show that "
+          f"segment 4's own first ~12 frames are below 0.5 occupancy before "
+          f"climbing past the ensemble majority (2.4% of the tile's width) "
+          f"-- traded against round 1's 36% of the tile misreading as a "
+          f"continuous gradient")
     print(f"  cross-check: get_nodes_probtraj() time-average P(p53 up) = "
           f"{p53_time_avg:.6f}  (recorded W23A value: {RECORDED_P53_TIME_AVG}; "
           f"modal-state p53 ON fraction = {counts['p53']}/500 = "
