@@ -38,8 +38,10 @@ Contract for this tile (see figures/README.md for the full canvas contract)
   theme's own ``field`` token (so they blend into the poster tile under
   any theme) and "on" cells are shaded between ``field`` and ``ink`` --
   see "Honesty fix" below.
-- No title, no legend, no caption; axis labels are required and present
-  (y: the five node names as category labels; x: "frame").
+- No title, no caption; axis labels are required and present (y: the five
+  node names as category labels; x: "frame"). A small tone key is present
+  (see "Tone key" below) -- it is not a legend in the sense of naming a
+  series, it annotates what the raster's own shading means, with no words.
 
 Honesty fix, round 1: ON-cell tone encoded per-frame occupancy (SUPERSEDED)
 -----------------------------------------------------------------------------
@@ -116,11 +118,60 @@ either round. The Boolean on/off pattern itself (which segments exist,
 where they start and end) has never changed since the first version and is
 asserted identically in every round.
 
+Tone key (PI feedback: the tone raster is an unfamiliar form)
+---------------------------------------------------------------
+A reader who had not seen this file's history could not tell what the
+shading meant. The precise claim the tone makes (measured on this run, not
+re-derived here -- see :func:`run_modal_states` and its docstring for how):
+the trajectory visits 19 distinct network states; summed over all 19,
+occupancy is 1.0 at every frame by construction; the 4 states that are
+EVER modal sum to only 0.52-0.94 of the ensemble at a given frame (mean
+0.86) -- so the figure never shows the whole ensemble; at frame 39 seven
+states each carry >1%, and the modal one holds just 0.283; at the final
+frame the modal state holds 0.809 while ``Mdm2N`` alone (never modal, so
+never drawn anywhere in this figure) holds ~0.159. So: **the tone is the
+fraction of the simulated ensemble occupying the single most probable
+network state at that time** -- not a per-node probability, not a share of
+a four-way split.
+
+The key is four discrete swatches (one exact colour per segment tone, not
+a smoothed continuous ramp -- deliberately, so "the key's swatch tones
+exactly equal the segment tones" is a literal equality gate 3d can assert,
+not an approximation), stacked palest-to-darkest, annotated with only the
+two numeric anchors the PI asked for: the minimum and maximum SEGMENT MEAN
+occupancy as whole percents (37% / 81% on this run -- computed from
+``seg_mean_lo``/``seg_mean_hi``, the same two numbers that already
+normalize the tone mapping above, not re-derived or hardcoded). No legend
+text, no title, no ON/OFF encoding in the key (explicitly rejected -- see
+below) -- the poster places live text labels elsewhere; this key carries
+only the ramp and the two numbers, same as every other number on this tile
+is a live measurement, not authored prose.
+
+Why the key does NOT also encode ON/OFF: filled-versus-empty is already
+legible on its own in the raster, and a two-part legend (tone AND on/off)
+cannot fit at the 22pt floor in the space this canvas has left. Also
+rejected: a continuous gradient bar sized to the full occupancy range --
+the raster only ever draws 4 discrete tones, so a smooth ramp would imply
+a precision (and a continuum of possible confidence levels) the figure
+does not have; four swatches are what the mapping actually is.
+
+Why the raster got narrower rather than the key overlapping empty-looking
+cells: the lower-right of the raster looks empty but it holds real OFF
+cells for ``Mdm2N`` and ``Dam`` -- painting a key over real data would be
+worse than no key. The raster's own Axes was shrunk from ~170mm to
+~146mm wide (see :data:`RASTER_RECT`, comfortably above the ~140mm floor
+needed to keep 500 frames resolvable) and the freed strip on the right
+holds the key's own Axes (:data:`KEY_RECT`) with real horizontal clearance
+between them -- both measured via the same render-then-check-bboxes
+technique as :func:`_assert_no_label_clipping`, not eyeballed. Gate 3d
+asserts the two Axes' rendered bounding boxes are disjoint on every build,
+not just at design time.
+
 Run this file directly (``python fig_mod_state.py``) to execute the full
 gate suite described in the task brief and print real output, including
 the segment table, per-node ON counts, per-segment occupancy stats, the
-four segment tones and their pairwise deltas, and two-run determinism/
-byte-identity checks.
+four segment tones and their pairwise deltas, the tone-key geometry checks,
+and two-run determinism/byte-identity checks.
 """
 
 from __future__ import annotations
@@ -140,6 +191,7 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
 from make_poster_figures import (  # noqa: E402
+    CANVAS_MM,
     Theme,
     figure,
     make_figure,
@@ -200,6 +252,28 @@ EXPECTED_SEGMENT_MEANS: List[float] = [
     0.8147331056338019,    # seg 4: 426 frames, 'p53_h -- p53 -- Mdm2C'
 ]
 
+# Ensemble-level facts behind the tone key's claim (PI feedback: the tone
+# raster needed a key, and the key must state the right thing). Probed on
+# this exact run -- see :func:`_check_ensemble_facts` and the module
+# docstring's "Tone key" section. NOT re-derived from first principles here,
+# only asserted against, same philosophy as every other EXPECTED_* constant.
+EXPECTED_N_STATES = 19                      # distinct network states total
+EXPECTED_EVER_MODAL_STATES = [              # the only 4 states this figure
+    "Dam", "Mdm2N -- Dam",                  # EVER draws -- i.e. the labels
+    "p53_h -- p53 -- Mdm2C",                # in EXPECTED_SEGMENTS, order-
+    "p53_h -- p53 -- Mdm2C -- Dam",         # independent (see the check)
+]
+EXPECTED_EVER_MODAL_SUM_MIN = 0.523763      # min over frames of the 4 ever-
+EXPECTED_EVER_MODAL_SUM_MAX = 0.939665      # modal states' summed occupancy
+EXPECTED_EVER_MODAL_SUM_MEAN = 0.8619555379999995  # -- the figure never
+                                             # shows the whole ensemble
+EXPECTED_FRAME39_N_STATES_ABOVE_1PCT = 7    # at frame 39 (occ_min's frame)
+FRAME39_INDEX = 39
+FINAL_FRAME_MODAL_OCC = 0.808698            # last frame's modal occupancy
+FINAL_FRAME_MDM2N_ALONE_OCC = 0.159012      # 'Mdm2N' (alone) at last frame
+                                             # -- a state that is NEVER modal
+                                             # and so never drawn anywhere
+
 # ON-cell ink tone floor: an ON cell's tone is linearly mapped onto
 # [TONE_FLOOR, 1.0] (1.0 == full ink) -- see _tone_fraction(). The floor
 # exists so that even the palest segment is unmistakably darker than an OFF
@@ -208,6 +282,27 @@ EXPECTED_SEGMENT_MEANS: List[float] = [
 # occ_max] range; round 2 normalizes per-segment MEAN occupancy over the
 # four segment means' own [min, max] -- see _segment_tone_mapping().)
 TONE_FLOOR = 0.35
+
+# Expected rounded percentages for the tone key's two numeric anchors
+# (min/max SEGMENT MEAN occupancy -- the same seg_mean_lo/seg_mean_hi that
+# already normalize the tone mapping, just as whole percents for the key).
+# Recomputed at build time from seg_mean_lo/hi, not hardcoded; these are the
+# drift-check targets, same pattern as every other EXPECTED_* constant here.
+EXPECTED_OCC_LO_PCT = 37
+EXPECTED_OCC_HI_PCT = 81
+
+# Layout: the raster Axes rect shrank (from the pre-key (0.165, 0.33, 0.79,
+# 0.63)) to free a strip on the right for the tone key -- both rects were
+# sized by rendering and measuring actual bboxes (see the module docstring's
+# "Tone key" section and _assert_no_key_overlap() below), not guessed.
+# (left, bottom, width, height) in figure-fraction units.
+RASTER_RECT = (0.165, 0.33, 0.68, 0.63)
+KEY_RECT = (0.895, 0.20, 0.085, 0.58)
+
+# The brief's floor: the raster must stay wide enough that 500 frames still
+# resolve. RASTER_RECT's width (0.68 * 214.94mm = 146.16mm) clears this with
+# ~6mm to spare -- checked on every build by gate 3e, not just here.
+RASTER_MIN_WIDTH_MM = 140.0
 
 
 def _state_on_set(label: str) -> set:
@@ -240,6 +335,13 @@ def run_modal_states(variant: str = VARIANT):
         p53_time_avg: float -- get_nodes_probtraj()'s time-average P(p53 up)
             (continuous; recorded for the cross-check only).
         info: dict -- provenance (model paths, backend, engine version, seed).
+        states_df: the raw pandas DataFrame from get_states_probtraj() (rows
+            = frames, columns = all 19 network states) -- kept around (not
+            just reduced to modal_labels/modal_occ) so :func:`_check_ensemble_facts`
+            can verify the ensemble-level claims the tone key's docstring
+            makes (19 states, occupancy sums to 1, how much of the ensemble
+            the 4 ever-modal states actually cover) directly against this
+            run, rather than re-deriving them from a lossy summary.
     """
     binary = run_maboss.ensure_backend()
     import maboss  # imported only after ensure_backend() -- see its docstring
@@ -284,7 +386,7 @@ def run_modal_states(variant: str = VARIANT):
         "derivation": "argmax over get_states_probtraj() network-state "
                        "occupancy per frame -- not a threshold",
     }
-    return modal_labels, modal_occ, matrix, p53_time_avg, info
+    return modal_labels, modal_occ, matrix, p53_time_avg, info, states_df
 
 
 def _segments(labels: List[str]) -> List[Tuple[int, str]]:
@@ -364,6 +466,77 @@ def _check_occupancy(modal_occ: List[float]) -> Dict[str, float]:
     return stats
 
 
+def _check_ensemble_facts(states_df, modal_labels: List[str]) -> Dict[str, float]:
+    """Verify the ensemble-level facts the tone key's docstring claims, on
+    THIS run's raw per-state occupancy (not a re-derivation from the modal
+    summary) -- what the PI measured, asserted here rather than trusted:
+
+    - the trajectory visits exactly :data:`EXPECTED_N_STATES` (19) distinct
+      network states, not the 4 this figure ever draws;
+    - summed over all states, occupancy is 1.0 at every frame (a MaBoSS
+      occupancy-vector identity, checked rather than assumed);
+    - the 4 EVER-MODAL states (:data:`EXPECTED_EVER_MODAL_STATES` -- exactly
+      the 4 distinct labels in :data:`EXPECTED_SEGMENTS`) sum to only
+      [:data:`EXPECTED_EVER_MODAL_SUM_MIN`, :data:`EXPECTED_EVER_MODAL_SUM_MAX`]
+      of the ensemble per frame -- the figure never shows the whole ensemble;
+    - at frame :data:`FRAME39_INDEX` (the same frame as occ_min), 7 states
+      each individually carry >1%;
+    - at the final frame, the modal state holds
+      :data:`FINAL_FRAME_MODAL_OCC` while the single-node state ``'Mdm2N'``
+      (never modal, so never drawn anywhere in this figure) independently
+      holds :data:`FINAL_FRAME_MDM2N_ALONE_OCC`.
+
+    Raises AssertionError, with every mismatch reported at once, on drift.
+    """
+    n_states = states_df.shape[1]
+    row_sums = states_df.sum(axis=1)
+    ever_modal = sorted(set(modal_labels))
+    ever_modal_sum = states_df[ever_modal].sum(axis=1)
+    row39 = states_df.iloc[FRAME39_INDEX]
+    n_above_1pct_39 = int((row39 > 0.01).sum())
+    row_last = states_df.iloc[-1]
+    final_modal_occ = float(row_last.max())
+    mdm2n_alone_occ = float(row_last["Mdm2N"]) if "Mdm2N" in row_last.index else None
+
+    stats = {
+        "n_states": n_states,
+        "row_sum_min": float(row_sums.min()), "row_sum_max": float(row_sums.max()),
+        "ever_modal_states": ever_modal,
+        "ever_modal_sum_min": float(ever_modal_sum.min()),
+        "ever_modal_sum_max": float(ever_modal_sum.max()),
+        "ever_modal_sum_mean": float(ever_modal_sum.mean()),
+        "frame39_n_above_1pct": n_above_1pct_39,
+        "frame39_modal_occ": float(row39.max()),
+        "final_modal_occ": final_modal_occ,
+        "final_mdm2n_alone_occ": mdm2n_alone_occ,
+        "mdm2n_ever_modal": "Mdm2N" in ever_modal,
+    }
+    checks = [
+        (n_states == EXPECTED_N_STATES, "n_states", n_states, EXPECTED_N_STATES),
+        (bool((abs(row_sums - 1.0) < 1e-3).all()), "row_sums~1.0",
+         (stats["row_sum_min"], stats["row_sum_max"]), "~1.0"),
+        (ever_modal == sorted(EXPECTED_EVER_MODAL_STATES), "ever_modal_states",
+         ever_modal, sorted(EXPECTED_EVER_MODAL_STATES)),
+        (abs(stats["ever_modal_sum_min"] - EXPECTED_EVER_MODAL_SUM_MIN) < 1e-6,
+         "ever_modal_sum_min", stats["ever_modal_sum_min"], EXPECTED_EVER_MODAL_SUM_MIN),
+        (abs(stats["ever_modal_sum_max"] - EXPECTED_EVER_MODAL_SUM_MAX) < 1e-6,
+         "ever_modal_sum_max", stats["ever_modal_sum_max"], EXPECTED_EVER_MODAL_SUM_MAX),
+        (abs(stats["ever_modal_sum_mean"] - EXPECTED_EVER_MODAL_SUM_MEAN) < 1e-6,
+         "ever_modal_sum_mean", stats["ever_modal_sum_mean"], EXPECTED_EVER_MODAL_SUM_MEAN),
+        (n_above_1pct_39 == EXPECTED_FRAME39_N_STATES_ABOVE_1PCT,
+         "frame39_n_above_1pct", n_above_1pct_39, EXPECTED_FRAME39_N_STATES_ABOVE_1PCT),
+        (abs(final_modal_occ - FINAL_FRAME_MODAL_OCC) < 1e-6,
+         "final_modal_occ", final_modal_occ, FINAL_FRAME_MODAL_OCC),
+        (mdm2n_alone_occ is not None and abs(mdm2n_alone_occ - FINAL_FRAME_MDM2N_ALONE_OCC) < 1e-6,
+         "final_mdm2n_alone_occ", mdm2n_alone_occ, FINAL_FRAME_MDM2N_ALONE_OCC),
+        (stats["mdm2n_ever_modal"] is False, "mdm2n_ever_modal", stats["mdm2n_ever_modal"], False),
+    ]
+    bad = [(name, got, want) for ok, name, got, want in checks if not ok]
+    if bad:
+        raise AssertionError(f"ensemble-facts drift: {bad!r}")
+    return stats
+
+
 def _segment_slices(segs: List[Tuple[int, str]]) -> List[Tuple[int, int]]:
     """(start, end) frame indices (end exclusive) for each segment in
     run-length order, e.g. [(11,'A'),(29,'B')] -> [(0,11), (11,40)]."""
@@ -437,6 +610,103 @@ def _expand_segment_tone(segs: List[Tuple[int, str]], seg_tones: List[float],
     return tone
 
 
+def _sorted_swatch_tones(seg_tones: List[float]) -> List[float]:
+    """The tone key's swatch tones: the segment tones, sorted palest-first.
+
+    Raises if two segments' tones happen to collide (they don't on this
+    run -- see gate 3d -- but a future model change that produced a
+    collision would silently draw fewer than 4 visually distinct swatches,
+    which this catches instead of shipping quietly).
+    """
+    uniq = sorted(set(round(t, 12) for t in seg_tones))
+    if len(uniq) != len(seg_tones):
+        raise AssertionError(
+            f"segment tones are not all distinct, cannot draw "
+            f"{len(seg_tones)} visually distinct key swatches: {seg_tones!r}"
+        )
+    return sorted(seg_tones)
+
+
+def _build_tone_key(ax_key, theme: Theme, field_rgb: Tuple[float, float, float],
+                     ink_rgb: Tuple[float, float, float], seg_tones: List[float],
+                     low_pct: int, high_pct: int):
+    """Draw the tone key onto *ax_key*: one discrete, exactly-coloured
+    swatch per segment tone (palest at the bottom, darkest at the top), plus
+    the two numeric anchors -- no words, no ON/OFF encoding (see the module
+    docstring's "Tone key" section for why both are deliberately excluded).
+
+    Returns:
+        (swatches, texts): the swatch Rectangle patches in the same
+        palest-to-darkest order as :func:`_sorted_swatch_tones`, and the
+        two Text artists (high_pct label, low_pct label) -- both returned
+        so the gate suite can inspect the exact objects actually drawn,
+        not a re-implementation of them.
+    """
+    from matplotlib.patches import Rectangle
+
+    sorted_tones = _sorted_swatch_tones(seg_tones)
+    n = len(sorted_tones)
+    ax_key.set_xlim(0, 1)
+    ax_key.set_ylim(0, n)
+    ax_key.set_xticks([])
+    ax_key.set_yticks([])
+    ax_key.patch.set_alpha(0.0)
+    for spine in ax_key.spines.values():
+        spine.set_color(theme.rule)
+        spine.set_linewidth(1.2)
+
+    swatches = []
+    for i, t in enumerate(sorted_tones):
+        color = _lerp_rgb(field_rgb, ink_rgb, t)
+        rect = Rectangle((0, i), 1, 1, facecolor=color, edgecolor="none")
+        ax_key.add_patch(rect)
+        swatches.append(rect)
+    # Thin separators between swatches (incl. the outer border), same rule
+    # colour as the raster's own row separators -- purely a legibility aid,
+    # not data.
+    for i in range(n + 1):
+        ax_key.axhline(i, color=theme.rule, linewidth=0.8, zorder=3)
+
+    text_high = ax_key.text(0.5, n + 0.3, f"{high_pct}%", ha="center",
+                             va="bottom", fontsize=type_pt(22), color=theme.ink)
+    text_low = ax_key.text(0.5, -0.3, f"{low_pct}%", ha="center",
+                            va="top", fontsize=type_pt(22), color=theme.ink)
+    return swatches, (text_high, text_low)
+
+
+def _assert_no_key_overlap(fig, raster_ax, key_ax) -> None:
+    """Raise if the raster's and the key's rendered bounding boxes overlap.
+
+    Both Axes' ``get_window_extent()`` is exactly their data-plotting area
+    (imshow/patches fill the whole Axes, no internal padding), so this is
+    precisely "the key overlaps no data cell" -- checked against the
+    ACTUAL rendered layout on every build, not assumed from the rects.
+    """
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    raster_bb = raster_ax.get_window_extent(renderer)
+    key_bb = key_ax.get_window_extent(renderer)
+    if raster_bb.overlaps(key_bb):
+        raise AssertionError(
+            f"tone key overlaps the raster: raster bbox {raster_bb.bounds}, "
+            f"key bbox {key_bb.bounds}"
+        )
+
+
+def _assert_no_text_clipping(fig, texts) -> None:
+    """Raise if any of *texts* renders outside the figure's own canvas."""
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    fig_w_px, fig_h_px = fig.get_size_inches() * fig.dpi
+    for t in texts:
+        bb = t.get_window_extent(renderer)
+        if bb.x0 < 0 or bb.y0 < 0 or bb.x1 > fig_w_px or bb.y1 > fig_h_px:
+            raise AssertionError(
+                f"text {t.get_text()!r} clipped by the canvas edge: "
+                f"bbox={bb.bounds}, canvas={fig_w_px:.0f}x{fig_h_px:.0f}px"
+            )
+
+
 def _hex_to_rgb(hex_color: str) -> Tuple[float, float, float]:
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i:i + 2], 16) / 255.0 for i in (0, 2, 4))  # type: ignore[return-value]
@@ -494,10 +764,11 @@ def _build_rgba(matrix: np.ndarray, tone: np.ndarray,
 # ---------------------------------------------------------------------------
 @figure("mod-state", ext="svg")
 def build_mod_state(theme: Theme, out_dir: str) -> str:
-    modal_labels, modal_occ, matrix, p53_time_avg, info = run_modal_states(VARIANT)
+    modal_labels, modal_occ, matrix, p53_time_avg, info, states_df = run_modal_states(VARIANT)
     segs, counts = _check_expected(modal_labels, matrix)
     occ_stats = _check_occupancy(modal_occ)
     seg_stats = _check_segment_means(segs, modal_occ)
+    _check_ensemble_facts(states_df, modal_labels)
 
     if matrix.shape != (len(NODES), N_FRAMES):
         raise AssertionError(f"raster shape {matrix.shape}, want (5, 500)")
@@ -544,9 +815,31 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
               "boundary at frame 40 is carried by the ON/OFF row pattern "
               "(three rows flip OFF->ON exactly there), not by a tone "
               "difference -- see gate 3c")
+    low_pct = round(seg_mean_lo * 100)
+    high_pct = round(seg_mean_hi * 100)
+    if low_pct != EXPECTED_OCC_LO_PCT or high_pct != EXPECTED_OCC_HI_PCT:
+        raise AssertionError(
+            f"tone-key percentage drift: got ({low_pct}%, {high_pct}%), "
+            f"expected ({EXPECTED_OCC_LO_PCT}%, {EXPECTED_OCC_HI_PCT}%)"
+        )
+    raster_width_mm = RASTER_RECT[2] * CANVAS_MM[0]
+    if raster_width_mm < RASTER_MIN_WIDTH_MM:
+        raise AssertionError(
+            f"raster width {raster_width_mm:.2f}mm is below the "
+            f"{RASTER_MIN_WIDTH_MM}mm floor needed to keep 500 frames "
+            f"resolvable"
+        )
+
     prov(p53_time_avg, note="get_nodes_probtraj() time-average P(p53 up); "
                             "sanity cross-check only, distinct statistic from "
                             "the modal-state ON fraction")
+    prov((low_pct, high_pct), note="tone-key numeric anchors: round(seg_mean_lo*100), "
+                                    "round(seg_mean_hi*100) -- the same two numbers "
+                                    "that normalize the tone mapping, as whole percents")
+    prov(raster_width_mm, note="raster Axes width in mm (RASTER_RECT[2] * canvas "
+                                f"width); must stay >= {RASTER_MIN_WIDTH_MM}mm so "
+                                "500 frames remain resolvable after narrowing the "
+                                "raster to make room for the tone key")
 
     fig, base_ax = make_figure(theme)
     base_ax.set_visible(False)  # only used to get a correctly-sized,
@@ -555,14 +848,16 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
     # Reserve margin for the y category labels (node names) and the x
     # frame axis + its label -- make_figure()'s own axes is full-bleed
     # (0,0,1,1) and has no room for tick labels outside the data area.
-    # This rect (left=0.165, bottom=0.33, width=0.79, height=0.63) was
-    # sized by actually measuring rendered label bboxes against the
-    # 2560x768 px canvas (see the gate-suite comment below) -- not
-    # guessed: at 22pt type the y row labels need >=384px on the left,
+    # RASTER_RECT was sized by actually measuring rendered label bboxes
+    # against the 2560x768 px canvas (see the gate-suite comment below) --
+    # not guessed: at 22pt type the y row labels need >=384px on the left,
     # the x ticks+label need >=248px on the bottom, and the rightmost
     # x tick label's own half-width needs >=88px of right-hand clearance
     # past the axes edge, all inside a canvas that is only 768px tall.
-    ax = fig.add_axes((0.165, 0.33, 0.79, 0.63))
+    # RASTER_RECT's width was further narrowed (from an earlier 0.79) to
+    # free KEY_RECT's strip on the right for the tone key -- see the module
+    # docstring's "Tone key" section.
+    ax = fig.add_axes(RASTER_RECT)
     ax.patch.set_alpha(0.0)
     for spine in ax.spines.values():
         spine.set_color(theme.rule)
@@ -603,6 +898,16 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
     ax.set_xlabel("frame", fontsize=type_pt(22), color=theme.ink, labelpad=8)
 
     _assert_no_label_clipping(fig, ax)
+
+    # Tone key: four exact-colour swatches (palest to darkest) + the two
+    # numeric anchors, in KEY_RECT's freed strip to the right of the
+    # (narrowed) raster -- see the module docstring's "Tone key" section.
+    key_ax = fig.add_axes(KEY_RECT)
+    _swatches, key_texts = _build_tone_key(
+        key_ax, theme, field_rgb, ink_rgb, seg_tones, low_pct, high_pct
+    )
+    _assert_no_text_clipping(fig, key_texts)
+    _assert_no_key_overlap(fig, ax, key_ax)
 
     out_path = os.path.join(out_dir, "mod-state.svg")
     save_figure(fig, out_path, ext="svg")
@@ -660,8 +965,32 @@ def _run_gates() -> bool:
     field_rgb = _hex_to_rgb(theme.field)
     ink_rgb = _hex_to_rgb(theme.ink)
 
-    print("=== gate 1: segment table + per-node ON counts (asserted) ===")
-    modal_labels, modal_occ, matrix, p53_time_avg, info = run_modal_states(VARIANT)
+    print("=== gate 0: ensemble facts behind the tone key's claim (asserted) ===")
+    modal_labels, modal_occ, matrix, p53_time_avg, info, states_df = run_modal_states(VARIANT)
+    try:
+        efacts = _check_ensemble_facts(states_df, modal_labels)
+        print(f"  distinct network states: {efacts['n_states']}")
+        print(f"  per-frame occupancy sum over all states: "
+              f"[{efacts['row_sum_min']:.6f}, {efacts['row_sum_max']:.6f}]")
+        print(f"  ever-modal states ({len(efacts['ever_modal_states'])}): "
+              f"{efacts['ever_modal_states']}")
+        print(f"  ever-modal states' summed occupancy per frame: "
+              f"[{efacts['ever_modal_sum_min']:.6f}, "
+              f"{efacts['ever_modal_sum_max']:.6f}], "
+              f"mean {efacts['ever_modal_sum_mean']:.6f}")
+        print(f"  frame {FRAME39_INDEX}: {efacts['frame39_n_above_1pct']} states "
+              f"each >1%, modal={efacts['frame39_modal_occ']:.6f}")
+        print(f"  final frame: modal={efacts['final_modal_occ']:.6f}, "
+              f"'Mdm2N' alone={efacts['final_mdm2n_alone_occ']:.6f} "
+              f"(never modal: {not efacts['mdm2n_ever_modal']})")
+        print("  OK: matches the PI's measured facts exactly -- the tone key's "
+              "claim (fraction of the ensemble in the single most probable "
+              "of 19 states) is what this run's data actually supports")
+    except AssertionError as exc:
+        print(f"  FAIL: {exc}", file=sys.stderr)
+        ok = False
+
+    print("\n=== gate 1: segment table + per-node ON counts (asserted) ===")
     try:
         segs, counts = _check_expected(modal_labels, matrix)
         for n, s in segs:
@@ -701,7 +1030,7 @@ def _run_gates() -> bool:
     seg_tones, seg_mean_lo, seg_mean_hi = _segment_tone_mapping(seg_stats)
 
     print("\n=== gate 2: determinism across two independent runs (seed=100) ===")
-    modal_labels_b, modal_occ_b, matrix_b, _, _ = run_modal_states(VARIANT)
+    modal_labels_b, modal_occ_b, matrix_b, _, _, _ = run_modal_states(VARIANT)
     segs_b, _ = _check_expected(modal_labels_b, matrix_b)
     seg_stats_b = _check_segment_means(segs_b, modal_occ_b)
     seg_tones_b, _, _ = _segment_tone_mapping(seg_stats_b)
@@ -816,6 +1145,73 @@ def _run_gates() -> bool:
           f"NOT a rendering bug. Their boundary (frame 40) is carried by the "
           f"ON/OFF row pattern (three rows flip OFF->ON exactly there), not "
           f"by a tone difference.")
+
+    print("\n=== gate 3d: tone-key swatches exactly equal the segment tones; "
+          "key labels >= 22pt ===")
+    low_pct = round(seg_mean_lo * 100)
+    high_pct = round(seg_mean_hi * 100)
+    fig_probe, base_ax_probe = make_figure(theme)
+    base_ax_probe.set_visible(False)
+    raster_ax_probe = fig_probe.add_axes(RASTER_RECT)
+    raster_ax_probe.imshow(rgba, aspect="auto", interpolation="nearest", origin="upper")
+    key_ax_probe = fig_probe.add_axes(KEY_RECT)
+    swatches, key_texts = _build_tone_key(
+        key_ax_probe, theme, field_rgb, ink_rgb, seg_tones, low_pct, high_pct
+    )
+    sorted_tones = _sorted_swatch_tones(seg_tones)
+    expected_colors = [_lerp_rgb(field_rgb, ink_rgb, t) for t in sorted_tones]
+    swatch_colors = [tuple(s.get_facecolor()[:3]) for s in swatches]
+    colors_match = all(
+        all(abs(a - b) < 1e-9 for a, b in zip(sc, ec))
+        for sc, ec in zip(swatch_colors, expected_colors)
+    )
+    print(f"  swatch tones (palest to darkest): {sorted_tones}")
+    print(f"  swatch facecolors match _lerp_rgb(field, ink, tone) exactly: "
+          f"{colors_match}")
+    font_sizes = [t.get_fontsize() for t in key_texts]
+    labels_ok = all(fs >= 22 for fs in font_sizes)
+    print(f"  key label font sizes: {font_sizes}pt (floor: 22pt)")
+    print(f"  key label text: {[t.get_text() for t in key_texts]} "
+          f"(anchors: min={low_pct}%, max={high_pct}%)")
+    n_swatches_ok = len(swatches) == len(seg_tones) == 4
+    if colors_match and labels_ok and n_swatches_ok:
+        print(f"  OK: {len(swatches)} swatches, each exactly the field->ink "
+              f"blend at its segment's tone; both key labels >= 22pt")
+    else:
+        print(f"  FAIL: colors_match={colors_match} labels_ok={labels_ok} "
+              f"n_swatches_ok={n_swatches_ok}", file=sys.stderr)
+        ok = False
+    if (low_pct, high_pct) != (EXPECTED_OCC_LO_PCT, EXPECTED_OCC_HI_PCT):
+        print(f"  FAIL: tone-key percentages ({low_pct}%, {high_pct}%) != "
+              f"expected ({EXPECTED_OCC_LO_PCT}%, {EXPECTED_OCC_HI_PCT}%)",
+              file=sys.stderr)
+        ok = False
+
+    print("\n=== gate 3e: key overlaps no data cell; raster width floor ===")
+    try:
+        _assert_no_key_overlap(fig_probe, raster_ax_probe, key_ax_probe)
+        _assert_no_text_clipping(fig_probe, key_texts)
+        raster_bb = raster_ax_probe.get_window_extent(fig_probe.canvas.get_renderer())
+        key_bb = key_ax_probe.get_window_extent(fig_probe.canvas.get_renderer())
+        print(f"  raster bbox (px, x0,y0,x1,y1): ({raster_bb.x0:.1f}, "
+              f"{raster_bb.y0:.1f}, {raster_bb.x1:.1f}, {raster_bb.y1:.1f})")
+        print(f"  key bbox    (px, x0,y0,x1,y1): ({key_bb.x0:.1f}, "
+              f"{key_bb.y0:.1f}, {key_bb.x1:.1f}, {key_bb.y1:.1f})")
+        print(f"  overlap: {raster_bb.overlaps(key_bb)}")
+        raster_width_mm = RASTER_RECT[2] * CANVAS_MM[0]
+        width_ok = raster_width_mm >= RASTER_MIN_WIDTH_MM
+        print(f"  raster width: {raster_width_mm:.2f}mm "
+              f"(floor: {RASTER_MIN_WIDTH_MM}mm) -> {'OK' if width_ok else 'FAIL'}")
+        if not width_ok:
+            raise AssertionError(
+                f"raster width {raster_width_mm:.2f}mm below "
+                f"{RASTER_MIN_WIDTH_MM}mm floor"
+            )
+        print("  OK: raster and key bounding boxes are disjoint, no key text "
+              "clipped, raster clears the width floor")
+    except AssertionError as exc:
+        print(f"  FAIL: {exc}", file=sys.stderr)
+        ok = False
 
     print("\n=== gate 4: exactly 5 rows x 500 columns ===")
     if matrix.shape == (5, 500):
@@ -935,6 +1331,17 @@ def _run_gates() -> bool:
           f"climbing past the ensemble majority (2.4% of the tile's width) "
           f"-- traded against round 1's 36% of the tile misreading as a "
           f"continuous gradient")
+    print(f"  tone key (PI feedback): 4 discrete swatches, palest to darkest, "
+          f"tones={_sorted_swatch_tones(seg_tones)}; numeric anchors "
+          f"{round(seg_mean_lo * 100)}%/{round(seg_mean_hi * 100)}% = "
+          f"round(seg_mean_lo*100)/round(seg_mean_hi*100); the shading is "
+          f"the fraction of the simulated ensemble occupying the single "
+          f"most probable of 19 distinct network states at that time -- "
+          f"NOT a per-node probability, NOT a share of a four-way split "
+          f"(the 4 ever-modal states sum to only 0.52-0.94 of the ensemble "
+          f"per frame, mean 0.86); raster narrowed to "
+          f"{RASTER_RECT[2] * CANVAS_MM[0]:.2f}mm (floor {RASTER_MIN_WIDTH_MM}mm) "
+          f"to free the key's own Axes with no overlap on any data cell")
     print(f"  cross-check: get_nodes_probtraj() time-average P(p53 up) = "
           f"{p53_time_avg:.6f}  (recorded W23A value: {RECORDED_P53_TIME_AVG}; "
           f"modal-state p53 ON fraction = {counts['p53']}/500 = "
