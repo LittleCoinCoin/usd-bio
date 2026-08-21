@@ -97,6 +97,7 @@ for the isotropic-reference proof.
 
 from __future__ import annotations
 
+import dataclasses
 import os
 import sys
 
@@ -110,7 +111,7 @@ if _EXAMPLES_DIR not in sys.path:
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
-from pxr import Usd  # noqa: E402
+from pxr import Gf, Usd  # noqa: E402
 
 from make_poster_figures import Theme, figure, prov  # noqa: E402
 import render_support as rs  # noqa: E402
@@ -138,9 +139,13 @@ ACCENT_ATOM_NAMES = tuple(n for n in _TRP_ATOM_NAMES if n not in _ALA_KEEP)
 # width at best -- no reason to shrink that further). Candidate B uses a
 # larger margin so a visible amount of the surrounding MDM2 cleft survives
 # the crop instead of tightly hugging Chain_B alone -- 1.3 was chosen
-# because it keeps a >1 Angstrom clearance around every individual Trp23
-# sidechain atom (not just their centroid; see the module's gate block),
-# while still filling ~72% of the frame width (measured, not assumed).
+# because, AFTER vertical recentring (see _recentre_vertically), it keeps a
+# >2 Angstrom clearance around every individual Trp23 sidechain atom (not
+# just their centroid; see the module's gate block) while filling ~76% of
+# the frame width (measured, not assumed -- and higher than the pre-fix
+# ~72.5%, since recentring is a pure re-center, not a re-zoom: the same
+# padding now happens to expose a slightly different, better-balanced set
+# of edge atoms).
 PADDING_A = 1.1
 PADDING_B = 1.3
 
@@ -183,6 +188,35 @@ def _discover_element_classes(stage: Usd.Stage) -> "list[tuple[str, int]]":
     return out
 
 
+# Empirical calibration factor applied to the theme-anchored ramp below
+# (adversarial review round 2). The first cut of this ramp anchored its
+# ceiling to `theme.accent`'s own AUTHORED luminance (~0.29) on the theory
+# that matching authored linear values would keep ink below the accent on
+# screen. Measured against the real render, that theory was wrong: Storm's
+# lighting boosts a lit sphere's peak DISPLAYED luminance far above its
+# authored albedo (an authored 0.5 grey bond rendered at a MEASURED 0.8
+# displayed luminance; even the darkest authored ink level, 0.09,
+# displayed at up to 0.62), so an authored-value comparison alone cannot
+# guarantee the accent stays the brightest thing in frame -- confirmed
+# by gate 6 initially reporting 52.6% of ink pixels brighter than the
+# accent's own 5th percentile. This factor was found by direct measurement
+# on the real scene (render, sample, adjust), not derived analytically:
+#
+#   scale   ink median  ink p95  ink max  overlap (ink > accent p5)
+#   1.00      0.306      0.455    0.616    52.6%
+#   0.327     0.184      0.329    0.463     7.8%
+#   0.20      0.145      0.298    0.424     5.5%   <- chosen
+#   0.12      0.118      0.282    0.400     4.3%
+#
+# 0.12 buys another ~1 point of overlap over 0.20 for a visibly darker
+# structure with no corresponding gain in legibility (both remain clearly
+# ball-and-stick, not muddy, at every scale tested down to 0.12) -- 0.20 is
+# the point past which the curve visibly flattens, so it is the value kept.
+# See figures/README.md's fig-composition entry for the full table and the
+# reproduction recipe.
+_INK_CEILING_SCALE = 0.20
+
+
 def _element_ink_ramp(
     theme: Theme, class_info: "list[tuple[str, int]]",
 ) -> "dict[str, tuple[float, float, float]]":
@@ -190,8 +224,11 @@ def _element_ink_ramp(
     ascending atomic number (lightest ink = heaviest element -- a
     principled, data-derived ordering rather than an arbitrary one), and
     kept strictly BELOW the theme's own accent luminance with a safety
-    margin -- so the accent always reads as the single brightest, most
-    different thing in frame, regardless of which element sits next to it.
+    margin, THEN scaled down by :data:`_INK_CEILING_SCALE` (see its
+    docstring/table) so the accent reads as the single brightest thing in
+    frame on the actual rendered pixels, not just in authored albedo --
+    the accent color itself is never touched, only the ink darkens further
+    around it.
 
     ``theme.ink`` anchors the dark end, ``theme.ink_soft`` would anchor the
     light end EXCEPT that for the 'slate' theme ink_soft's own luminance
@@ -219,6 +256,7 @@ def _element_ink_ramp(
         levels = [ink_l]
     else:
         levels = [ink_l + (ramp_max - ink_l) * i / (n - 1) for i in range(n)]
+    levels = [lv * _INK_CEILING_SCALE for lv in levels]
     return {sym: (lv, lv, lv) for (sym, _z), lv in zip(ordered, levels)}
 
 
@@ -284,6 +322,39 @@ def _measure_width_fill(png_path: str) -> float:
     return float(cols.max() - cols.min() + 1) / arr.shape[1]
 
 
+def _recentre_vertically(frame: "rs.PrincipalFrame", positions: dict) -> "rs.PrincipalFrame":
+    """Shift ``frame``'s center along its OWN ``up`` axis so the crop reads
+    as a deliberate window, not a slipped one.
+
+    Adversarial review (round 2) on the un-shifted candidate B: centering
+    the frame on Chain_B's own centroid put almost all of Chain_B's own
+    mass in frame, but MDM2 (Chain_A, 6x more atoms, NOT centered on
+    Chain_B's centroid along this axis) piled up almost entirely on one
+    side -- an empty band across roughly the top quarter of the frame,
+    structure running off the BOTTOM edge and clipped there. Correct, just
+    badly centered: cropping is fine, an ASYMMETRIC crop is what read as a
+    mistake.
+
+    Fix: keep the frame's ORIENTATION and its right/up/backward EXTENTS
+    (so width fill and zoom level are unchanged -- this is a re-centering,
+    not a re-zoom), but move the center along ``up`` to the MIDPOINT of
+    the full 818-atom structure's own projection onto that axis, not
+    Chain_B's centroid. This makes whatever gets cropped by the frame's
+    fixed height split (as close as the geometry allows to) evenly above
+    and below, by construction, regardless of how lopsided the real mass
+    distribution is -- a plain, reproducible criterion, not eyeballed.
+    Horizontal (``right``) centering is untouched, since Chain_B/Trp23
+    were already sitting close to the horizontal middle.
+    """
+    center = np.array([frame.center[i] for i in range(3)])
+    up = np.array([frame.up[i] for i in range(3)])
+    all_pts = np.array([[v[i] for i in range(3)] for v in positions.values()])
+    proj_up = (all_pts - center) @ up
+    up_offset = (proj_up.min() + proj_up.max()) / 2.0
+    new_center = center + up_offset * up
+    return dataclasses.replace(frame, center=Gf.Vec3d(*[float(x) for x in new_center]))
+
+
 @figure("fig-composition", ext="png")
 def build_fig_composition(theme: Theme, out_dir: str) -> str:
     stage_rel = prov(os.path.relpath(STAGE_PATH), note="source composed stage")
@@ -333,14 +404,24 @@ def build_fig_composition(theme: Theme, out_dir: str) -> str:
         note="candidate A: whole-complex PCA extents in Angstrom (right, up, backward), descending",
     )
 
-    frame_b = rs.compute_principal_frame(positions, subset_prefix=f"{ROOT_PATH}/Chain_B")
+    frame_b_raw = rs.compute_principal_frame(positions, subset_prefix=f"{ROOT_PATH}/Chain_B")
     prov(
-        (round(frame_b.right_extent, 2), round(frame_b.up_extent, 2), round(frame_b.backward_extent, 2)),
+        (round(frame_b_raw.right_extent, 2), round(frame_b_raw.up_extent, 2), round(frame_b_raw.backward_extent, 2)),
         note="candidate B: Chain_B-only PCA extents in Angstrom (right, up, backward), descending",
     )
     prov(
-        round(frame_b.right_extent / frame_b.up_extent, 3),
+        round(frame_b_raw.right_extent / frame_b_raw.up_extent, 3),
         note="candidate B (Chain_B) in-plane aspect",
+    )
+    # Recentre vertically off the FULL 818-atom structure, not Chain_B's own
+    # centroid -- see _recentre_vertically's docstring: centering on
+    # Chain_B alone left almost all of MDM2 piled up on one side of the
+    # frame (empty band across the top, structure clipped at the bottom).
+    # Orientation and extents (hence zoom/width-fill) are unchanged.
+    frame_b = _recentre_vertically(frame_b_raw, positions)
+    prov(
+        (round(frame_b.center[0], 2), round(frame_b.center[1], 2), round(frame_b.center[2], 2)),
+        note="candidate B center AFTER vertical recentring off the full structure (was Chain_B's own centroid)",
     )
 
     # -- render both candidates, always -----------------------------------

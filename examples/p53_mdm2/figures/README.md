@@ -188,3 +188,65 @@ scale); a small tail (~3% of ink pixels, Storm's specular highlights on ink-colo
 spheres, not a hue or design defect) still edges above the accent's own median — see the
 task's adversarial-verification gate output for the exact numbers. Reported as a known,
 weak-but-present overlap rather than glossed over.
+
+## fig-composition, round 2: recentring candidate B, and a real greyscale fix
+
+Adversarial review came back on the merged tile with two findings, both against
+candidate B and the accent, not the underlying rendering mechanism (orthographic camera,
+accent derivation, no-CPK neutralisation all stood as-is).
+
+**Candidate B's vertical framing was wrong.** Centering the crop on Chain_B's own
+centroid put nearly all of Chain_B in frame, but MDM2 (6x more atoms, not centered on
+Chain_B along that axis) piled up almost entirely to one side — an empty band across
+roughly the top quarter, structure clipped at the bottom. Correct data, bad center: it
+read as a slipped render, not a deliberate crop. Fixed in `fig_composition._recentre_vertically`
+by keeping the frame's orientation and extents (same zoom, same width fill logic) but
+moving the center along its own `up` axis to the midpoint of the FULL 818-atom
+structure's projection onto that axis, rather than Chain_B's centroid — a plain,
+reproducible criterion (not eyeballed) that splits whatever the fixed frame height
+crops as evenly as the real geometry allows, above and below. Measured result: width
+fill went UP slightly (72.5% → 76.1%, since recentring exposes a different, more
+balanced set of edge atoms at the same padding=1.3), and Trp23's minimum single-atom
+clearance from the frame edge improved too (1.42 Å → 2.26 Å).
+
+**The greyscale margin was real and worse than round 1's gate reported.** Round 1's gate
+compared MEDIANS (accent 0.47 vs ink 0.31, separation looked fine) and flagged only a
+"~3% tail" as a caveat. The coordinator's stricter, more relevant metric — what fraction
+of ink pixels exceed the ACCENT's OWN 5th percentile (i.e. could a viewer confuse an
+ordinary highlighted carbon atom for Trp23?) — was **52.6%** at the ramp round 1 shipped.
+The reason medians looked fine while this didn't: every lit sphere, any color, has both
+a dark (shadowed) side and a bright (lit/highlight) side, so the accent's OWN 5th
+percentile sits quite low (~0.29-0.30) — close to typical ink's median — even though its
+mean/median is high. A median-vs-median comparison doesn't see that.
+
+Root cause, confirmed empirically (not assumed): Storm's default per-Gprim shading (no
+material bound, just `displayColor`) boosts DISPLAYED peak luminance far above the
+AUTHORED linear albedo — an authored 0.5 grey rendered at a measured 0.8 displayed
+luminance; even round 1's darkest ink level (0.09 authored) displayed at up to 0.62. A
+2-sphere-row isolated test (one row plain `displayColor`, one row an explicit
+`UsdPreviewSurface` with `roughness=1`, `specularColor=(0,0,0)`) showed the "specular"
+peak is NOT a specular term that a material override suppresses — it persists (in fact
+got slightly brighter) under a zero-specular material, so it is ordinary diffuse
+shading under a bright light responding to a curved (sphere) surface, not a fixable
+material property. What DOES work, verified by direct measurement on the real scene
+(render → sample → adjust, not derived analytically): darkening the AUTHORED albedo
+further, since diffuse response is still proportional to albedo even if boosted:
+
+| ceiling scale (× round-1 ramp) | ink median | ink p95 | ink max | overlap (ink > accent p5) |
+|---:|---:|---:|---:|---:|
+| 1.00 (round 1) | 0.306 | 0.455 | 0.616 | 52.6% |
+| 0.327 | 0.184 | 0.329 | 0.463 | 7.8% |
+| **0.20 (shipped)** | **0.145** | **0.298** | **0.424** | **5.5%** |
+| 0.12 | 0.118 | 0.282 | 0.400 | 4.3% |
+
+0.20 is the value kept: the curve visibly flattens past it (0.12 buys another ~1 point
+for a noticeably darker structure), and the ball-and-stick geometry stayed clearly
+legible — not muddy — at every scale tested down to 0.12, inspected visually each time,
+not assumed from the numbers alone. The accent color itself was never touched (still
+exactly `resolve_theme(theme).accent`, unscaled) — only the ink darkened further around
+it, per the coordinator's explicit instruction. See `fig_composition._INK_CEILING_SCALE`
+for the constant and the same table inline.
+
+Final candidate B, both fixes applied: width fill 76.1%, greyscale overlap 5.5% (down
+from 52.6%); candidate A: width fill 39.5% (shape-limited, unchanged), greyscale overlap
+3.0%.
