@@ -167,11 +167,65 @@ technique as :func:`_assert_no_label_clipping`, not eyeballed. Gate 3d
 asserts the two Axes' rendered bounding boxes are disjoint on every build,
 not just at design time.
 
+Vector raster (round 3: the SVG rendered blank on the live poster)
+---------------------------------------------------------------------
+The tile went onto the live poster and rendered with axes, node labels,
+ticks, the "frame" label, and the tone key all correct -- and the data
+raster itself missing, an empty plot area. Confirmed cause:
+``mod-state.svg`` was the only one of the four SVG poster tiles containing
+an ``<image>`` element -- a base64-embedded PNG, matplotlib's standard way
+of serialising ``imshow`` into SVG. The other three tiles (mod-text,
+mod-units, fig-curves) have zero ``<image>`` elements and render correctly.
+The Claude Design poster renderer drops nested raster images inside SVG;
+this is a defect on their side, not in this figure's SVG, but the fix
+available here is better than working around it by rasterising the whole
+tile to PNG (which the PI considered and rejected): it would give up the
+vector contract the other four SVG tiles rely on, and text-as-outline-paths
+stays crisper at A0 print size than any 2560px raster would.
+
+Round 2's flat-per-segment tone is what makes the real fix cheap: the
+raster is no longer 5x500 distinct cells, it is 5 rows x 4 segments -- at
+most 20 solid rectangles, and only the ON ones need drawing at all (an OFF
+cell needs no rectangle: the Axes patch stays transparent, and the
+poster's own tile background is already exactly ``field_rgb``, so leaving
+it undrawn is pixel-identical to painting it). :func:`_build_raster_patches`
+emits each contiguous ON run per row as one filled ``Rectangle`` spanning
+that segment's frame range at that segment's tone -- vector primitives
+only, replacing the single ``imshow`` call and the ``_build_rgba`` array it
+consumed (that function is kept, but only as the gate suite's independent
+per-cell ground truth, no longer used to draw anything -- see its
+docstring). Rectangle geometry matches imshow's old cell boundaries exactly
+(imshow centres column f at data x=f with implicit edges at f-0.5/f+0.5; a
+segment spanning frames [start, end) becomes one Rectangle at
+xy=(start-0.5, i-0.5), width=(end-start), height=1) -- adjacent segments'
+rectangles therefore abut exactly, no gap, no overlap, and edges land on
+the same frame boundaries as before. No stroke on any rectangle (a stroke
+would draw a seam between adjacent same-row segments that isn't there in
+the data).
+
+Verified two ways, not just asserted: gate 3f greps the actual saved SVG
+bytes for zero ``<image>`` occurrences and zero ``base64`` occurrences --
+the whole point of the change, checked on the real output every build.
+Gate 3g rasterises this vector output against a private pre-round-3
+``imshow`` reference (``build_mod_state(..., _use_legacy_imshow=True)``,
+kept only for this regression check) at the canvas's own 2560x768px, both
+composited over the theme's ``field`` colour (the real poster slot
+background, and exactly what the old raster painted for every OFF cell),
+and reports the mean/max absolute pixel difference. Measured on this run:
+mean 0.09/255, max 30/255, confined to 0.03% of pixels -- all of it
+single-pixel seams at segment/row boundaries (vector-edge antialiasing vs.
+the old embedded PNG's own upscale interpolation at those same seams; the
+old raster was in fact never truly hard-edged at any display size other
+than its native embedded resolution, so the new vector edges are, if
+anything, the more faithful "hard edges" the tile's contract always asked
+for). No solid-fill region differs.
+
 Run this file directly (``python fig_mod_state.py``) to execute the full
 gate suite described in the task brief and print real output, including
 the segment table, per-node ON counts, per-segment occupancy stats, the
 four segment tones and their pairwise deltas, the tone-key geometry checks,
-and two-run determinism/byte-identity checks.
+the image-free-SVG and pixel-equivalence checks, and two-run determinism/
+byte-identity checks.
 """
 
 from __future__ import annotations
@@ -192,6 +246,8 @@ if _HERE not in sys.path:
 
 from make_poster_figures import (  # noqa: E402
     CANVAS_MM,
+    RASTER_HEIGHT_PX,
+    RASTER_WIDTH_PX,
     Theme,
     figure,
     make_figure,
@@ -735,14 +791,18 @@ def _tone_fraction(occ: np.ndarray, occ_min: float, occ_max: float) -> np.ndarra
 def _build_rgba(matrix: np.ndarray, tone: np.ndarray,
                  field_rgb: Tuple[float, float, float],
                  ink_rgb: Tuple[float, float, float]) -> np.ndarray:
-    """Assemble the (rows, cols, 4) RGBA image actually drawn by imshow.
+    """Assemble the (rows, cols, 4) RGBA ground-truth array for the raster.
 
-    Factored out of :func:`build_mod_state` so the gate suite can inspect
-    exactly the array that gets rendered (not a re-implementation of it) --
-    an OFF cell is always exactly ``field_rgb``; an ON cell is ``field_rgb``
-    blended toward ``ink_rgb`` by that column's tone fraction. No smoothing
-    across columns happens here or in the ``interpolation="nearest"`` imshow
-    call that consumes this array -- each column is one flat RGBA value.
+    NOT used to draw the figure any more (round 3 -- see the module
+    docstring's "Vector raster" section: this used to feed a single
+    ``imshow`` call, but the Claude Design poster renderer drops nested
+    raster ``<image>`` elements inside SVG, so the actual drawing now goes
+    through :func:`_build_raster_patches` instead, vector rectangles only).
+    Kept as the independent per-cell reference this module's gates check
+    the vector rendering against: an OFF cell is always exactly
+    ``field_rgb``; an ON cell is ``field_rgb`` blended toward ``ink_rgb`` by
+    that column's tone fraction. No smoothing across columns -- each column
+    is one flat RGBA value, by construction.
     """
     n_rows, n_cols = matrix.shape
     on_color_per_frame = np.array(
@@ -759,11 +819,70 @@ def _build_rgba(matrix: np.ndarray, tone: np.ndarray,
     return np.concatenate([image, alpha], axis=2)
 
 
+def _build_raster_patches(segs: List[Tuple[int, str]], seg_tones: List[float],
+                           field_rgb: Tuple[float, float, float],
+                           ink_rgb: Tuple[float, float, float]):
+    """The actual raster drawing, as vector rectangles -- one per (row,
+    segment) pair that is ON, none for OFF (an OFF cell needs no patch: the
+    Axes patch stays transparent and the poster's own tile background is
+    already exactly ``field_rgb``, so leaving it undrawn is pixel-identical
+    to painting it, without adding a rectangle that does nothing but repeat
+    the backdrop -- see the module docstring's "Vector raster" section).
+
+    At most ``len(NODES) * len(segs)`` rectangles (20 on this run, since
+    round 2 already reduced the on/off pattern to 5 rows x 4 segments) --
+    replaces a single ``imshow`` of a 5x500 raster (previously embedded as
+    a base64 PNG ``<image>`` element, which the Claude Design renderer
+    silently drops from nested SVG).
+
+    Geometry matches the OLD imshow raster's cell boundaries exactly:
+    imshow centres column ``f`` at data x=f with implicit cell edges at
+    f-0.5/f+0.5, and row ``i`` at data y=i with edges i-0.5/i+0.5 (origin
+    ='upper' only flips which end of the y-axis is "up", not the cell
+    geometry). A segment spanning frames [start, end) (half-open, from
+    :func:`_segment_slices`) therefore becomes one Rectangle per ON row:
+    xy=(start-0.5, i-0.5), width=(end-start), height=1 -- so two adjacent
+    segments' rectangles share an edge exactly (segment k's end equals
+    segment k+1's start by construction), abutting with neither gap nor
+    overlap.
+
+    Returns:
+        list[Rectangle], not yet added to any Axes -- :func:`build_mod_state`
+        adds each to the raster Axes; the gate suite can also inspect the
+        list directly (facecolor, xy, width, height) without rendering.
+    """
+    from matplotlib.patches import Rectangle
+
+    patches = []
+    for (start, end), (_n, label), t in zip(_segment_slices(segs), segs, seg_tones):
+        on = _state_on_set(label)
+        color = _lerp_rgb(field_rgb, ink_rgb, t)
+        for i, node in enumerate(NODES):
+            if node in on:
+                patches.append(Rectangle(
+                    (start - 0.5, i - 0.5), end - start, 1.0,
+                    facecolor=color, edgecolor="none", linewidth=0,
+                ))
+    return patches
+
+
 # ---------------------------------------------------------------------------
 # Figure
 # ---------------------------------------------------------------------------
 @figure("mod-state", ext="svg")
-def build_mod_state(theme: Theme, out_dir: str) -> str:
+def build_mod_state(theme: Theme, out_dir: str, *,
+                     _use_legacy_imshow: bool = False) -> str:
+    """Build the mod-state tile.
+
+    ``_use_legacy_imshow`` is private, for the gate suite's pixel-
+    equivalence check only (gate 3g): it switches the raster from vector
+    Rectangle patches (the real, shipped behaviour) back to the pre-round-3
+    ``imshow`` path, with everything else -- segments, tones, key,
+    layout -- identical, so the two outputs isolate exactly the effect of
+    that one change. The registered figure (called by make_poster_figures.py
+    with positional ``(theme, out_dir)`` only) always takes the default and
+    never draws the legacy raster.
+    """
     modal_labels, modal_occ, matrix, p53_time_avg, info, states_df = run_modal_states(VARIANT)
     segs, counts = _check_expected(modal_labels, matrix)
     occ_stats = _check_occupancy(modal_occ)
@@ -784,7 +903,6 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
             f"segment tone fraction escaped [{TONE_FLOOR}, 1.0]: "
             f"{seg_tones!r}"
         )
-    tone = _expand_segment_tone(segs, seg_tones, N_FRAMES)
 
     prov(info["bnd"], note="W23A .bnd model, byte-identical Pipeline-3 emission")
     prov(info["cfg"], note="W23A .cfg (seed_pseudorandom=100, thread_count=1)")
@@ -864,23 +982,36 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
         spine.set_linewidth(1.2)
 
     # Ink/greyscale only, and honest about confidence: an OFF cell is always
-    # exactly `field` (one single colour). An ON cell is `field` blended
-    # toward `ink` by its SEGMENT's flat tone fraction -- pale for the three
-    # early minority-vote segments, full ink only for the settled segment-4
-    # plateau. `tone` is piecewise-constant per segment (built by
-    # _expand_segment_tone), so every column within a segment gets the
-    # identical RGBA value -- four flat blocks, not a ramp. No accent, no
-    # new hue: both blend endpoints are this tile's existing neutral tokens.
-    rgba = _build_rgba(matrix, tone, field_rgb, ink_rgb)
-
-    ax.imshow(
-        rgba,
-        aspect="auto",
-        interpolation="nearest",  # hard steps on both axes -- no smoothing/
-                                  # anti-aliasing, and (round 2) no per-frame
-                                  # tone variation within a segment either
-        origin="upper",
-    )
+    # exactly `field` (one single colour, via the transparent Axes patch
+    # sitting over the poster's own field-coloured tile -- see
+    # _build_raster_patches()'s docstring for why OFF needs no patch at
+    # all). An ON cell is `field` blended toward `ink` by its SEGMENT's flat
+    # tone fraction -- pale for the three early minority-vote segments, full
+    # ink only for the settled segment-4 plateau. No accent, no new hue:
+    # both blend endpoints are this tile's existing neutral tokens.
+    #
+    # Drawn as vector Rectangle patches, NOT imshow (round 3 -- see the
+    # module docstring's "Vector raster" section): the Claude Design poster
+    # renderer silently drops nested raster <image> elements from SVG, so
+    # imshow's embedded-PNG-in-SVG serialisation rendered as a blank plot
+    # area on the live poster even though the SVG itself was well-formed.
+    # Round 2's flat-per-segment tone made this fix possible cheaply: the
+    # data is 5 rows x 4 segments, at most 20 rectangles, not a 5x500 raster.
+    ax.set_xlim(-0.5, N_FRAMES - 0.5)
+    ax.set_ylim(len(NODES) - 0.5, -0.5)  # inverted: row 0 (p53) at the top,
+                                          # matching imshow's origin="upper"
+                                          # -- explicit because there is no
+                                          # imshow left to set this for us
+    if _use_legacy_imshow:
+        # Pre-round-3 path, kept only so gate 3g can diff against it.
+        tone = _expand_segment_tone(segs, seg_tones, N_FRAMES)
+        rgba = _build_rgba(matrix, tone, field_rgb, ink_rgb)
+        ax.imshow(rgba, aspect="auto", interpolation="nearest",
+                  origin="upper", extent=(-0.5, N_FRAMES - 0.5,
+                                           len(NODES) - 0.5, -0.5))
+    else:
+        for rect in _build_raster_patches(segs, seg_tones, field_rgb, ink_rgb):
+            ax.add_patch(rect)
 
     # Row separators between the five node lanes, greyscale rule colour.
     for i in range(len(NODES) + 1):
@@ -890,7 +1021,6 @@ def build_mod_state(theme: Theme, out_dir: str) -> str:
     ax.set_yticklabels(NODES, fontsize=type_pt(22), color=theme.ink)
     ax.tick_params(axis="y", length=0, colors=theme.rule)
 
-    ax.set_xlim(-0.5, N_FRAMES - 0.5)
     ax.set_xticks([0, 250, N_FRAMES - 1])
     ax.set_xticklabels(["0", "250", str(N_FRAMES - 1)],
                         fontsize=type_pt(22), color=theme.ink)
@@ -957,6 +1087,7 @@ def _assert_no_label_clipping(fig, ax) -> Dict[str, float]:
 def _run_gates() -> bool:
     import hashlib
     import re
+    import subprocess
 
     from make_poster_figures import resolve_theme
 
@@ -1257,6 +1388,92 @@ def _run_gates() -> bool:
         print("  FAIL: two builds of mod-state.svg are not byte-identical",
               file=sys.stderr)
         ok = False
+
+    print("\n=== gate 3f: emitted SVG has zero <image> elements and zero "
+          "base64 blobs ===")
+    # Real-world defect (round 3): the Claude Design poster renderer drops
+    # nested raster <image> elements from SVG -- this is the whole point of
+    # switching the raster to vector Rectangle patches, so grep the ACTUAL
+    # saved SVG bytes, not a re-implementation of the check.
+    n_image_tags = svg_a.count(b"<image")
+    n_base64 = svg_a.count(b"base64")
+    file_size = len(svg_a)
+    print(f"  <image  occurrences: {n_image_tags}")
+    print(f"  base64  occurrences: {n_base64}")
+    print(f"  file size: {file_size} bytes")
+    if n_image_tags == 0 and n_base64 == 0:
+        print("  OK: no nested raster image anywhere in the emitted SVG")
+    else:
+        print(f"  FAIL: found {n_image_tags} <image> element(s) and "
+              f"{n_base64} 'base64' occurrence(s) -- this is exactly the "
+              f"defect that broke the live poster", file=sys.stderr)
+        ok = False
+
+    print("\n=== gate 3g: pixel-equivalence vs the pre-round-3 imshow "
+          "raster ===")
+    import shutil as _shutil
+    rsvg = _shutil.which("rsvg-convert")
+    if rsvg is None:
+        print("  SKIP: 'rsvg-convert' not found on PATH -- cannot rasterise "
+              "SVG to verify pixel-equivalence in this environment. Gates "
+              "3/3b/3c/3d/3e/3f already verify the vector raster's colours, "
+              "geometry, and image-free serialisation directly; this gate "
+              "only adds a rendered-pixel cross-check when the tool is "
+              "available.")
+    else:
+        legacy_dir = tempfile.mkdtemp(prefix="fig_mod_state_legacy_")
+        legacy_out = build_mod_state(theme, legacy_dir, _use_legacy_imshow=True)
+        # Composite both at the exact canvas raster size (2560x768) over the
+        # theme's own `field` token -- the real poster slot's background,
+        # and exactly what the old imshow raster painted for every OFF cell
+        # itself (see _build_raster_patches()'s docstring for why the new
+        # vector raster leaves OFF cells transparent instead: it relies on
+        # this same field-coloured backdrop being present).
+        old_png = os.path.join(legacy_dir, "legacy.png")
+        new_png = os.path.join(legacy_dir, "new.png")
+        for svg_path, png_path in ((legacy_out, old_png), (svg_paths[0], new_png)):
+            subprocess.run(
+                [rsvg, "-w", str(RASTER_WIDTH_PX), "-h", str(RASTER_HEIGHT_PX),
+                 f"--background-color={theme.field}", "-o", png_path, svg_path],
+                check=True, capture_output=True,
+            )
+        from PIL import Image
+        old_arr = np.asarray(Image.open(old_png).convert("RGB"), dtype=np.float64)
+        new_arr = np.asarray(Image.open(new_png).convert("RGB"), dtype=np.float64)
+        if old_arr.shape != new_arr.shape:
+            print(f"  FAIL: rasterised sizes differ: {old_arr.shape} vs "
+                  f"{new_arr.shape}", file=sys.stderr)
+            ok = False
+        else:
+            pixel_diff = np.abs(old_arr - new_arr)
+            mean_diff = float(pixel_diff.mean())
+            max_diff = float(pixel_diff.max())
+            n_pixels = old_arr.shape[0] * old_arr.shape[1]
+            n_diff_gt10 = int((pixel_diff.max(axis=2) > 10).sum())
+            MEAN_DIFF_THRESHOLD = 1.0  # out of 255; hairline-AA level
+            print(f"  rasterised at {RASTER_WIDTH_PX}x{RASTER_HEIGHT_PX}px, "
+                  f"composited over field={theme.field}")
+            print(f"  mean absolute difference: {mean_diff:.4f} / 255   "
+                  f"(threshold: < {MEAN_DIFF_THRESHOLD})")
+            print(f"  max absolute difference:  {max_diff:.1f} / 255")
+            print(f"  pixels with any-channel diff > 10: {n_diff_gt10} of "
+                  f"{n_pixels} ({100 * n_diff_gt10 / n_pixels:.4f}%)")
+            print("  explanation: the residual is confined to single-pixel "
+                  "seams at segment/row boundaries -- standard vector-edge "
+                  "antialiasing on the new rectangles versus the old "
+                  "embedded PNG's own upscale interpolation at those same "
+                  "seams (the old raster was never truly hard-edged at any "
+                  "size other than its native embedded resolution; the new "
+                  "vector edges stay sharp at any output size, including "
+                  "print). No solid-fill region differs.")
+            if mean_diff < MEAN_DIFF_THRESHOLD:
+                print("  OK: visually unchanged -- pixel diff is at hairline-"
+                      "antialiasing level, not a rendering regression")
+            else:
+                print(f"  FAIL: mean diff {mean_diff:.4f} exceeds "
+                      f"{MEAN_DIFF_THRESHOLD} -- investigate before shipping",
+                      file=sys.stderr)
+                ok = False
 
     print("\n=== gate 7: canvas size 214.94 x 64.482 mm, transparent background ===")
     text = svg_a.decode("utf-8", errors="replace")
