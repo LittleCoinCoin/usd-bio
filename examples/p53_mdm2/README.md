@@ -97,7 +97,7 @@ Strictly increasing along the destabilization order, with `S` strictly decreasin
 
 ## Testing discipline
 
-`tests/run_tests.py` runs everything (**39 checks**). The rule, inherited from v8's hard-won lesson and restated in the INTENT: **read-back tests assert committed artifacts against expectations derived independently from the source data — never against the generator's own in-memory state.** `tests/test_integrated.py` imports attribute *names* from the demo module and no values, and uses one independent oracle per hop:
+`tests/run_tests.py` runs everything (**53 checks**). The rule, inherited from v8's hard-won lesson and restated in the INTENT: **read-back tests assert committed artifacts against expectations derived independently from the source data — never against the generator's own in-memory state.** `tests/test_integrated.py` imports attribute *names* from the demo module and no values, and uses one independent oracle per hop:
 
 | Hop | Oracle |
 |:--|:--|
@@ -122,8 +122,9 @@ examples/p53_mdm2/
   templates/             # md_parameters (bio:md:), build_analysis_layer (P4)
   maboss/                # dg_correlation, emit_model, run_maboss; reference/, output/
   demos/                 # run_end_to_end.py + the committed integrated .usda   <-- P5
-  tests/                 # the 39-check anti-tautology read-back harness
+  tests/                 # the 53-check anti-tautology read-back harness
   cluster/               # GROMACS container scaffold (PI-gated; nothing built or submitted)
+  figures/               # the six PRIMe poster P-14 tiles + make_poster_figures.py
   output/, analysis/     # committed .usda artifacts (evidence of "done")
 ```
 

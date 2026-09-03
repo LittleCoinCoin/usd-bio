@@ -1,0 +1,80 @@
+{
+  "_meta": {
+    "source": "PRIMe Poster P-14.dc.html (the ATTESTED const)",
+    "role_order": [
+      "paper", "field", "ink", "ink-soft", "panel",
+      "panel-ink", "accent", "accent-on-panel", "rule"
+    ],
+    "note": "Transcribed verbatim from the ATTESTED table in the source file; role order above matches the order the source table lists per-theme hex values in.",
+    "live_default_theme": "slate",
+    "live_default_note": "The poster's live default theme is 'slate'; make_poster_figures.py mirrors that as its own --theme default."
+  },
+  "themes": {
+    "canon": {
+      "paper": "#FFFFFF",
+      "field": "#EEF3F6",
+      "ink": "#17171B",
+      "ink-soft": "#55555F",
+      "panel": "#1B1033",
+      "panel-ink": "#FFFFFF",
+      "accent": "#B34700",
+      "accent-on-panel": "#E69F00",
+      "rule": "#86929C"
+    },
+    "slate": {
+      "paper": "#FCFCFD",
+      "field": "#EDF1F4",
+      "ink": "#14181D",
+      "ink-soft": "#565E68",
+      "panel": "#1E2933",
+      "panel-ink": "#FFFFFF",
+      "accent": "#0B5F8A",
+      "accent-on-panel": "#56B4E9",
+      "rule": "#85919B"
+    },
+    "bone": {
+      "paper": "#FBF9F5",
+      "field": "#F1EDE5",
+      "ink": "#1A1714",
+      "ink-soft": "#5E574E",
+      "panel": "#2B2118",
+      "panel-ink": "#FBF9F5",
+      "accent": "#9B3A1F",
+      "accent-on-panel": "#E69F00",
+      "rule": "#948A7A"
+    },
+    "moss": {
+      "paper": "#FBFCFA",
+      "field": "#EAF0E9",
+      "ink": "#161A16",
+      "ink-soft": "#545C52",
+      "panel": "#1C2A22",
+      "panel-ink": "#FFFFFF",
+      "accent": "#8A2E63",
+      "accent-on-panel": "#CC79A7",
+      "rule": "#879083"
+    },
+    "ash": {
+      "paper": "#FFFFFF",
+      "field": "#F0F1F3",
+      "ink": "#101114",
+      "ink-soft": "#5A5C61",
+      "panel": "#212429",
+      "panel-ink": "#FFFFFF",
+      "accent": "#00625B",
+      "accent-on-panel": "#009E73",
+      "rule": "#8E9196"
+    },
+    "vermilion": {
+      "paper": "#FFFFFF",
+      "field": "#F6EFEE",
+      "ink": "#1A1417",
+      "ink-soft": "#5C545A",
+      "panel": "#310C10",
+      "panel-ink": "#FFFFFF",
+      "accent": "#A3350B",
+      "accent-on-panel": "#D55E00",
+      "rule": "#9A8E8C"
+    }
+  }
+}
