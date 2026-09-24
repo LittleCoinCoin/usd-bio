@@ -1,0 +1,178 @@
+### JOB RECORD
+job_id: 68
+state: COMPLETED exit_code=0 elapsed=00:08:32 (start 2026-09-25T06:47:09 JST, end 06:55:41 JST)
+submitted_via: banyan submit_job (gpus=1, cpu_cores_per_process=64, duration=02:00:00), attended PI session 2026-09-24 CEST
+script: examples/p53_mdm2/cluster/convert_verify.sh at commit 76bdee3 (uploaded sha256 42b96c8f...a92c)
+recipe: examples/p53_mdm2/cluster/Dockerfile at 6af33aa (uploaded sha256 0caf96df...e6ea; build instructions identical to the job 30/33 copy, comments only differ)
+
+### SENTINEL (run_20260924T214709Z/CONVERT_STATUS)
+stage=convert_verify
+exit=0
+sif=/home/eliott/p53mdm2/gromacs-2025.3-cuda12.9-sm70_90.sif
+sif_sha256=221d748ec44c531fb4d9442624f13ae5693c3d3389b4f4d4a698bf5b01de95fa
+rebuilt_image=sha256:f2c11a15052e9545cac30157bdc85495ac64d491944e3e7f29de4e2b7d713b8e
+run_dir=/home/eliott/p53mdm2/run_20260924T214709Z
+finished=2026-09-25T06:55:41+09:00
+
+### DELIVERED ARTIFACT
+path: /home/eliott/p53mdm2/gromacs-2025.3-cuda12.9-sm70_90.sif
+bytes: 5750284288
+sha256: 221d748ec44c531fb4d9442624f13ae5693c3d3389b4f4d4a698bf5b01de95fa
+filesystem: /dev/md0 /home (banyan-local RAID-0; dgx1 NFS-mounts it)
+not replaced: /home/eliott/p53mdm2/gromacs.sif (job 33, sha256 1fc04f8b...81ac) left in place
+
+### COLD-CACHE RECORD (from run_20260924T214709Z/build.log, docker build --no-cache --progress=plain)
+cached_steps: 1 -- only #4 [1/5] FROM docker.io/nvidia/cuda:12.9.1-devel-ubuntu22.04@sha256:bd4e2680a261c212f1e2fea241606f71497dc67a417f73175d794ec8212b5ba8
+  (the locally stored base image; --pull was not passed. The digest matches the Docker Hub digest recorded in the Dockerfile header.)
+executed, not cached: #5 apt toolchain 25.3s | #6 CMake 3.5s | #7 GROMACS fetch+verify+compile+install 95.6s | #8 gmx --version gate 0.3s | #9 export 2.8s
+Contrast with job 33: #7 CACHED / #8 CACHED (manifest seq 3 caveat).
+
+### POST-RUN DISK (read-only, after the job)
+/  385G free (386G before) -- the new 10.6 GB image f2c11a15052e (gromacs-p53mdm2:latest) is resident
+docker system df: Images 54 / 234.6GB, Build Cache 114 / 16.85GB
+run_20260924T214709Z/gromacs.tar (10594032640 bytes) still on shared home -- cleanup NOT performed
+
+### SCRIPT OUTPUT (run_20260924T214709Z/convert_verify_out.txt, verbatim)
+
+======== convert_verify.sh starting 2026-09-25T06:47:09+09:00  job=68 ========
+SINGULARITY_TMPDIR=/home/eliott/p53mdm2/tmp
+
+======== pre-flight disk ========
+/dev/nvme1n1p4  900G  515G  386G  58% /
+/dev/md0         49T   13T   34T  28% /home
+
+======== STEP 1a: docker build --no-cache from the recipe (cold) ========
+dockerfile_sha256: 0caf96dfc4136c0fd0ecdf4a5d42d958eeda9895d92ae89a71ba0d7836f4e6ea
+#1 DONE 0.0s
+#2 DONE 1.2s
+#3 DONE 0.0s
+#4 CACHED
+#5 DONE 25.3s
+#6 DONE 3.5s
+#7 DONE 95.6s
+#8 DONE 0.3s
+#9 DONE 2.8s
+#8 0.254 CUDA driver:         0.0
+#8 0.254 CUDA runtime:        12.90
+#8 0.254 
+#8 0.271 GPU support:         CUDA
+#8 DONE 0.3s
+
+#9 exporting to image
+#9 exporting layers
+#9 exporting layers 2.8s done
+#9 writing image sha256:f2c11a15052e9545cac30157bdc85495ac64d491944e3e7f29de4e2b7d713b8e done
+#9 naming to docker.io/library/gromacs-p53mdm2:latest done
+#9 DONE 2.8s
+cached_steps: 1
+rebuilt_image_id: sha256:f2c11a15052e9545cac30157bdc85495ac64d491944e3e7f29de4e2b7d713b8e
+
+======== STEP 1b: re-run the SASS audit on the rebuilt image (device-free) ========
+rebuild audit exit: 0
+--- SUMMARY ---
+SM_ELF=sm_70;sm_90
+SM_PTX=sm_70;sm_90
+ELF_RECORDS=98
+PTX_RECORDS=98
+LIBCUDA_DT_NEEDED=no
+CHECK_sm_70_ELF=present
+CHECK_sm_90_ELF=present
+--- END SUMMARY ---
+
+======== STEP 1c: build equivalence — diff rebuilt vs original captures ========
+EQUIVALENCE_SUMMARY=identical
+EQUIVALENCE_GMX_VERSION_BLOCK=identical
+
+======== STEP 2a: docker save -> shared home ========
+tar_bytes: 10594032640
+tar_sha256: 82f2618e7f176cbb5bda493d23850df1965c657b7069a6457f1d570bd459ca59
+
+======== STEP 2b: singularity build (no %post -> no root, no --fakeroot needed) ========
+INFO:    Starting build...
+INFO:    Fetching OCI image...
+INFO:    Extracting OCI image...
+INFO:    Inserting Singularity configuration...
+INFO:    Creating SIF file...
+INFO:    Build complete: /home/eliott/p53mdm2/gromacs-2025.3-cuda12.9-sm70_90.sif
+sif_bytes: 5750284288
+sif_sha256: 221d748ec44c531fb4d9442624f13ae5693c3d3389b4f4d4a698bf5b01de95fa
+sif_filesystem: /dev/md0 /home
+
+======== STEP 2b': squashfs compressor record (who wrote it, with what) ========
+writer_singularity: singularity-ce version 4.5.0-noble
+writer_mksquashfs: mksquashfs version 4.6.1 (2023/03/25)
+squashfs_offset: 49152
+Found a valid SQUASHFS 4:0 superblock on /home/eliott/p53mdm2/gromacs-2025.3-cuda12.9-sm70_90.sif.
+Creation or last append time Fri Sep 25 06:55:24 2026
+Filesystem size 5750231941 bytes (5615460.88 Kbytes / 5483.85 Mbytes)
+Compression gzip
+Block size 131072
+Filesystem is exportable via NFS
+Inodes are compressed
+Data is compressed
+Uids/Gids (Id table) are compressed
+Fragments are compressed
+Always-use-fragments option is not specified
+Xattrs are compressed
+SIF_SQUASHFS_COMPRESSION=gzip
+SIF_SQUASHFS_BLOCKSIZE=131072
+
+======== STEP 2c: singularity inspect — labels must be truthful ========
+CMakeVer: 4.0.3
+CudaToolkit: 12.9.1
+GromacsVer: 2025.3
+Maintainer: usd-bio p53-mdm2 track
+Purpose: GPU-enabled GROMACS for p53-MDM2 self-run MD (p1b Step 2)
+SyncWith: ./gromacs.def (parallel implementation — keep in sync)
+TargetSM: 70;90
+maintainer: NVIDIA CORPORATION <cudatools@nvidia.com>
+org.label-schema.build-arch: amd64
+org.label-schema.build-date: Friday_25_September_2026_6:55:7_JST
+org.label-schema.schema-version: 1.0
+org.label-schema.usage.singularity.deffile.bootstrap: docker-archive
+org.label-schema.usage.singularity.deffile.from: /home/eliott/p53mdm2/run_20260924T214709Z/gromacs.tar
+org.label-schema.usage.singularity.version: 4.5.0-noble
+org.opencontainers.image.ref.name: ubuntu
+org.opencontainers.image.version: 22.04
+GATE_NO_BUILDSTATUS=PASS
+GATE_GROMACSVER=PASS
+GATE_TARGETSM=PASS
+
+======== STEP 3: identical smoke system under singularity exec --nv ========
+device_source: SLURM_JOB_GPUS=0
+resolved_global_gpu: 0
+0, 0 MiB, 95830 MiB
+1, 0 MiB, 95830 MiB
+GROMACS version:     2025.3
+Precision:           mixed
+GPU support:         CUDA
+SIMD instructions:   AVX2_256
+CUDA driver:         13.30
+CUDA runtime:        12.90
+         be removed in a future GROMACS version. Please, consider
+compared to previous GROMACS versions.
+solvated_molecules: 884
+sol_lines: 1
+atoms_in_conf: 2652
+Compiled SIMD is AVX2_256, but CPU also supports AVX_512 (see log).
+Steepest Descents converged to Fmax < 1000 in 87 steps
+Potential Energy  = -4.1673973e+04
+Compiled SIMD is AVX2_256, but CPU also supports AVX_512 (see log).
+2000 steps,      4.0 ps.
+Performance:     2320.286        0.010
+sif_run_exit: 0
+
+======== STEP 3b: GPU evidence from the .sif run ========
+    Number of GPUs detected: 1
+    #0: NVIDIA NVIDIA H100 NVL, compute cap.: 9.0, ECC: yes, stat: compatible
+1 GPU selected for this run.
+PME tasks will do all aspects on the GPU
+Using GPU 8x4 nonbonded short-range kernels
+
+======== STEP 3c: docker-vs-sif parity ========
+docker_min_potential_energy: -4.1674004e+04
+sif_min_potential_energy:    -4.1673973e+04
+relative_difference: 7.43869e-07
+GATE_ENERGY_PARITY=PASS (<=1e-3)
+
+======== RESULT: rc=0  (cleanup NOT performed — that is a separate, irreversible step) ========
