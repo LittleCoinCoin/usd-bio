@@ -25,18 +25,28 @@
 #
 # All scratch is redirected under the shared home: `/tmp` is on `/`, and `/` is
 # the 900 G filesystem also holding 213 G of other users' docker layers.
+#
+# COLD REBUILD (2026-09-24): job 33 compiled against a CACHED layer, so it never
+# showed that the build reproduces. The build now runs with --no-cache, which
+# ignores the daemon's build cache without deleting it (other users' cache is
+# untouched). The base image is still the locally stored tag, since --pull is
+# not passed. Every output of a run goes to its own run_<UTC>/ directory, and
+# the .sif is named for its GPU targets, so the verified gromacs.sif that dgx1
+# jobs read stays in place until someone deliberately replaces it.
 # ============================================================================
 set -uo pipefail
 
 WORK=/home/eliott/p53mdm2
 TEMPLATES="$WORK/smoke_system"
 IMAGE=gromacs-p53mdm2:latest
-TAR="$WORK/gromacs.tar"
-SIF="$WORK/gromacs.sif"
-RUNDIR="$WORK/smoke_run_sif"
 BASELINE="$WORK/sass_audit_banyan.txt"
-SENTINEL="$WORK/CONVERT_STATUS"
-OUT="$WORK/convert_verify_out.txt"
+RUN="$WORK/run_$(date -u +%Y%m%dT%H%M%SZ)"
+TAR="$RUN/gromacs.tar"
+SIF="$WORK/gromacs-2025.3-cuda12.9-sm70_90.sif"
+RUNDIR="$RUN/smoke_run_sif"
+SENTINEL="$RUN/CONVERT_STATUS"
+OUT="$RUN/convert_verify_out.txt"
+mkdir -p "$RUN"
 
 rc=0
 note() { echo; echo "======== $* ========"; }
@@ -57,22 +67,27 @@ df -h / /home | tail -2
 [ "$(df -P /home | awk 'NR==2{print int($4/1048576)}')" -ge 30 ] || fail insufficient_home_space
 
 # --- STEP 1: rebuild + build equivalence ------------------------------------
-note "STEP 1a: docker build from the corrected recipe"
-docker build --cpuset-cpus="0-63" -t "$IMAGE" -f "$WORK/Dockerfile" "$WORK" 2>&1 | tail -12
-[ "${PIPESTATUS[0]}" -eq 0 ] || fail docker_build_failed
+note "STEP 1a: docker build --no-cache from the recipe (cold)"
+echo "dockerfile_sha256: $(sha256sum "$WORK/Dockerfile" | awk '{print $1}')"
+docker build --no-cache --progress=plain --cpuset-cpus="0-63" -t "$IMAGE" -f "$WORK/Dockerfile" "$WORK" > "$RUN/build.log" 2>&1
+build_rc=$?
+grep -E '^#[0-9]+ (CACHED|DONE)' "$RUN/build.log" | tail -12
+tail -12 "$RUN/build.log"
+echo "cached_steps: $(grep -c ' CACHED$' "$RUN/build.log")"
+[ "$build_rc" -eq 0 ] || fail docker_build_failed
 NEW_ID="$(docker images --no-trunc --format '{{.ID}}' "$IMAGE")"
 echo "rebuilt_image_id: $NEW_ID"
 
 note "STEP 1b: re-run the SASS audit on the rebuilt image (device-free)"
 docker run --rm -i --ulimit core=0 -e NVIDIA_VISIBLE_DEVICES=void "$IMAGE" \
-    bash -s < "$WORK/sass_audit.sh" > "$WORK/sass_audit_rebuild.txt" 2>&1
+    bash -s < "$WORK/sass_audit.sh" > "$RUN/sass_audit_rebuild.txt" 2>&1
 echo "rebuild audit exit: $?"
-sed -n '/--- SUMMARY ---/,/--- END SUMMARY ---/p' "$WORK/sass_audit_rebuild.txt"
+sed -n '/--- SUMMARY ---/,/--- END SUMMARY ---/p' "$RUN/sass_audit_rebuild.txt"
 
 note "STEP 1c: build equivalence — diff rebuilt vs original captures"
 for blk in SUMMARY GMX_VERSION_BLOCK; do
     a=$(sed -n "/--- ${blk} ---/,/--- END ${blk} ---/p" "$BASELINE")
-    b=$(sed -n "/--- ${blk} ---/,/--- END ${blk} ---/p" "$WORK/sass_audit_rebuild.txt")
+    b=$(sed -n "/--- ${blk} ---/,/--- END ${blk} ---/p" "$RUN/sass_audit_rebuild.txt")
     if [ "$a" = "$b" ]; then
         echo "EQUIVALENCE_${blk}=identical"
     else
@@ -97,6 +112,23 @@ singularity build "$SIF" "docker-archive://$TAR" 2>&1 | tail -12
 echo "sif_bytes: $(stat -c %s "$SIF")"
 echo "sif_sha256: $(sha256sum "$SIF" | awk '{print $1}')"
 echo "sif_filesystem: $(df -P "$SIF" | awk 'NR==2{print $1" "$6}')"
+
+note "STEP 2b': squashfs compressor record (who wrote it, with what)"
+# A record, not a gate: since 2026-08 both clusters read with singularity-ce
+# 4.5.0, so a non-gzip payload no longer breaks the dgx1 read path. It is kept
+# because the build tooling exposes no compressor setting and the default can
+# change under a singularity upgrade without notice.
+echo "writer_singularity: $(singularity --version)"
+echo "writer_mksquashfs: $(mksquashfs -version 2>&1 | head -1)"
+FS_OFF=$(singularity sif list "$SIF" 2>/dev/null | awk -F'|' '/FS \(Squashfs/{split($4,p,"-"); gsub(/ /,"",p[1]); print p[1]}')
+echo "squashfs_offset: ${FS_OFF:-not_found}"
+if [ -n "$FS_OFF" ]; then
+    unsquashfs -s -o "$FS_OFF" "$SIF" 2>&1 | head -12
+    echo "SIF_SQUASHFS_COMPRESSION=$(unsquashfs -s -o "$FS_OFF" "$SIF" 2>/dev/null | awk '/^Compression/{print $2}')"
+    echo "SIF_SQUASHFS_BLOCKSIZE=$(unsquashfs -s -o "$FS_OFF" "$SIF" 2>/dev/null | awk '/^Block size/{print $3}')"
+else
+    echo "SIF_SQUASHFS_COMPRESSION=UNDETERMINED (no FS partition in sif list)"
+fi
 
 note "STEP 2c: singularity inspect — labels must be truthful"
 singularity inspect "$SIF" 2>&1
@@ -156,8 +188,8 @@ else
     echo "GATE_ENERGY_PARITY=INCONCLUSIVE (a baseline log is missing)"; rc=1
 fi
 
-printf 'stage=convert_verify\nexit=%s\nsif_sha256=%s\nrebuilt_image=%s\nfinished=%s\n' \
-    "$rc" "$(sha256sum "$SIF" 2>/dev/null | awk '{print $1}')" "$NEW_ID" "$(date -Is)" > "$SENTINEL"
+printf 'stage=convert_verify\nexit=%s\nsif=%s\nsif_sha256=%s\nrebuilt_image=%s\nrun_dir=%s\nfinished=%s\n' \
+    "$rc" "$SIF" "$(sha256sum "$SIF" 2>/dev/null | awk '{print $1}')" "$NEW_ID" "$RUN" "$(date -Is)" > "$SENTINEL"
 
 note "RESULT: rc=$rc  (cleanup NOT performed — that is a separate, irreversible step)"
 exit "$rc"
