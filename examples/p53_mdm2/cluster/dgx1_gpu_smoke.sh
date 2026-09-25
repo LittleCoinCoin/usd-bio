@@ -35,11 +35,16 @@ set -uo pipefail
 
 WORK=/home/eliott/p53mdm2
 TEMPLATES="$WORK/smoke_system"
-SIF="$WORK/gromacs.sif"
-RUNDIR="$WORK/smoke_run_dgx1_sif"
-BANYAN_BASELINE="$WORK/smoke_run_sif/min.log"   # same NFS export, written on banyan
-SENTINEL="$WORK/DGX1_SMOKE_STATUS"
-OUT="$WORK/dgx1_gpu_smoke_out.txt"
+# SIF and BANYAN_BASELINE can be overridden from the job environment, so a new
+# image is tested against the banyan run of THAT image (e.g. a convert_verify
+# run_<UTC>/smoke_run_sif/min.log), not against an older build's baseline.
+SIF="${SIF:-$WORK/gromacs.sif}"
+BANYAN_BASELINE="${BANYAN_BASELINE:-$WORK/smoke_run_sif/min.log}"   # same NFS export, written on banyan
+RUN="$WORK/run_dgx1_$(date -u +%Y%m%dT%H%M%SZ)"
+RUNDIR="$RUN/smoke_run_dgx1_sif"
+SENTINEL="$RUN/DGX1_SMOKE_STATUS"
+OUT="$RUN/dgx1_gpu_smoke_out.txt"
+mkdir -p "$RUN"
 SMOKE_NTOMP=8
 REQUIRED_CC=7.0                                  # V100 — the sm_70 half
 
@@ -54,6 +59,7 @@ echo "singularity: $(singularity --version)"
 echo "sif: $SIF"
 echo "sif_sha256: $(sha256sum "$SIF" | awk '{print $1}')"
 echo "sif_bytes: $(stat -c %s "$SIF")"
+echo "banyan_baseline: $BANYAN_BASELINE"
 
 # --- STEP 1: resolve the allocated device the sanctioned way -----------------
 note "STEP 1: device resolution"
@@ -156,8 +162,8 @@ echo "CROSSCLUSTER_ENERGY_REL=${REL:-NONE}"
 echo "SIF_SHA256=$(sha256sum "$SIF" | awk '{print $1}')"
 echo "--- END SUMMARY ---"
 
-printf 'stage=dgx1_gpu_smoke\nexit=%s\nmdrun_exit=%s\nsif_sha256=%s\nfinished=%s\n' \
-    "$rc" "$mdrun_rc" "$(sha256sum "$SIF" 2>/dev/null | awk '{print $1}')" "$(date -Is)" > "$SENTINEL"
+printf 'stage=dgx1_gpu_smoke\nexit=%s\nmdrun_exit=%s\nsif=%s\nsif_sha256=%s\nrun_dir=%s\nfinished=%s\n' \
+    "$rc" "$mdrun_rc" "$SIF" "$(sha256sum "$SIF" 2>/dev/null | awk '{print $1}')" "$RUN" "$(date -Is)" > "$SENTINEL"
 
 note "RESULT: rc=$rc"
 exit "$rc"
