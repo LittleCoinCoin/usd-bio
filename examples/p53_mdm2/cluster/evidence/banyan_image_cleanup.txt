@@ -1,0 +1,142 @@
+### JOB RECORD
+job_id: none -- login-node docker CLI via banyan run_command_on_cluster, attended PI session 2026-10-13 JST
+operator: claude-opus-5.5, on the PI's explicit instruction ("proceed with deleting the July and September images: only the sif are needed")
+              then, on a second PI instruction, "Delete gromacs.tar and prune our build-cache records"
+scope: STEP 1 remove the two docker images built by this project; STEP 2 delete the docker-save archive; STEP 3 prune
+       this project's build-cache records by ID, one at a time. No blanket prune at any point. Both .sif left untouched.
+captured_on: 2026-10-13T00:47:41Z (STEP 1), 00:59:48Z (STEP 2 + first prune pass), 01:00:24Z (STEP 3 passes);
+             read-only pre-checks 2026-10-13T00:30Z-00:45Z
+
+### SUMMARY (bytes, from df -B1)
+/      free 421883039744 -> 432547999744   +10664960000  (~10.66 GB; df -h 393G -> 403G)
+         STEP 1 images +57344 | first prune pass (4 leaf records) +45056 | STEP 3 passes +10664857600
+/home  free 36703881015296 -> 36714475057152   +10594041856  (STEP 2, = gromacs.tar size 10594032640 + fs rounding)
+total released ~21.26 GB. Of this project's 21 build-cache records, 16 pruned; 5 shared=true records (0B) remain.
+
+### TARGETS
+NEW = sha256:f2c11a15052e9545cac30157bdc85495ac64d491944e3e7f29de4e2b7d713b8e  gromacs-p53mdm2:latest  (job 68 cold rebuild, 2026-09-25 06:49 JST)
+OLD = sha256:70659e395c53a06d110b09ed4d4f093ec7c110f23d855e5c885e51f571f1c35b  <none>:<none>           (job 30 July build, 2026-07-29 23:31 JST)
+OLD attribution: created the same minute as /home/eliott/p53mdm2/build.log (Jul 29 23:31); history ends in this
+project's CMD "echo '=== GROMACS container (p53-mdm2 / usd-bio) ==='; exec /opt/gromacs/bin/gmx --version" and
+LABEL Maintainer=usd-bio p53-mdm2 track. The only dangling image in the store whose history is ours (29 dangling total).
+
+### READ-ONLY PRE-CHECKS
+containers using either image: 0
+docker system df -v:
+  gromacs-p53mdm2  latest  f2c11a15052e  10.6GB  SHARED 10.18GB  UNIQUE 397.1MB  CONTAINERS 0
+  <none>           <none>  70659e395c53  10.6GB  SHARED 10.18GB  UNIQUE 397.1MB  CONTAINERS 0
+layer sets (RootFS.Layers, compared with comm against every other image in the store):
+  our distinct layers: 18; held ONLY by our two images (among IMAGES): 12
+  NEW and OLD share 12 of their 15 non-empty layers (the CUDA 12.9.1-devel base + apt-mark)
+  nvidia/cuda:12.9.1-devel-ubuntu22.04 is no longer tagged in the store (only 12.9.0-base and 12.0.0-base remain)
+build cache records whose description is this project's Dockerfile steps (docker buildx du --verbose, size > 0):
+  8on7i45wwlrnpx845xeddwhg5  178.4MB  2026-07-29 14:29:34Z  apt-get install build-essential ... python3
+  v1ds68z0dlwccbsk3rbu7hsbt  161.2MB  2026-07-29 14:29:38Z  CMAKE_VERSION=4.0.3
+  pvqvzzklb4sfm8bc9wtad6q6z   57.53MB 2026-07-29 14:31:26Z  GROMACS_VERSION=2025.3 ... GMX_CUDA_TARGET_SM="70;90"
+  rle35ewj6wx3ldqz738ff854w  178.5MB  2026-09-24 21:47:36Z  apt-get install build-essential ... python3
+  uky4icklz0uvydbr7yqj10im6  161.2MB  2026-09-24 21:47:39Z  CMAKE_VERSION=4.0.3
+  jepcqd6b3dfpgylssvmdgre3t   57.53MB 2026-09-24 21:49:15Z  GROMACS_VERSION=2025.3 ... GMX_CUDA_TARGET_SM="70;90"
+  5qbbo4dsh5jtv534ht5zbb0fz   28.99kB 2026-09-24 21:47:09Z  local source for dockerfile (type source.local)
+  sum ~ 794 MB. CORRECTION (see STEP 3): this first listing used a misaligned awk parse and wrongly attributed
+  "pulled from cuda:12.9.1-devel" records to 2026-03 builds by other users. The re-parse in STEP 3 shows all 11 such
+  records were created by THIS project's July build; no other user's record references that base.
+
+### STEP 1 -- BEFORE
+$ df -B1 /
+/dev/nvme1n1p4 965895782400 544012742656 421883039744  57% /
+$ df -h /
+/dev/nvme1n1p4  900G  507G  393G  57% /
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          45        0         209.6GB   176.5GB (84%)
+Containers      0         0         0B        0B
+Local Volumes   1         0         0B        0B
+Build Cache     114       0         16.85GB   16.06GB
+
+### STEP 1 -- REMOVE THE TWO IMAGES (2026-10-13T00:47:41Z)
+$ docker rmi gromacs-p53mdm2:latest
+Untagged: gromacs-p53mdm2:latest
+Deleted: sha256:f2c11a15052e9545cac30157bdc85495ac64d491944e3e7f29de4e2b7d713b8e
+exit=0
+$ docker image inspect sha256:f2c11a15052e...
+Error response from daemon: No such image: sha256:f2c11a15052e9545cac30157bdc85495ac64d491944e3e7f29de4e2b7d713b8e
+$ docker rmi sha256:70659e395c53a06d110b09ed4d4f093ec7c110f23d855e5c885e51f571f1c35b
+Deleted: sha256:70659e395c53a06d110b09ed4d4f093ec7c110f23d855e5c885e51f571f1c35b
+exit=0
+
+### STEP 1 -- AFTER
+$ df -B1 /
+/dev/nvme1n1p4 965895782400 544012685312 421883097088  57% /
+$ df -h /
+/dev/nvme1n1p4  900G  507G  393G  57% /
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          43        0         199.1GB   175.7GB (88%)
+Containers      0         0         0B        0B
+Local Volumes   1         0         0B        0B
+Build Cache     114       0         16.85GB   16.85GB
+$ docker image inspect NEW OLD
+Error response from daemon: No such image: sha256:f2c11a15052e9545cac30157bdc85495ac64d491944e3e7f29de4e2b7d713b8e
+Error response from daemon: No such image: sha256:70659e395c53a06d110b09ed4d4f093ec7c110f23d855e5c885e51f571f1c35b
+$ docker images | grep -i -e gromacs -e p53
+no gromacs/p53 images
+
+### STEP 1 -- DELTA
+/ free bytes:        421883039744 -> 421883097088   (+57344 B, i.e. ~0)
+images:              45 / 209.6GB -> 43 / 199.1GB   (-2 images, -10.5GB accounted)
+build cache:         114 / 16.85GB total unchanged; reclaimable 16.06GB -> 16.85GB (+0.79GB)
+reading: the image records are gone but their layer data was not released; the +0.79GB of newly reclaimable
+build cache equals the ~794 MB of this project's build-cache records listed above. The ~10.2 GB CUDA base was
+still held by build-cache records too -- resolved in STEP 3 below, where pruning OUR records released it.
+
+### STEP 2 -- DELETE THE DOCKER-SAVE ARCHIVE (2026-10-13T00:59:48Z)
+eliott jobs running: 0
+$ ls -l /home/eliott/p53mdm2/run_20260924T214709Z/gromacs.tar
+-rw------- 1 eliott Domain Users 10594032640 Sep 25 06:51 /home/eliott/p53mdm2/run_20260924T214709Z/gromacs.tar
+$ rm /home/eliott/p53mdm2/run_20260924T214709Z/gromacs.tar
+exit=0
+ls: cannot access '/home/eliott/p53mdm2/run_20260924T214709Z/gromacs.tar': No such file or directory
+/home free (df -B1): 36703881015296 -> 36714475057152
+kept in run_20260924T214709Z/: build.log, CONVERT_STATUS, convert_verify_out.txt, sass_audit_rebuild.txt, smoke_run_sif/
+
+### STEP 3 -- PRUNE THIS PROJECT'S BUILD-CACHE RECORDS
+attribution (re-parse of docker buildx du --verbose, records created during the two builds):
+  July build, 2026-07-29 14:29:04Z-14:31:26Z: 11 x "pulled from docker.io/nvidia/cuda:12.9.1-devel-ubuntu22.04@sha256:bd4e2680...",
+    plus apt (8on7i45w), CMake (v1ds68z0), GROMACS (pvqvzzkl), gmx --version (pmkos6fi)          = 15 records
+  September build, 2026-09-24 21:47:09Z-21:49:15Z: source.local dockerfile (5qbbo4ds) + context (3tz7w2pb),
+    apt (rle35ewj), CMake (uky4ickl), GROMACS (jepcqd6b), gmx --version (mgx8oz8u)                = 6 records
+  every "pulled from" record in the store, grouped by day and source (corrected parse):
+    11 x 2026-03-02  nvidia/cuda:12.8.1-devel-ubuntu22.04@sha256:a99a1860...
+    61 x 2026-03-18  nvcr.io/nvidia/pytorch:25.04-py3@sha256:d1eac622...
+    11 x 2026-07-29  nvidia/cuda:12.9.1-devel-ubuntu22.04@sha256:bd4e2680...   <- ours, the only references to that base
+builder: default (docker driver, buildkit v0.32.2)
+command, per id: docker buildx prune -f --filter id=<id>   (no --all, no other filter)
+first pass, all 21 ids:   records 114 -> 110; pruned the 4 leaves pmkos6fi, 5qbbo4ds (28.99kB), 3tz7w2pb, mgx8oz8u
+  (a record with child records is not pruned until its children are gone, so leaves go first)
+then repeated passes over the 17 remaining ids until no change:
+  pass 1: 110 -> 101  pvqvzzkl(57.53MB) jepcqd6b(57.53MB) v1ds68z0(161.2MB) uky4ickl(161.2MB) 8on7i45w(178.4MB)
+                      rle35ewj(178.5MB) 3f80rpj9(0B) ugjzv5nn(0B) x2kns1gp(0B)
+  pass 2: 101 -> 99   ddrdd783(0B) ea846p2u(0B)
+  pass 3:  99 -> 98   9h5mzu98(0B)
+  pass 4:  98 -> 98   none -- stopped
+remaining of ours: ezgvqb5s7fx05lgzupah79kte hmdkvcc497vahm7gfdi5s78hm sp3qq5lx20kz27q3g9a3c8nq9 tdhorobhi0aywdxaek3w6ggzy
+                   y3ldqqephu0luvtcrek7bh0xo -- exactly the five records listed Shared=true before pruning, all 0B;
+                   left in place per PI guidance (no forcing, no --all)
+$ df -B1 /
+/dev/nvme1n1p4 965895782400 533347782656 432547999744  56% /
+$ df -h /
+/dev/nvme1n1p4  900G  497G  403G  56% /
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          43        0         199.1GB   175.7GB (88%)
+Containers      0         0         0B        0B
+Local Volumes   1         0         0B        0B
+Build Cache     98        0         16.06GB   16.06GB
+reading: removing the parent "pulled from cuda:12.9.1-devel" records is what released the ~10.2 GB base;
+docker system df never counted it under Build Cache (those records report 0B), which is why STEP 1 looked like a no-op.
+
+### LEFT IN PLACE (verified after STEP 3)
+/home/eliott/p53mdm2/gromacs-2025.3-cuda12.9-sm70_90.sif  5750284288 B  sha256 221d748ec44c531fb4d9442624f13ae5693c3d3389b4f4d4a698bf5b01de95fa
+/home/eliott/p53mdm2/gromacs.sif                          5750255616 B  sha256 1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac
+build cache: 5 shared=true records of ours (0B), see STEP 3
+note: the two sha256 above were computed with banyan fs_checksum at 2026-10-13T00:30Z, which reset both files' atime
