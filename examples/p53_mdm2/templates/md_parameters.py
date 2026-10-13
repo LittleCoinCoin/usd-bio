@@ -38,6 +38,13 @@ exhaustive parameter dump):
   would be fabrication. It is authored only when a caller supplies a real
   ``remd`` spec.
 
+- **Two instances, one schema.** ``DEFAULT_*`` is the *planned* GENESIS deck
+  (output/p53_mdm2_md_setup.usda). ``GROMACS_*`` is the deck of the first run
+  that actually executes (output/p53_mdm2_md_setup_gromacs.usda), with a
+  multi-stage protocol (EM/NVT/NPT/production) as ``mdSetup/protocol/<stage>``
+  children that carry only per-stage differences. The USD -> ``.mdp`` emitter
+  is :mod:`p53_mdm2.templates.gromacs_deck`.
+
 - **Units.** MDDB mandates a unit on every value; USD has no per-attribute unit
   primitive (except length). Each non-string attribute therefore carries its
   unit in ``customData["unit"]`` (lossless to the MDDB YAML tree). Every
@@ -117,7 +124,31 @@ OPTIONAL_FIELDS = (
     ("hydrogenMassRepartitioning", "Bool",   None),
     ("hmrRatio",                   "Double", None),
     ("gammaT",                     "Double", "1/ps"),    # Langevin friction
+    # --- added cycle-009 for the first EXECUTED run (GROMACS instance). Each
+    # one is a value the run actually depends on, so the deck emitter can take
+    # it from the stage instead of hard-coding it. ---
+    ("constrainedBonds",           "String", None),      # {none, h-bonds, all-bonds}
+    ("thermostatTau",              "Double", "ps"),
+    ("barostatTau",                "Double", "ps"),
+    ("compressibility",            "Double", "1/bar"),
+    ("pmeGridSpacing",             "Double", "angstrom"),
+    ("randomSeed",                 "Int",    None),      # velocities + stochastic couplings
+    ("outputInterval",             "Int64",  "steps"),   # energies + log
+    ("trajectoryInterval",         "Int64",  "steps"),   # compressed coordinates
+    ("boxShape",                   "Token",  None),      # {cubic, dodecahedron, octahedron}
+    ("soluteBoxDistance",          "Double", "angstrom"),  # solute-to-box-edge clearance
 )
+
+# STAGE-only fields -- authored on the per-stage child prims of
+# ``mdSetup/protocol`` (see :func:`author_md_stages`), never on ``mdSetup``.
+STAGE_FIELDS = (
+    ("positionRestraints",  "Bool",   None),      # solute heavy-atom restraints on
+    ("generateVelocities",  "Bool",   None),      # Maxwell-Boltzmann at temperature
+    ("emTolerance",         "Double", "kJ/mol/nm"),  # minimiser max-force target
+)
+
+#: Child Scope of ``mdSetup`` holding the ordered stage prims.
+MD_PROTOCOL_PRIM_NAME = "protocol"
 
 #: R01's nested replica-exchange block (documented growth path; not authored in
 #: the default conventional-production artifact). namespace ``bio:md:remd:``.
@@ -129,7 +160,7 @@ REMD_FIELDS = (
 )
 
 _ALL_SPECS = {suffix: (t, u) for suffix, t, u in
-              (*CORE_FIELDS, *OPTIONAL_FIELDS, *REMD_FIELDS)}
+              (*CORE_FIELDS, *OPTIONAL_FIELDS, *REMD_FIELDS, *STAGE_FIELDS)}
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +232,163 @@ DEFAULT_OPTIONAL: Dict[str, dict] = {
     "gammaT":                     {"value": 1.0,
                                    "source": "[source: R01 -- gamma_t=1.0 ps^-1]"},
 }
+
+
+# ---------------------------------------------------------------------------
+# GROMACS instance -- the run that is actually going to EXECUTE (cycle-009).
+#
+# The DEFAULT_* deck above is a PLANNED GENESIS run (ff19SB, VRES 3.5 fs HMR,
+# SHAKE) transcribed from ShinobuLab decks. It cannot run in the only container
+# the project has: GROMACS 2025.3 ships amber03/94/96/99/99sb/99sb-ildn/GS,
+# charmm27, gromos* and oplsaa in /opt/gromacs/share/gromacs/top, and NO
+# ff14SB/ff19SB. This deck therefore describes a different, runnable protocol.
+# Where it departs from the GENESIS plan the source tag says so; it is not a
+# translation of that plan. Same schema, same authoring functions, a second
+# instance -- not a fork.
+# ---------------------------------------------------------------------------
+_CONTAINER = ("container gromacs-2025.3-cuda12.9-sm70_90.sif "
+              "(sha256 221d748e...95fa)")
+
+GROMACS_CORE: Dict[str, dict] = {
+    "engine":              {"value": "GROMACS",
+                            "source": "[source: PI engine choice, INBOX 2026-07-23; "
+                                      f"{_CONTAINER}]"},
+    "engineVersion":       {"value": "2025.3",
+                            "source": "[source: sif label GromacsVer 2025.3 + gmx --version, "
+                                      "cluster/evidence/convert_verify_cold_banyan.txt]"},
+    "forceField":          {"value": "AMBER99SB-ILDN",
+                            "source": "[assumption: DIVERGES from the planned AMBER ff19SB -- "
+                                      "ff19SB/ff14SB are not bundled in the container (probe "
+                                      "2026-10-14); amber99sb-ildn is the most recent Amber "
+                                      "protein force field it ships. Pending PI decision]"},
+    "waterModel":          {"value": "TIP3P",
+                            "source": "[source: R01 TIP3P kept; amber99sb-ildn.ff/tip3p.itp]"},
+    "ensemble":            {"value": "NPT",
+                            "source": "[assumption: NPT production after NVT+NPT "
+                                      "equilibration; R01 GENESIS production was NVT]"},
+    "integrator":          {"value": "md",
+                            "source": "[source: GROMACS leap-frog integrator (mdp integrator=md)]"},
+    "timestep":            {"value": 0.002,
+                            "source": "[assumption: 2 fs with h-bond constraints and no HMR; "
+                                      "R01's 3.5 fs relied on HMR + RESPA]"},
+    "nSteps":              {"value": 50000,
+                            "source": "[assumption: 100 ps SHORT production -- first run is a "
+                                      "pipeline + GPU-block check, not science (INBOX 2026-09-25)]"},
+    "temperature":         {"value": 310.0,
+                            "source": "[source: R01 -- temperature=310.0 K, kept]"},
+    "thermostat":          {"value": "V-rescale",
+                            "source": "[source: R01 BUSSI kept -- GROMACS V-rescale is the "
+                                      "Bussi-Donadio-Parrinello 2007 thermostat]"},
+    "barostat":            {"value": "C-rescale",
+                            "source": "[assumption: GROMACS C-rescale (Bernetti-Bussi 2020), "
+                                      "the stochastic cell-rescaling analogue of R01 BUSSI]"},
+    "pressure":            {"value": 1.0,
+                            "source": "[source: R01 -- pressure=1.0 atm, kept]"},
+    "electrostatics":      {"value": "PME",
+                            "source": "[source: R01 -- electrostatic=PME, kept]"},
+    "cutoff":              {"value": 10.0,
+                            "source": "[assumption: 10 Angstrom, the AMBER-in-GROMACS norm; "
+                                      "R01's 8 Angstrom was a GENESIS choice]"},
+    "constraintAlgorithm": {"value": "LINCS",
+                            "source": "[assumption: LINCS, the GROMACS h-bond constraint "
+                                      "algorithm; replaces R01 SHAKE]"},
+    # --- PI-promoted to CORE (Q-003) ---
+    "ionConcentration":    {"value": 0.15,
+                            "source": "[assumption: physiological 0.15 mol/L NaCl on top of "
+                                      "neutralisation (gmx genion -neutral -conc 0.15)]"},
+    "protonationState":    {"value": "pdb2gmx default states, pH 7 assumed: Lys/Arg "
+                                     "protonated, Asp/Glu deprotonated, His tautomer from "
+                                     "pdb2gmx H-bond placement (neutral), charged N/C termini",
+                            "source": "[assumption: no pKa calculation and no interactive "
+                                      "pdb2gmx selection; the termini are charged even where "
+                                      "1YCR truncates the chain (REMARK 465), not capped]"},
+}
+
+GROMACS_OPTIONAL: Dict[str, dict] = {
+    "ionSpecies":                 {"value": "NaCl",
+                                   "source": "[assumption: NaCl, companion to ionConcentration]"},
+    "boxType":                    {"value": "PBC",
+                                   "source": "[source: R01 -- type=PBC, kept]"},
+    "dispersionCorrection":       {"value": "EnerPres",
+                                   "source": "[source: R01 EPRESS kept -- GROMACS DispCorr=EnerPres]"},
+    "hydrogenMassRepartitioning": {"value": False,
+                                   "source": "[assumption: no HMR at 2 fs; R01 used HMR]"},
+    "constrainedBonds":           {"value": "h-bonds",
+                                   "source": "[assumption: bonds to hydrogen constrained]"},
+    "thermostatTau":              {"value": 0.1,
+                                   "source": "[assumption: 0.1 ps V-rescale coupling time]"},
+    "barostatTau":                {"value": 2.0,
+                                   "source": "[assumption: 2.0 ps C-rescale coupling time]"},
+    "compressibility":            {"value": 4.5e-5,
+                                   "source": "[assumption: water isothermal compressibility]"},
+    "pmeGridSpacing":             {"value": 1.2,
+                                   "source": "[assumption: 1.2 Angstrom PME grid spacing]"},
+    "randomSeed":                 {"value": 20261014,
+                                   "source": "[assumption: fixed seed so velocity generation "
+                                             "and stochastic coupling are repeatable; GPU runs "
+                                             "are still not bitwise reproducible]"},
+    "outputInterval":             {"value": 500,
+                                   "source": "[assumption: energies + log every 1 ps]"},
+    "trajectoryInterval":         {"value": 5000,
+                                   "source": "[assumption: compressed coordinates every 10 ps]"},
+    "boxShape":                   {"value": "dodecahedron",
+                                   "source": "[assumption: rhombic dodecahedron, smallest "
+                                             "periodic cell for a globular solute]"},
+    "soluteBoxDistance":          {"value": 10.0,
+                                   "source": "[assumption: 10 Angstrom solute-to-box clearance, "
+                                             "equal to the cutoff]"},
+}
+
+#: Ordered protocol stages. Each carries ONLY what differs from ``mdSetup``;
+#: an unauthored attribute falls back to the ``mdSetup`` value (the emitter's
+#: resolution rule). ``md`` is production and authors nothing: production IS
+#: the CORE deck.
+GROMACS_STAGES = (
+    ("em", {
+        "integrator":       {"value": "steep",
+                             "source": "[assumption: steepest-descent minimisation]"},
+        "nSteps":           {"value": 50000,
+                             "source": "[assumption: step ceiling; stops at emTolerance]"},
+        "emTolerance":      {"value": 1000.0,
+                             "source": "[assumption: max force < 1000 kJ/mol/nm]"},
+        "constrainedBonds": {"value": "none",
+                             "source": "[assumption: unconstrained minimisation]"},
+    }),
+    ("nvt", {
+        "ensemble":           {"value": "NVT",
+                               "source": "[assumption: NVT heating/equilibration]"},
+        "nSteps":             {"value": 50000,
+                               "source": "[assumption: 100 ps NVT]"},
+        "positionRestraints": {"value": True,
+                               "source": "[assumption: pdb2gmx heavy-atom restraints]"},
+        "generateVelocities": {"value": True,
+                               "source": "[assumption: velocities drawn at temperature]"},
+    }),
+    ("npt", {
+        "ensemble":           {"value": "NPT",
+                               "source": "[assumption: NPT density equilibration]"},
+        "nSteps":             {"value": 50000,
+                               "source": "[assumption: 100 ps NPT]"},
+        "positionRestraints": {"value": True,
+                               "source": "[assumption: pdb2gmx heavy-atom restraints]"},
+    }),
+    ("md", {}),
+)
+
+
+def gromacs_provenance_record(timestamp: str = "unknown") -> dict:
+    """Six-field provenance record for the GROMACS deck (honest divergence)."""
+    return {
+        "sourcePdb": DEFAULT_STARTING_STRUCTURE,
+        "forceField": GROMACS_CORE["forceField"]["value"],
+        "softwareName": GROMACS_CORE["engine"]["value"],
+        "softwareVersion": GROMACS_CORE["engineVersion"]["value"],
+        "simSettings": "first executed p53-MDM2 run: EM -> NVT 100 ps -> NPT 100 ps "
+                       "-> NPT production 100 ps; leap-frog 2 fs, PME, LINCS h-bonds, "
+                       "V-rescale 310 K, C-rescale 1 atm. Diverges from the planned "
+                       "GENESIS/ff19SB deck (ff19SB not in the container)",
+        "timestamp": timestamp,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -310,6 +498,40 @@ def author_md_setup(
     return setup_prim
 
 
+def author_md_stages(setup_prim, stages) -> list:
+    """Author an ordered multi-stage protocol under ``<mdSetup>/protocol``.
+
+    Each stage is a ``Scope`` child carrying only the ``bio:md:`` fields that
+    differ from ``mdSetup``; consumers resolve an unauthored field on the stage
+    by falling back to ``mdSetup``. Child order is the execution order.
+
+    Args:
+        setup_prim: the ``mdSetup`` prim returned by :func:`author_md_setup`.
+        stages: ordered ``[(name, {suffix: {"value", "source"}}), ...]``.
+
+    Returns:
+        the stage prims, in order.
+
+    Raises:
+        ValueError: on an unknown suffix or a duplicate stage name.
+    """
+    stage = setup_prim.GetStage()
+    protocol_path = setup_prim.GetPath().AppendChild(MD_PROTOCOL_PRIM_NAME)
+    stage.DefinePrim(protocol_path, MD_SETUP_PRIM_TYPE)
+    prims, seen = [], set()
+    for name, fields in stages:
+        if name in seen:
+            raise ValueError(f"author_md_stages: duplicate stage {name!r}")
+        seen.add(name)
+        prim = stage.DefinePrim(protocol_path.AppendChild(name), MD_SETUP_PRIM_TYPE)
+        for suffix, entry in fields.items():
+            if suffix not in _ALL_SPECS:
+                raise ValueError(f"author_md_stages: unknown suffix {suffix!r} on {name!r}")
+            _author_field(prim, suffix, entry)
+        prims.append(prim)
+    return prims
+
+
 def default_provenance_record(timestamp: str = "unknown") -> dict:
     """A six-field provenance record for the default parameter deck.
 
@@ -332,18 +554,30 @@ def build_md_setup_artifact(
     *,
     root_path: Optional[str] = None,
     topology_sublayer: Optional[str] = "p53_mdm2_topology.usda",
+    core: Optional[Dict[str, dict]] = None,
+    optional: Optional[Dict[str, dict]] = None,
+    stages=None,
+    provenance_record: Optional[dict] = None,
+    comment: Optional[str] = None,
 ) -> str:
-    """Build the committed ``bio:md:`` Protocol-layer artifact.
+    """Build a committed ``bio:md:`` Protocol-layer artifact.
 
     The layer ``subLayers`` the Biology topology (when present next to it), so
     the ``mdSetup`` prim composes onto the same complex root -- a working
     demonstration of the departmental-layering pattern (Protocol over Biology).
+    With no deck arguments this builds the planned-GENESIS default artifact;
+    :func:`build_gromacs_md_setup_artifact` passes the GROMACS instance.
 
     Args:
         output_path: destination .usda (default: output/p53_mdm2_md_setup.usda).
         root_path: complex root path (default :data:`p53_env.DEFAULT_ROOT_PATH`).
         topology_sublayer: relative path to the Biology topology layer to
             subLayer, or ``None`` to author a standalone Protocol layer.
+        core, optional: forwarded to :func:`author_md_setup` (default deck).
+        stages: optional ordered stage list for :func:`author_md_stages`.
+        provenance_record: six-field record (default
+            :func:`default_provenance_record`).
+        comment: layer comment (default: the GENESIS-deck comment).
 
     Returns:
         ``output_path``.
@@ -364,6 +598,7 @@ def build_md_setup_artifact(
     UsdGeom.SetStageMetersPerUnit(stage, p53_env.METERS_PER_UNIT)
     stage.SetMetadata(
         "comment",
+        comment or
         "p53-MDM2 MD-setup parameters (bio:md:) -- Protocol departmental layer. "
         "CORE = R01 reproducible set + PI-promoted ionConcentration & "
         "protonationState (Q-003). Values tagged [source: R01] or [assumption:].")
@@ -379,16 +614,23 @@ def build_md_setup_artifact(
     root_prim = UsdGeom.Xform.Define(stage, root_path).GetPrim()
     stage.SetDefaultPrim(root_prim)
 
-    author_md_setup(
+    setup_prim = author_md_setup(
         stage,
         root_path=root_path,
-        provenance_record=default_provenance_record(),
+        core=core,
+        optional=optional,
+        provenance_record=(provenance_record if provenance_record is not None
+                           else default_provenance_record()),
     )
+    if stages:
+        author_md_stages(setup_prim, stages)
 
     stage.GetRootLayer().Save()
     print(f"[md_parameters] Written: {output_path}")
     print(f"  root: {root_path}  prim: {root_path}/{MD_SETUP_PRIM_NAME} ({MD_SETUP_PRIM_TYPE})")
-    print(f"  core fields: {len(CORE_FIELDS)}  optional: {len(DEFAULT_OPTIONAL)}")
+    print(f"  core fields: {len(CORE_FIELDS)}  "
+          f"optional: {len(DEFAULT_OPTIONAL if optional is None else optional)}"
+          + (f"  stages: {[n for n, _f in stages]}" if stages else ""))
     if topology_sublayer:
         print(f"  subLayer: ./{topology_sublayer}")
     return output_path
@@ -399,6 +641,27 @@ def default_output_path() -> str:
     return os.path.join(p53_env.output_dir(), "p53_mdm2_md_setup.usda")
 
 
+def gromacs_output_path() -> str:
+    """Canonical committed location for the GROMACS (executed-run) artifact."""
+    return os.path.join(p53_env.output_dir(), "p53_mdm2_md_setup_gromacs.usda")
+
+
+def build_gromacs_md_setup_artifact(output_path: Optional[str] = None) -> str:
+    """Build the GROMACS deck artifact: same schema, the runnable instance."""
+    return build_md_setup_artifact(
+        output_path or gromacs_output_path(),
+        core=GROMACS_CORE,
+        optional=GROMACS_OPTIONAL,
+        stages=GROMACS_STAGES,
+        provenance_record=gromacs_provenance_record(),
+        comment="p53-MDM2 MD-setup parameters (bio:md:) for the first EXECUTED run "
+                "-- GROMACS 2025.3, Protocol departmental layer. mdSetup = production "
+                "deck; mdSetup/protocol/{em,nvt,npt,md} carry only per-stage "
+                "differences. Diverges from the planned GENESIS deck "
+                "(p53_mdm2_md_setup.usda); every value tagged [source:] or "
+                "[assumption:].")
+
+
 if __name__ == "__main__":
-    path = build_md_setup_artifact()
-    print(f"[md_parameters] Done. Inspect with:  usdcat --flatten {path}")
+    for path in (build_md_setup_artifact(), build_gromacs_md_setup_artifact()):
+        print(f"[md_parameters] Done. Inspect with:  usdcat --flatten {path}")

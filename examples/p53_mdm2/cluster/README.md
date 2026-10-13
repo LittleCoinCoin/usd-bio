@@ -101,8 +101,75 @@ the two shared clusters.
 | `dgx1_gpu_smoke.sh` | dgx1 V100 run of a `.sif` plus cross-cluster energy parity. `SIF` and `BANYAN_BASELINE` default to the job-68 image and its banyan run (repointed 2026-10-13) and can be overridden. Jobs 28 and 59. |
 | `dgx1_sass_vs_jit_probe.sh` | dgx1: was the V100 kernel SASS or JIT from PTX? `SIF` defaults to the job-68 image (2026-10-13). Jobs 30 and 31 probed the July image. |
 | `docker_gpu_smoke.sh`, `sass_audit.sh` | banyan: GPU smoke through the Docker daemon (job 32) and the SASS-target audit run inside the image. |
+| `p53_md/` | **The first real p53–MDM2 MD run (1YCR) — NOT YET EXECUTED.** `p53_md_submit.sbatch` (host side, dgx1 V100), `p53_md_run.sh` (container side), and the deck they read: `em.mdp`, `nvt.mdp`, `npt.mdp`, `md.mdp`, `prep.env`. The deck files are **generated** from `output/p53_mdm2_md_setup_gromacs.usda` by `templates/gromacs_deck.py`. Do not hand-edit them: `tests/test_md_gromacs_deck.py` fails when they are stale. See [below](#the-first-p53-mdm2-md-run--not-yet-executed). |
 | `evidence/` | Captured cluster outputs, indexed with sha256 in `evidence/manifest.jsonl` and checked by `tests/test_container_evidence.py`. |
 | `README.md` | This runbook. |
+
+## The first p53-MDM2 MD run — NOT YET EXECUTED
+
+**What it is.** The first MD of the real complex rather than the water box:
+1YCR (MDM2 25–109 + p53 17–29) is built into a solvated, neutralised system in
+the one `.sif`, minimised, equilibrated, and run for a short production on one
+dgx1 V100. It is **short on purpose**. INBOX 2026-09-25 says to start short and
+read the md.log GPU block before running anything long.
+
+| Stage | Integrator / ensemble | Length | Notes |
+|---|---|---|---|
+| prep | pdb2gmx → editconf → solvate → genion | — | AMBER99SB-ILDN + TIP3P, rhombic dodecahedron with 1.0 nm clearance, neutralise + 0.15 M NaCl |
+| `em` | steepest descent | ≤ 50 000 steps | stops at Fmax < 1000 kJ/mol/nm; `-nb gpu` only, because GPU PME supports only dynamical integrators |
+| `nvt` | leap-frog, V-rescale 310 K | 100 ps | heavy-atom position restraints, velocities generated (seed fixed) |
+| `npt` | + C-rescale 1 atm | 100 ps | restraints kept, `refcoord-scaling = com` |
+| `md` | NPT, unrestrained | 100 ps | production; coordinates every 10 ps |
+
+**Expected wall time: a few minutes.** The system should come to about 20k
+atoms. At the low hundreds of ns/day a V100 should reach on that size, 300 ps of
+dynamics takes about 2–3 min, and prep plus EM about 1–2 min. The 30 min
+`--time` is a ceiling, not an estimate. The 100 ps equilibration stages are the
+usual tutorial lengths. Nothing is gained by going shorter, since a stage under a
+minute is dominated by start-up.
+
+**Where every parameter comes from.** All of it comes from the USD stage, and
+none from the scripts. `p53_md_run.sh` sources `prep.env` (force field, water,
+box, ions, stage list) and passes `<stage>.mdp` to grompp. Both are emitted from
+`output/p53_mdm2_md_setup_gromacs.usda`. To change the protocol, edit
+`templates/md_parameters.py` (`GROMACS_*`), rebuild the artifact, and re-run
+`templates/gromacs_deck.py`. The job prints the sha256 of every deck file, so
+the evidence names the exact deck that ran.
+
+**Known divergences from the planned GENESIS deck** (`output/p53_mdm2_md_setup.usda`).
+Each is tagged `[assumption:]` on the stage:
+- **AMBER99SB-ILDN, not ff19SB.** The container ships no ff14SB/ff19SB. This
+  needs a PI decision.
+- 2 fs with LINCS h-bonds and no HMR, instead of 3.5 fs VRES + HMR + SHAKE.
+- 10 Å cutoff instead of 8 Å, and NPT production instead of NVT.
+- Protonation is pdb2gmx's defaults at an assumed pH 7. The termini are
+  charged, including where 1YCR truncates the chain.
+- Chain A's last residue (VAL 109) has no OXT in the PDB. `p53_md_run.sh`
+  places one by reflecting C→O through the CA→C axis before pdb2gmx, so the
+  run does not depend on whether the force field's C-terminus database
+  rebuilds it. EM relaxes it.
+
+**Expected observables, counted by hand from `1ycr.pdb`** (in the fixture, not
+yet asserted): 85 + 13 residues, net charge **+3** before ions (chain A +5,
+chain B −2), and `OXT_ADDED=A109`.
+
+**Staging and submission (coordinator, attended).**
+```bash
+# on the shared home
+mkdir -p /home/eliott/p53mdm2/p53_md
+# copy examples/p53_mdm2/cluster/p53_md/* and examples/p53_mdm2/data/structures/1ycr.pdb into it
+cd /home/eliott/p53mdm2 && sbatch p53_md/p53_md_submit.sbatch     # on dgx1
+```
+`DECK`, `PDB` and `SIF` can be overridden from the job environment. Output
+goes to `run_p53md_<UTC>/`: `p53_md_out.txt` (copy it to `evidence/` as `.txt`,
+since the repo ignores `*.log`), `P53_MD_STATUS`, and `work/` with every gmx
+step's `.txt` log. **Read the STEP 5 GPU block before anything longer.**
+`NONBONDED_ON_GPU`/`PME_ON_GPU` must read `yes` for `nvt`, `npt` and `md`.
+
+**Possible first-run failure.** `GROMPP_MAXWARN` defaults to 0, so a grompp
+warning stops the run before MD. That is deliberate. Read the warning in
+`work/grompp_<stage>.txt`, then re-submit with `GROMPP_MAXWARN=1` only if the
+warning is understood.
 
 ## Why this shape (grounded in the live recon)
 
