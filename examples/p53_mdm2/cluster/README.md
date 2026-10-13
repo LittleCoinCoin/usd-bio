@@ -4,7 +4,34 @@
 **GROMACS** (PI's engine choice, INBOX 2026-07-23) inside a portable container on
 the two shared clusters.
 
-> ## ✅ THE `.sif` IS DELIVERED, HAS RUN ON AN H100, AND OPENS ON dgx1
+> ## ✅ ONE `.sif`, COLD-REBUILT, RUNS ON BOTH CLUSTERS' GPUs (live state, 2026-10-13)
+> **The only container image is
+> `/home/eliott/p53mdm2/gromacs-2025.3-cuda12.9-sm70_90.sif`** — 5750284288
+> bytes, sha256 `221d748e…95fa`. Attended **banyan job 68** (2026-09-25,
+> exit 0, 8m32s) built it with `docker build --no-cache`. The build-equivalence
+> diff against the July captures is `identical`, both for the SASS summary
+> (`SM_ELF=sm_70;sm_90`) and the `gmx --version` block. Its `inspect` labels pass
+> (`GromacsVer 2025.3`, `TargetSM 70;90`, no `BuildStatus`), and on the H100 it
+> matched the Docker run's minimisation energy to **7.4e-07**
+> `[source: evidence/convert_verify_cold_banyan.txt, manifest seq 12]`.
+> **dgx1 job 59** (2026-09-25, exit 0) then ran the same file on a **V100**
+> (compute cap 7.0, the `sm_70` half), with nonbonded and PME on the GPU. It
+> agreed with the banyan H100 run of the same image to **1.7e-07**
+> `[source: evidence/dgx1_gpu_smoke_sm70_90.txt, seq 13]`.
+>
+> **Build scratch reclaimed (2026-10-13).** Both docker images, the
+> docker-save archive and the project's build-cache records are gone, releasing
+> 21.26 GB (`/` 393 G → 403 G). Only five shared, zero-size cache records
+> remain `[source: evidence/banyan_image_cleanup.txt, seq 14]`. The July image
+> **`gromacs.sif` (sha256 `1fc04f8b…81ac`) is retired**: the dgx1 scripts were
+> repointed and the file was deleted. Evidence seq 3–11 still cite it by digest
+> `[source: evidence/banyan_old_sif_retired.txt, seq 15]`. Report:
+> `__reports__/p53-mdm2/16-banyan_image_cleanup_findings_v0.md`.
+>
+> **Still true:** no p53–MDM2 MD has run on either cluster. Every execution so
+> far is the 2652-atom smoke-test water box.
+>
+> ### History: the July build (superseded above, kept for the record)
 > **Slurm job 30 on banyan COMPLETED, exit 0, in 5m27s (2026-07-29).** It
 > produced `gromacs-p53mdm2:latest` (image id `70659e395c53`, 10.6 GB),
 > independently corroborated by the `/home/eliott/p53mdm2/BUILD_STATUS`
@@ -29,7 +56,7 @@ the two shared clusters.
 > open and exec under dgx1's singularity 3.5.2**, read-only and without a GPU
 > `[source: evidence/dgx1_sif_open.txt, commit a46515b]`.
 >
-> **Still true — do not read past this line as "everything is done":**
+> **As of 2026-07-31 (all three resolved since, see the live state above):**
 > - **No dgx1 GPU has run this image.** Every GPU observation above is
 >   banyan/H100 (`sm_90`). The V100 (`sm_70`) path has been compiled and
 >   inspected, never executed; the cross-cluster check that did run took no
@@ -69,7 +96,12 @@ the two shared clusters.
 |---|---|
 | `gromacs.def` | Singularity/Apptainer definition: GPU-enabled **GROMACS 2025.3** on a **CUDA 12.9.1 / Ubuntu 22.04** base, built for both V100 (sm_70) and H100 (sm_90). Every pin carries an inline source URL. Drives **Route A**, which is dead by observation (see below) — this file's `%post` has never itself been executed by `singularity build`, though its Docker twin has. |
 | `Dockerfile` | **Route B** (the path that was actually used) build recipe — a *faithful translation* of `gromacs.def`: same base tag, same tarball URL, same md5 **and** sha256, same pinned CMake 4.0.3, same `GMX_*` flags. Single-stage, no `ENTRYPOINT`. ⚠️ **Parallel implementation of `gromacs.def` — the two must be kept in sync.** **Built 2026-07-29** — Slurm job 30, exit 0, `gromacs-p53mdm2:latest` (`70659e395c53`, 10.6 GB). See gated step 1 and R13. |
-| `smoke_submit.sbatch` | Slurm template for a **1-GPU** smoke test (`gmx --version` on the GPU node + a trivial energy minimization) via `singularity exec --nv`. **Still never submitted** — the `.sif` it needs now exists, and the banyan-side equivalent was performed inside job 33's own script (`convert_verify.sh`, step 3), so this template's remaining use is the **dgx1** run, which is PI-attended. |
+| `smoke_submit.sbatch` | Slurm template for a **1-GPU** smoke test (`gmx --version` on the GPU node + a trivial energy minimization) via `singularity exec --nv`. **Still never submitted.** Both clusters' GPU smoke runs were done by the dedicated scripts below instead. Its `SIF=` placeholder points at the job-68 image (2026-10-13). |
+| `convert_verify.sh` | banyan: `docker build` → `docker save` → `singularity build` → `inspect` gates → docker-vs-`.sif` energy parity. Jobs 33 and 68. It does **not** clean up after itself: see `evidence/banyan_image_cleanup.txt` for what has to be removed (images, archive, build-cache records by ID). |
+| `dgx1_gpu_smoke.sh` | dgx1 V100 run of a `.sif` plus cross-cluster energy parity. `SIF` and `BANYAN_BASELINE` default to the job-68 image and its banyan run (repointed 2026-10-13) and can be overridden. Jobs 28 and 59. |
+| `dgx1_sass_vs_jit_probe.sh` | dgx1: was the V100 kernel SASS or JIT from PTX? `SIF` defaults to the job-68 image (2026-10-13). Jobs 30 and 31 probed the July image. |
+| `docker_gpu_smoke.sh`, `sass_audit.sh` | banyan: GPU smoke through the Docker daemon (job 32) and the SASS-target audit run inside the image. |
+| `evidence/` | Captured cluster outputs, indexed with sha256 in `evidence/manifest.jsonl` and checked by `tests/test_container_evidence.py`. |
 | `README.md` | This runbook. |
 
 ## Why this shape (grounded in the live recon)
@@ -91,6 +123,12 @@ choice (GROMACS) is the PI's.
   identical size 5750255616 — the same digest recorded at delivery time. Stage-once-
   run-anywhere is therefore byte-proven for this artifact, not argued from free
   space `[source: evidence/dgx1_sif_open.txt, commit a46515b]`.
+  **Topology changed after the 2026-08 OS upgrades (observed 2026-10-13).** banyan's
+  `/home` is now its local RAID `/dev/md0`, and banyan (`10.5.1.187`) exports
+  `/mnt/raid`. dgx1 mounts `10.5.1.187:/mnt/raid/homecopy` at `/home`, and a file
+  stat'd through both paths on banyan shows the same inode. Stage-once-run-anywhere
+  still holds, now served by banyan itself. That `.sif` is retired; the job-68 image
+  was read on dgx1 at its recorded digest by job 59 `[source: evidence/dgx1_gpu_smoke_sm70_90.txt]`.
 - **Singularity is the only portable, non-root, Slurm-integrated *run* path** across
   both machines. Docker works interactively on **banyan** (user in `docker` group,
   daemon 29.4.3 answering `[source: report 10 §3]`) but does **not** exist for this
@@ -269,6 +307,13 @@ an explicit PI "yes". They are sequential — do not skip ahead.
 
 1. **✅ Build the image → done, converted to `gromacs.sif`, and verified on a GPU.**
    *(wrote a 5.75 GB `.sif` to shared home; job 33, 2026-07-31)*
+
+   **Superseded 2026-09-25, retired 2026-10-13.** Job 68's cold rebuild,
+   `gromacs-2025.3-cuda12.9-sm70_90.sif` (sha256 `221d748e…95fa`), is the
+   delivered artifact; see the banner. The July `gromacs.sif` described below no
+   longer exists. Its two "did NOT establish" caveats below are closed: job 68 is
+   a `--no-cache` reproduction, and the 2026-10-13 cleanup released the space
+   `[source: evidence/convert_verify_cold_banyan.txt; evidence/banyan_image_cleanup.txt]`.
 
    All `gromacs.def` values were resolved before the build — base-image tag,
    tarball URL, md5 + sha256, CMake version/hash, every `GMX_*` flag including
@@ -674,3 +719,4 @@ against a **cached** compile layer (`#7`/`#8 CACHED`) so it is not a cold-cache
 reproduction; and the cleanup gate asking `/` to return to its pre-work free
 space is **not met** — 430 G before and after, the last ~10 GB releasable only
 by a `docker image prune` that would take other users' dangling images.*
+*Attended PI session (2026-10-13): **the live state is the banner**, and the July artifact is history. The cleanup gate's two sticking points, recorded above as "not met", are resolved. Job 68 (2026-09-25) is a `--no-cache` rebuild whose SASS summary and `gmx --version` block are identical to July's. The space came back on 2026-10-13: removing the two images freed only 57 KB, because the CUDA base was held by **this project's own** "pulled from" build-cache records, not by other users' dangling images. Pruning those records by ID released 10.66 GB on `/`, and deleting the archive released 10.59 GB on `/home`. No `docker image prune` was needed. The July `gromacs.sif` was then retired: `dgx1_gpu_smoke.sh`, `dgx1_sass_vs_jit_probe.sh` and the `smoke_submit.sbatch` placeholder were repointed to the job-68 image, and the file was deleted, freeing 5.75 GB on `/home`. Evidence: `evidence/banyan_image_cleanup.txt` (seq 14), `evidence/banyan_old_sif_retired.txt` (seq 15); report `__reports__/p53-mdm2/16-banyan_image_cleanup_findings_v0.md`.*
