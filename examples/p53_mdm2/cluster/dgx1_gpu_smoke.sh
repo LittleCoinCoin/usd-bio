@@ -38,8 +38,11 @@ TEMPLATES="$WORK/smoke_system"
 # SIF and BANYAN_BASELINE can be overridden from the job environment, so a new
 # image is tested against the banyan run of THAT image (e.g. a convert_verify
 # run_<UTC>/smoke_run_sif/min.log), not against an older build's baseline.
-SIF="${SIF:-$WORK/gromacs.sif}"
-BANYAN_BASELINE="${BANYAN_BASELINE:-$WORK/smoke_run_sif/min.log}"   # same NFS export, written on banyan
+# Defaults are the job-68 cold rebuild and its banyan run (repointed 2026-10-13,
+# when the July gromacs.sif, sha256 1fc04f8b...81ac, was retired). Job 28 ran
+# the July image; job 59 ran this one.
+SIF="${SIF:-$WORK/gromacs-2025.3-cuda12.9-sm70_90.sif}"
+BANYAN_BASELINE="${BANYAN_BASELINE:-$WORK/run_20260924T214709Z/smoke_run_sif/min.log}"   # same NFS export, written on banyan
 RUN="$WORK/run_dgx1_$(date -u +%Y%m%dT%H%M%SZ)"
 RUNDIR="$RUN/smoke_run_dgx1_sif"
 SENTINEL="$RUN/DGX1_SMOKE_STATUS"

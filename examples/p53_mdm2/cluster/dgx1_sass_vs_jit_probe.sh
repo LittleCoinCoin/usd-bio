@@ -59,7 +59,10 @@ set -uo pipefail
 
 WORK=/home/eliott/p53mdm2
 TEMPLATES="$WORK/smoke_system"
-SIF="$WORK/gromacs.sif"
+# Jobs 30 and 31 probed the July gromacs.sif (sha256 1fc04f8b...81ac), retired
+# 2026-10-13; the default is now the job-68 cold rebuild. Overridable like
+# dgx1_gpu_smoke.sh, so a re-probe names the image it measures.
+SIF="${SIF:-$WORK/gromacs-2025.3-cuda12.9-sm70_90.sif}"
 PROBE_A="$WORK/tmp/jitprobe_default"
 PROBE_B="$WORK/tmp/jitprobe_forced"
 PROBE_C="$WORK/tmp/jitprobe_fullrun"

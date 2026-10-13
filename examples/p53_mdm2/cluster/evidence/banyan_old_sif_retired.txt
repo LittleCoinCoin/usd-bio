@@ -1,0 +1,44 @@
+### JOB RECORD
+job_id: none -- login-node shell via banyan run_command_on_cluster, attended PI session 2026-10-13 JST
+operator: claude-opus-5.5, on the PI's instruction "Repoint the dgx1 scripts to the new sif, then delete gromacs.sif"
+captured_on: 2026-10-13T01:14:13Z
+retired: /home/eliott/p53mdm2/gromacs.sif -- the July image (jobs 32/33 on banyan; jobs 28/30/31 on dgx1), sha256 1fc04f8b...81ac
+kept:    /home/eliott/p53mdm2/gromacs-2025.3-cuda12.9-sm70_90.sif -- the job-68 cold rebuild, sha256 221d748e...95fa
+note: manifest seq 3-11 cite the retired image by digest; those records stay valid without the file.
+
+### STEP 1 -- REPOINT THE TWO dgx1 SCRIPTS (repo copy -> shared home, banyan fs_upload, SHA-256 verified)
+dgx1_gpu_smoke.sh         SIF default             $WORK/gromacs.sif            -> $WORK/gromacs-2025.3-cuda12.9-sm70_90.sif
+                          BANYAN_BASELINE default $WORK/smoke_run_sif/min.log  -> $WORK/run_20260924T214709Z/smoke_run_sif/min.log
+                          (both still overridable; the new defaults are exactly job 59's overrides)
+                          uploaded 9291 B  sha256 952a72a1f939bc8ba40e7f332fd9ef176de0306b4720584800c6c8c2ce047b3b
+dgx1_sass_vs_jit_probe.sh SIF hard-coded          $WORK/gromacs.sif            -> "${SIF:-$WORK/gromacs-2025.3-cuda12.9-sm70_90.sif}"
+                          uploaded 15102 B sha256 18fb007c790d0dc3152ca8b8cde8c99e4b9edbaa70833b032525aa79435c4274
+dgx1 read-back over its NFS mount of the same export: both sha256 identical; SIF= / BANYAN_BASELINE= lines show the new defaults
+both files: bash -n syntax OK
+
+### STEP 2 -- PRE-DELETE CHECKS
+banyan eliott jobs: 0 | dgx1 jobs (all users): 0
+symlinks to gromacs.sif under /home/eliott (depth 3): none | lsof on the file: no holders
+remaining mentions of "gromacs.sif" in /home/eliott/p53mdm2/{*.sh,*.sbatch,*.def,Dockerfile}: comments and generic
+  usage examples only (convert_verify.sh:6,34; gromacs.def:20,22,34,394,398; Dockerfile:38,39,141,408,426,430,434,444;
+  the two provenance comments added in STEP 1); no executable path refers to the file
+
+### STEP 3 -- DELETE
+$ df -B1 /home
+/dev/md0       53554472923136 14151504248832 36714473971712  28% /home
+$ ls -l /home/eliott/p53mdm2/gromacs.sif
+-rwxr-xr-x 1 eliott Domain Users 5750255616 Jul 31 01:41 /home/eliott/p53mdm2/gromacs.sif
+$ sha256sum /home/eliott/p53mdm2/gromacs.sif
+1fc04f8b48a87f7e0cce4c4b1f3ae7ea5cd640b55c22586c115ce3bed20c81ac  /home/eliott/p53mdm2/gromacs.sif
+$ rm /home/eliott/p53mdm2/gromacs.sif
+exit=0
+ls: cannot access '/home/eliott/p53mdm2/gromacs.sif': No such file or directory
+$ df -B1 /home
+/dev/md0       53554472923136 14145753989120 36720224231424  28% /home
+
+### DELTA
+/home free: 36714473971712 -> 36720224231424   +5750259712 B (file 5750255616 B + fs rounding)
+the file was banyan-local RAID /dev/md0, which dgx1 mounts over NFS (10.5.1.187:/mnt/raid/homecopy), so it is gone on both clusters
+
+### LEFT IN PLACE
+-rwxr-xr-x 1 eliott Domain Users 5750284288 Sep 25 06:55 /home/eliott/p53mdm2/gromacs-2025.3-cuda12.9-sm70_90.sif

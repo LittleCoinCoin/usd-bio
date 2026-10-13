@@ -67,7 +67,7 @@ set -euo pipefail
 # ---- Paths (ALL placeholders — edit before the PI-approved submit) ----------
 # The .sif and I/O live on the shared NFS home (ts2:/export/home), visible from
 # BOTH clusters, so these paths are the same regardless of which cluster runs.
-SIF=/home/eliott/p53mdm2/gromacs.sif          # <PLACEHOLDER> path to the built .sif
+SIF=/home/eliott/p53mdm2/gromacs-2025.3-cuda12.9-sm70_90.sif   # the job-68 image (the July gromacs.sif was retired 2026-10-13)
 WORKDIR=/home/eliott/p53mdm2/smoke            # <PLACEHOLDER> scratch/output dir on shared home
 INDIR=${WORKDIR}/in                           # tiny input system goes here
 OUTDIR=${WORKDIR}/out                         # mdrun output lands here
