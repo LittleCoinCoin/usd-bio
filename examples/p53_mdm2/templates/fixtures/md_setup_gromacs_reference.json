@@ -1,0 +1,105 @@
+{
+  "_comment": "INDEPENDENT hand-transcribed reference for the GROMACS deck of the first executed p53-MDM2 run. It is the oracle for tests/test_md_gromacs_deck.py and is maintained SEPARATELY from md_parameters.GROMACS_* and from gromacs_deck.py: the USD values, the per-stage overrides, and the expected .mdp/prep.env contents (with the Angstrom->nm and atm->bar conversions worked by hand) are written out here, so a generator or emitter error shows up as a disagreement. NOT generator output; do not build this file by importing md_parameters or running the emitter.",
+  "_source": "cycle-009 coordinator brief (container probe 2026-10-14: no ff14SB/ff19SB, amber99sb-ildn present) + R01 values kept where runnable (310 K, 1 atm, PME, TIP3P, Bussi) + __threads__/p53-mdm2/QUESTIONS.md Q-003 (ionConcentration, protonationState in CORE)",
+  "namespace": "bio:md:",
+  "starting_structure": "1YCR",
+  "core": {
+    "engine":              {"value": "GROMACS", "unit": null, "grounding": "source"},
+    "engineVersion":       {"value": "2025.3", "unit": null, "grounding": "source"},
+    "forceField":          {"value": "AMBER99SB-ILDN", "unit": null, "grounding": "assumption"},
+    "waterModel":          {"value": "TIP3P", "unit": null, "grounding": "source"},
+    "ensemble":            {"value": "NPT", "unit": null, "grounding": "assumption"},
+    "integrator":          {"value": "md", "unit": null, "grounding": "source"},
+    "timestep":            {"value": 0.002, "unit": "ps", "grounding": "assumption"},
+    "nSteps":              {"value": 50000, "unit": "steps", "grounding": "assumption"},
+    "temperature":         {"value": 310.0, "unit": "K", "grounding": "source"},
+    "thermostat":          {"value": "V-rescale", "unit": null, "grounding": "source"},
+    "barostat":            {"value": "C-rescale", "unit": null, "grounding": "assumption"},
+    "pressure":            {"value": 1.0, "unit": "atm", "grounding": "source"},
+    "electrostatics":      {"value": "PME", "unit": null, "grounding": "source"},
+    "cutoff":              {"value": 10.0, "unit": "angstrom", "grounding": "assumption"},
+    "constraintAlgorithm": {"value": "LINCS", "unit": null, "grounding": "assumption"},
+    "ionConcentration":    {"value": 0.15, "unit": "mol/L", "grounding": "assumption"},
+    "protonationState":    {"value": "pdb2gmx default states, pH 7 assumed: Lys/Arg protonated, Asp/Glu deprotonated, His tautomer from pdb2gmx H-bond placement (neutral), charged N/C termini", "unit": null, "grounding": "assumption"}
+  },
+  "optional": {
+    "ionSpecies":                 {"value": "NaCl", "unit": null, "grounding": "assumption"},
+    "boxType":                    {"value": "PBC", "unit": null, "grounding": "source"},
+    "dispersionCorrection":       {"value": "EnerPres", "unit": null, "grounding": "source"},
+    "hydrogenMassRepartitioning": {"value": false, "unit": null, "grounding": "assumption"},
+    "constrainedBonds":           {"value": "h-bonds", "unit": null, "grounding": "assumption"},
+    "thermostatTau":              {"value": 0.1, "unit": "ps", "grounding": "assumption"},
+    "barostatTau":                {"value": 2.0, "unit": "ps", "grounding": "assumption"},
+    "compressibility":            {"value": 4.5e-5, "unit": "1/bar", "grounding": "assumption"},
+    "pmeGridSpacing":             {"value": 1.2, "unit": "angstrom", "grounding": "assumption"},
+    "randomSeed":                 {"value": 20261014, "unit": null, "grounding": "assumption"},
+    "outputInterval":             {"value": 500, "unit": "steps", "grounding": "assumption"},
+    "trajectoryInterval":         {"value": 5000, "unit": "steps", "grounding": "assumption"},
+    "boxShape":                   {"value": "dodecahedron", "unit": null, "grounding": "assumption"},
+    "soluteBoxDistance":          {"value": 10.0, "unit": "angstrom", "grounding": "assumption"}
+  },
+  "stages": [
+    ["em",  {"integrator": "steep", "nSteps": 50000, "emTolerance": 1000.0, "constrainedBonds": "none"}],
+    ["nvt", {"ensemble": "NVT", "nSteps": 50000, "positionRestraints": true, "generateVelocities": true}],
+    ["npt", {"ensemble": "NPT", "nSteps": 50000, "positionRestraints": true}],
+    ["md",  {}]
+  ],
+  "expected_mdp": {
+    "em": {
+      "integrator": "steep", "nsteps": 50000, "emtol": 1000,
+      "cutoff-scheme": "Verlet", "pbc": "xyz", "coulombtype": "PME",
+      "rcoulomb": 1.0, "rvdw": 1.0, "fourierspacing": 0.12, "DispCorr": "EnerPres",
+      "constraints": "none", "nstenergy": 500, "nstlog": 500
+    },
+    "nvt": {
+      "define": "-DPOSRES", "integrator": "md", "nsteps": 50000, "dt": 0.002,
+      "cutoff-scheme": "Verlet", "pbc": "xyz", "coulombtype": "PME",
+      "rcoulomb": 1.0, "rvdw": 1.0, "fourierspacing": 0.12, "DispCorr": "EnerPres",
+      "constraints": "h-bonds", "constraint-algorithm": "lincs",
+      "continuation": "no", "gen-vel": "yes", "gen-temp": 310, "gen-seed": 20261014,
+      "tcoupl": "V-rescale", "tc-grps": "System", "tau-t": 0.1, "ref-t": 310, "ld-seed": 20261014,
+      "pcoupl": "no",
+      "nstenergy": 500, "nstlog": 500, "nstxout-compressed": 5000
+    },
+    "npt": {
+      "define": "-DPOSRES", "integrator": "md", "nsteps": 50000, "dt": 0.002,
+      "cutoff-scheme": "Verlet", "pbc": "xyz", "coulombtype": "PME",
+      "rcoulomb": 1.0, "rvdw": 1.0, "fourierspacing": 0.12, "DispCorr": "EnerPres",
+      "constraints": "h-bonds", "constraint-algorithm": "lincs",
+      "continuation": "yes", "gen-vel": "no",
+      "tcoupl": "V-rescale", "tc-grps": "System", "tau-t": 0.1, "ref-t": 310, "ld-seed": 20261014,
+      "pcoupl": "C-rescale", "pcoupltype": "isotropic", "tau-p": 2.0, "ref-p": 1.01325,
+      "compressibility": 4.5e-5, "refcoord-scaling": "com",
+      "nstenergy": 500, "nstlog": 500, "nstxout-compressed": 5000
+    },
+    "md": {
+      "integrator": "md", "nsteps": 50000, "dt": 0.002,
+      "cutoff-scheme": "Verlet", "pbc": "xyz", "coulombtype": "PME",
+      "rcoulomb": 1.0, "rvdw": 1.0, "fourierspacing": 0.12, "DispCorr": "EnerPres",
+      "constraints": "h-bonds", "constraint-algorithm": "lincs",
+      "continuation": "yes", "gen-vel": "no",
+      "tcoupl": "V-rescale", "tc-grps": "System", "tau-t": 0.1, "ref-t": 310, "ld-seed": 20261014,
+      "pcoupl": "C-rescale", "pcoupltype": "isotropic", "tau-p": 2.0, "ref-p": 1.01325,
+      "compressibility": 4.5e-5,
+      "nstenergy": 500, "nstlog": 500, "nstxout-compressed": 5000
+    }
+  },
+  "expected_prep_env": {
+    "FORCE_FIELD": "amber99sb-ildn",
+    "WATER_MODEL": "tip3p",
+    "SOLVENT_BOX": "spc216.gro",
+    "BOX_SHAPE": "dodecahedron",
+    "BOX_DISTANCE_NM": "1",
+    "ION_POSITIVE": "NA",
+    "ION_NEGATIVE": "CL",
+    "ION_CONCENTRATION_MOLAR": "0.15",
+    "STAGES": "em nvt npt md"
+  },
+  "expected_observables_when_run": {
+    "_comment": "Counted by hand from 1ycr.pdb for the future evidence test; not asserted until a run is captured. Chain A (MDM2 25-109): Arg 4 + Lys 9 - Asp 4 - Glu 4 = +5. Chain B (p53 17-29): Lys 1 - Asp 1 - Glu 2 = -2. His neutral, charged termini cancel per chain.",
+    "PROTEIN_RESIDUES_CHAIN_A": 85,
+    "PROTEIN_RESIDUES_CHAIN_B": 13,
+    "NET_CHARGE_TOPOLOGY": 3.0,
+    "OXT_ADDED": "A109"
+  }
+}
