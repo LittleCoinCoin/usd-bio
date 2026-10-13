@@ -98,6 +98,47 @@ replica-exchange replicas map onto the project's existing Ensemble variant
 pattern (`ReplicaID`) when the project runs its own REMD `[source: R01
 §"Optional extension — replica exchange"]`.
 
+## GROMACS instance — the deck that executes (cycle-009)
+
+The tables above describe the **planned** GENESIS run. It cannot run in the
+project's only container: GROMACS 2025.3 bundles no ff14SB/ff19SB. A second
+instance of the **same schema** (`md_parameters.GROMACS_*`, built by
+`build_gromacs_md_setup_artifact()`) describes the run that will actually
+execute, in `output/p53_mdm2_md_setup_gromacs.usda`. The planned-GENESIS
+artifact is unchanged.
+
+- **CORE values:** GROMACS 2025.3, AMBER99SB-ILDN *(assumption: diverges from
+  ff19SB, pending PI)*, TIP3P, NPT production, leap-frog `md`, 0.002 ps,
+  50 000 steps (100 ps), 310 K, V-rescale, C-rescale, 1 atm, PME, 10 Å, LINCS,
+  0.15 mol/L, and pdb2gmx default protonation.
+- **New OPTIONAL fields**, each one a value the run depends on:
+  `constrainedBonds`, `thermostatTau` (ps), `barostatTau` (ps),
+  `compressibility` (1/bar), `pmeGridSpacing` (Å), `randomSeed`,
+  `outputInterval` / `trajectoryInterval` (steps), `boxShape`, and
+  `soluteBoxDistance` (Å).
+- **Multi-stage protocol:** ordered `Scope` children
+  `mdSetup/protocol/{em,nvt,npt,md}`. Each carries **only** what differs from
+  `mdSetup`, and a consumer falls back to `mdSetup` for any field the stage
+  does not author. `md` authors nothing, because production *is* the CORE deck.
+  The stage-only fields (`STAGE_FIELDS`) are `positionRestraints`,
+  `generateVelocities` and `emTolerance` (kJ/mol/nm).
+
+**USD → GROMACS deck.** `templates/gromacs_deck.py` reads the composed stage
+and writes one `<stage>.mdp` per stage plus `prep.env` (the pdb2gmx, editconf,
+solvate and genion inputs) to `cluster/p53_md/`. Units are converted from each
+attribute's declared `customData["unit"]` (Å → nm ×0.1, atm → bar ×1.01325),
+and an undeclared or unexpected unit is an error. This closes the p1b
+round-trip gate: the parameters are written to USD, read back, and reconstruct
+a runnable MD input. `tests/test_md_gromacs_deck.py` asserts the stage and the
+emitted deck against an independent fixture
+(`fixtures/md_setup_gromacs_reference.json`). It also fails if the committed
+deck is stale.
+
+```bash
+PYTHONPATH=<OpenUSD>/lib/python:$(pwd)/examples python examples/p53_mdm2/templates/md_parameters.py   # both artifacts
+PYTHONPATH=<OpenUSD>/lib/python:$(pwd)/examples python examples/p53_mdm2/templates/gromacs_deck.py    # re-emit the deck
+```
+
 ## Provenance
 
 Reuses the six-field `bio:` provenance schema from
