@@ -1,0 +1,271 @@
+#usda 1.0
+(
+    "p53-MDM2 MD-setup parameters (bio:md:) for the first EXECUTED run -- GROMACS 2025.3, Protocol departmental layer. mdSetup = production deck; mdSetup/protocol/{em,nvt,npt,md} carry only per-stage differences. Diverges from the planned GENESIS deck (p53_mdm2_md_setup.usda); every value tagged [source:] or [assumption:]."
+    defaultPrim = "p53_MDM2_complex"
+    metersPerUnit = 1e-10
+    subLayers = [
+        @./p53_mdm2_topology.usda@
+    ]
+    upAxis = "Y"
+)
+
+over "p53_MDM2_complex"
+{
+    def Scope "mdSetup"
+    {
+        custom string bio:forceField = "AMBER99SB-ILDN"
+        custom string bio:md:barostat = "C-rescale" (
+            customData = {
+                string source = "[assumption: GROMACS C-rescale (Bernetti-Bussi 2020), the stochastic cell-rescaling analogue of R01 BUSSI]"
+            }
+        )
+        custom double bio:md:barostatTau = 2 (
+            customData = {
+                string source = "[assumption: 2.0 ps C-rescale coupling time]"
+                string unit = "ps"
+            }
+        )
+        custom token bio:md:boxShape = "dodecahedron" (
+            customData = {
+                string source = "[assumption: rhombic dodecahedron, smallest periodic cell for a globular solute]"
+            }
+        )
+        custom token bio:md:boxType = "PBC" (
+            customData = {
+                string source = "[source: R01 -- type=PBC, kept]"
+            }
+        )
+        custom double bio:md:compressibility = 0.000045 (
+            customData = {
+                string source = "[assumption: water isothermal compressibility]"
+                string unit = "1/bar"
+            }
+        )
+        custom string bio:md:constrainedBonds = "h-bonds" (
+            customData = {
+                string source = "[assumption: bonds to hydrogen constrained]"
+            }
+        )
+        custom string bio:md:constraintAlgorithm = "LINCS" (
+            customData = {
+                string source = "[assumption: LINCS, the GROMACS h-bond constraint algorithm; replaces R01 SHAKE]"
+            }
+        )
+        custom double bio:md:cutoff = 10 (
+            customData = {
+                string source = "[assumption: 10 Angstrom, the AMBER-in-GROMACS norm; R01's 8 Angstrom was a GENESIS choice]"
+                string unit = "angstrom"
+            }
+        )
+        custom string bio:md:dispersionCorrection = "EnerPres" (
+            customData = {
+                string source = "[source: R01 EPRESS kept -- GROMACS DispCorr=EnerPres]"
+            }
+        )
+        custom token bio:md:electrostatics = "PME" (
+            customData = {
+                string source = "[source: R01 -- electrostatic=PME, kept]"
+            }
+        )
+        custom string bio:md:engine = "GROMACS" (
+            customData = {
+                string source = "[source: PI engine choice, INBOX 2026-07-23; container gromacs-2025.3-cuda12.9-sm70_90.sif (sha256 221d748e...95fa)]"
+            }
+        )
+        custom string bio:md:engineVersion = "2025.3" (
+            customData = {
+                string source = "[source: sif label GromacsVer 2025.3 + gmx --version, cluster/evidence/convert_verify_cold_banyan.txt]"
+            }
+        )
+        custom token bio:md:ensemble = "NPT" (
+            customData = {
+                string source = "[assumption: NPT production after NVT+NPT equilibration; R01 GENESIS production was NVT]"
+            }
+        )
+        custom string bio:md:forceField = "AMBER99SB-ILDN" (
+            customData = {
+                string source = "[assumption: DIVERGES from the planned AMBER ff19SB -- ff19SB/ff14SB are not bundled in the container (probe 2026-10-14); amber99sb-ildn is the most recent Amber protein force field it ships. Pending PI decision]"
+            }
+        )
+        custom bool bio:md:hydrogenMassRepartitioning = 0 (
+            customData = {
+                string source = "[assumption: no HMR at 2 fs; R01 used HMR]"
+            }
+        )
+        custom string bio:md:integrator = "md" (
+            customData = {
+                string source = "[source: GROMACS leap-frog integrator (mdp integrator=md)]"
+            }
+        )
+        custom double bio:md:ionConcentration = 0.15 (
+            customData = {
+                string source = "[assumption: physiological 0.15 mol/L NaCl on top of neutralisation (gmx genion -neutral -conc 0.15)]"
+                string unit = "mol/L"
+            }
+        )
+        custom string bio:md:ionSpecies = "NaCl" (
+            customData = {
+                string source = "[assumption: NaCl, companion to ionConcentration]"
+            }
+        )
+        custom int64 bio:md:nSteps = 50000 (
+            customData = {
+                string source = "[assumption: 100 ps SHORT production -- first run is a pipeline + GPU-block check, not science (INBOX 2026-09-25)]"
+                string unit = "steps"
+            }
+        )
+        custom int64 bio:md:outputInterval = 500 (
+            customData = {
+                string source = "[assumption: energies + log every 1 ps]"
+                string unit = "steps"
+            }
+        )
+        custom double bio:md:pmeGridSpacing = 1.2 (
+            customData = {
+                string source = "[assumption: 1.2 Angstrom PME grid spacing]"
+                string unit = "angstrom"
+            }
+        )
+        custom double bio:md:pressure = 1 (
+            customData = {
+                string source = "[source: R01 -- pressure=1.0 atm, kept]"
+                string unit = "atm"
+            }
+        )
+        custom string bio:md:protonationState = "pdb2gmx default states, pH 7 assumed: Lys/Arg protonated, Asp/Glu deprotonated, His tautomer from pdb2gmx H-bond placement (neutral), charged N/C termini" (
+            customData = {
+                string source = "[assumption: no pKa calculation and no interactive pdb2gmx selection; the termini are charged even where 1YCR truncates the chain (REMARK 465), not capped]"
+            }
+        )
+        custom int bio:md:randomSeed = 20261014 (
+            customData = {
+                string source = "[assumption: fixed seed so velocity generation and stochastic coupling are repeatable; GPU runs are still not bitwise reproducible]"
+            }
+        )
+        custom double bio:md:soluteBoxDistance = 10 (
+            customData = {
+                string source = "[assumption: 10 Angstrom solute-to-box clearance, equal to the cutoff]"
+                string unit = "angstrom"
+            }
+        )
+        custom string bio:md:startingStructure = "1YCR"
+        custom double bio:md:temperature = 310 (
+            customData = {
+                string source = "[source: R01 -- temperature=310.0 K, kept]"
+                string unit = "K"
+            }
+        )
+        custom string bio:md:thermostat = "V-rescale" (
+            customData = {
+                string source = "[source: R01 BUSSI kept -- GROMACS V-rescale is the Bussi-Donadio-Parrinello 2007 thermostat]"
+            }
+        )
+        custom double bio:md:thermostatTau = 0.1 (
+            customData = {
+                string source = "[assumption: 0.1 ps V-rescale coupling time]"
+                string unit = "ps"
+            }
+        )
+        custom double bio:md:timestep = 0.002 (
+            customData = {
+                string source = "[assumption: 2 fs with h-bond constraints and no HMR; R01's 3.5 fs relied on HMR + RESPA]"
+                string unit = "ps"
+            }
+        )
+        custom int64 bio:md:trajectoryInterval = 5000 (
+            customData = {
+                string source = "[assumption: compressed coordinates every 10 ps]"
+                string unit = "steps"
+            }
+        )
+        custom string bio:md:waterModel = "TIP3P" (
+            customData = {
+                string source = "[source: R01 TIP3P kept; amber99sb-ildn.ff/tip3p.itp]"
+            }
+        )
+        custom string bio:simSettings = "first executed p53-MDM2 run: EM -> NVT 100 ps -> NPT 100 ps -> NPT production 100 ps; leap-frog 2 fs, PME, LINCS h-bonds, V-rescale 310 K, C-rescale 1 atm. Diverges from the planned GENESIS/ff19SB deck (ff19SB not in the container)"
+        custom string bio:softwareName = "GROMACS"
+        custom string bio:softwareVersion = "2025.3"
+        custom string bio:sourcePdb = "1YCR"
+        custom string bio:timestamp = "unknown"
+
+        def Scope "protocol"
+        {
+            def Scope "em"
+            {
+                custom string bio:md:constrainedBonds = "none" (
+                    customData = {
+                        string source = "[assumption: unconstrained minimisation]"
+                    }
+                )
+                custom double bio:md:emTolerance = 1000 (
+                    customData = {
+                        string source = "[assumption: max force < 1000 kJ/mol/nm]"
+                        string unit = "kJ/mol/nm"
+                    }
+                )
+                custom string bio:md:integrator = "steep" (
+                    customData = {
+                        string source = "[assumption: steepest-descent minimisation]"
+                    }
+                )
+                custom int64 bio:md:nSteps = 50000 (
+                    customData = {
+                        string source = "[assumption: step ceiling; stops at emTolerance]"
+                        string unit = "steps"
+                    }
+                )
+            }
+
+            def Scope "nvt"
+            {
+                custom token bio:md:ensemble = "NVT" (
+                    customData = {
+                        string source = "[assumption: NVT heating/equilibration]"
+                    }
+                )
+                custom bool bio:md:generateVelocities = 1 (
+                    customData = {
+                        string source = "[assumption: velocities drawn at temperature]"
+                    }
+                )
+                custom int64 bio:md:nSteps = 50000 (
+                    customData = {
+                        string source = "[assumption: 100 ps NVT]"
+                        string unit = "steps"
+                    }
+                )
+                custom bool bio:md:positionRestraints = 1 (
+                    customData = {
+                        string source = "[assumption: pdb2gmx heavy-atom restraints]"
+                    }
+                )
+            }
+
+            def Scope "npt"
+            {
+                custom token bio:md:ensemble = "NPT" (
+                    customData = {
+                        string source = "[assumption: NPT density equilibration]"
+                    }
+                )
+                custom int64 bio:md:nSteps = 50000 (
+                    customData = {
+                        string source = "[assumption: 100 ps NPT]"
+                        string unit = "steps"
+                    }
+                )
+                custom bool bio:md:positionRestraints = 1 (
+                    customData = {
+                        string source = "[assumption: pdb2gmx heavy-atom restraints]"
+                    }
+                )
+            }
+
+            def Scope "md"
+            {
+            }
+        }
+    }
+}
+
