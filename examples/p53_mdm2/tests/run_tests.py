@@ -11,6 +11,8 @@ Layers (mirrors the v8 4-layer ladder; rebuilt for 1YCR topology-only):
     compliance    -- usdchecker on the committed topology .usda
     domain        -- biological invariants (bio:element, inherits, variants)
     readback      -- fresh-open assertions vs. INDEPENDENT 1YCR re-derivation
+    readback-md-gmx -- GROMACS deck: USD read-back + USD -> .mdp round-trip,
+                       committed-deck staleness guard (test_md_gromacs_deck)
     integrated-p5 -- the composed four-pipeline stage (demos/run_end_to_end.py)
     anti-chimera  -- static grep-gate for the ABL root literal / dataset counts
     container-evidence -- offline gates over cluster/evidence + recipe pins
@@ -91,6 +93,9 @@ def main() -> int:
 
     import test_md_setup_readback
     all_rows += _rows_from("readback-md", test_md_setup_readback.run())
+
+    import test_md_gromacs_deck
+    all_rows += _rows_from("readback-md-gmx", test_md_gromacs_deck.run())
 
     import test_maboss_emit
     all_rows += _rows_from("readback-maboss", test_maboss_emit.run())
