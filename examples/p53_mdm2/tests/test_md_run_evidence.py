@@ -3,8 +3,9 @@ Offline read-back checks over the first executed p53-MDM2 MD run (banyan job 119
 
 Pure stdlib, no pxr, no network, no cluster. Re-reads
 `cluster/evidence/p53_md_banyan_job119.txt` (and the job-118 captures for the
-manifest check) and asserts against expectations STATED HERE, hand-derived from
-the structure and the committed deck -- never re-derived from the same file by
+manifest check) and asserts against expectations STATED HERE, hand-counted
+(PDB records, residues, charges) or pinned to the observed run (atom, water and
+ion counts, GPU strings, digests), against the structure and the committed deck -- never re-derived from the same file by
 the same parser (R02 / R00 anti-tautology doctrine). Pattern follows
 test_container_evidence.py.
 
