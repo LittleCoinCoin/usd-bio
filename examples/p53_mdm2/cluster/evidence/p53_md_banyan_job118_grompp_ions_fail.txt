@@ -1,0 +1,163 @@
+
+======== p53_md_submit.sbatch starting 2026-10-20T13:30:21+09:00  job=118 ========
+host: banyan
+singularity: singularity-ce version 4.5.0-noble
+sif: /home/eliott/p53mdm2/gromacs-2025.3-cuda12.9-sm70_90.sif
+deck: /home/eliott/p53mdm2/p53_md
+pdb: /home/eliott/p53mdm2/p53_md/1ycr.pdb
+
+======== STEP 1: device resolution ========
+device_source: SLURM_JOB_GPUS=0
+resolved_global_gpu: 0
+0, NVIDIA H100 NVL, 9.0, 0 MiB, 95830 MiB
+1, NVIDIA H100 NVL, 9.0, 0 MiB, 95830 MiB
+
+======== STEP 2: gmx --version under singularity exec --nv ========
+GROMACS version:     2025.3
+Precision:           mixed
+GPU support:         CUDA
+SIMD instructions:   AVX2_256
+CUDA driver:         13.30
+CUDA runtime:        12.90
+version_exit: 0
+
+======== STEP 3: input digests ========
+pdb_sha256: d8f23749da9ec22da2e17bb31c33803e3db6123233cd0404bdc005111196e7a3
+deck_sha256 prep.env: d4b66b1cef9fa395504e7c4718b32c22d72fc68cfb4ee0d24955e57108facbc6
+deck_sha256 em.mdp: cb2a2f84af727c03e89d6eafd9843135b8a4e4b97a49d107a8642a44f370b3e3
+deck_sha256 md.mdp: 7434d8a9bedd1f6aadee97eeb338b53f0be60e4bb43e100fe0de862e9597e8e6
+deck_sha256 npt.mdp: e6441fd11e43bbfe7b9f6bb2e22c6dc4b0a717d481274e87694d478c37e8cf69
+deck_sha256 nvt.mdp: 1040deb7753f9e99340bca095e5922afd01e643a28dd5d340a6bac323fe110d9
+deck_sha256 p53_md_run.sh: 6044b24a659db3bc08ba305e629f123b48fe1d06055f98b760d92c46ef4f43a7
+FORCE_FIELD='amber99sb-ildn'
+WATER_MODEL='tip3p'
+SOLVENT_BOX='spc216.gro'
+BOX_SHAPE='dodecahedron'
+BOX_DISTANCE_NM='1'
+ION_POSITIVE='NA'
+ION_NEGATIVE='CL'
+ION_CONCENTRATION_MOLAR='0.15'
+STAGES='em nvt npt md'
+
+======== STEP 4: prep + EM + NVT + NPT + production (container side) ========
+/usr/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+STAGES=em nvt npt md
+FORCE_FIELD=amber99sb-ildn
+WATER_MODEL=tip3p
+GROMPP_MAXWARN=0
+
+-------- 1. clean PDB (ATOM/TER/END only; complete missing terminal OXT) --------
+OXT_ADDED=A109
+PDB_ATOM_RECORDS_IN=818
+PDB_ATOM_RECORDS_CLEAN=819
+OXT_ADDED=A109
+
+-------- 2. pdb2gmx -ff amber99sb-ildn -water tip3p -ignh --------
+There are 2 chains and 0 blocks of water and 98 residues with 819 atoms
+Processing chain 1 'A' (706 atoms, 85 residues)
+Total charge 5.000 e
+Processing chain 2 'B' (113 atoms, 13 residues)
+Total charge -2.000 e
+Total charge in system 3.000 e
+PROTEIN_RESIDUES_CHAIN_A=85
+CHARGE_CHAIN_A=5.000
+PROTEIN_RESIDUES_CHAIN_B=13
+CHARGE_CHAIN_B=-2.000
+PROTEIN_CHAINS=2
+PROTEIN_ATOMS=1670
+NET_CHARGE_TOPOLOGY=3.000
+
+-------- 3. editconf -bt dodecahedron -d 1 ; solvate -cs spc216.gro --------
+new box vectors :  6.319  6.319  6.319 (nm)
+new box volume  : 178.40               (nm^3)
+
+-------- 4. grompp (em.mdp) + genion -neutral -conc 0.15 --------
+Excluding 2 bonded neighbours molecule type 'SOL'
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+J. S. Hub, B. L. de Groot, H. Grubmueller, G. Groenhof
+Quantifying Artifacts in Ewald Simulations of Inhomogeneous Systems with a Net
+Charge
+J. Chem. Theory Comput. (2014)
+DOI: 10.1021/ct400626b
+-------- -------- --- Thank You --- -------- --------
+
+Number of degrees of freedom in T-Coupling group rest is 36933.00
+The integrator does not provide a ensemble temperature, there is no system ensemble temperature
+
+There was 1 NOTE
+
+There was 1 WARNING
+
+-------------------------------------------------------
+Program:     gmx grompp, version 2025.3
+Source file: src/gromacs/gmxpreprocess/grompp.cpp (line 2898)
+
+Fatal error:
+Too many warnings (1).
+If you are sure all warnings are harmless, use the -maxwarn option.
+
+For more information and tips for troubleshooting, please check the GROMACS
+website at https://manual.gromacs.org/current/user-guide/run-time-errors.html
+-------------------------------------------------------
+Analysing residue names:
+There are:    98    Protein residues
+There are:  5321      Water residues
+Analysing Protein...
+
+The largest distance between excluded atoms is 0.417 nm between atom 639 and 647
+Calculating fourier grid dimensions for X Y Z
+Using a fourier grid of 56x56x56, spacing 0.113 0.113 0.113
+
+Estimate for the relative computational load of the PME mesh part: 0.26
+
+This run will generate roughly 2 Mb of data
+CONTAINER_FAILED_AT=grompp_ions
+FATAL: grompp_ions
+container_exit: 1
+
+======== STEP 5: GPU evidence from each dynamics md.log ========
+--- nvt.log ---
+NOT FOUND — no GPU block in nvt.log
+--- npt.log ---
+NOT FOUND — no GPU block in npt.log
+--- md.log ---
+NOT FOUND — no GPU block in md.log
+
+======== STEP 5b: production kernel timing — did work reach the device? ========
+no GPU kernel timing rows matched (inspect md.log manually)
+
+======== SUMMARY ========
+--- SUMMARY ---
+CLUSTER=banyan
+SYSTEM=p53-MDM2 1YCR
+SINGULARITY_VERSION=singularity-ce version 4.5.0-noble
+GPU_NAME=NVIDIA H100 NVL
+GPU_COMPUTE_CAP_NVIDIASMI=9.0
+GPU_COMPUTE_CAP_MDLOG=NONE
+REQUIRED_COMPUTE_CAP=9.0
+CUDA_DRIVER=NONE
+NTOMP=8
+VERSION_EXIT=0
+CONTAINER_EXIT=1
+STAGES=em nvt npt md
+FORCE_FIELD=amber99sb-ildn
+WATER_MODEL=tip3p
+GROMPP_MAXWARN=0
+PDB_ATOM_RECORDS_IN=818
+PDB_ATOM_RECORDS_CLEAN=819
+OXT_ADDED=A109
+PROTEIN_RESIDUES_CHAIN_A=85
+CHARGE_CHAIN_A=5.000
+PROTEIN_RESIDUES_CHAIN_B=13
+CHARGE_CHAIN_B=-2.000
+PROTEIN_CHAINS=2
+PROTEIN_ATOMS=1670
+NET_CHARGE_TOPOLOGY=3.000
+CONTAINER_FAILED_AT=grompp_ions
+PDB_SHA256=d8f23749da9ec22da2e17bb31c33803e3db6123233cd0404bdc005111196e7a3
+SIF_SHA256=221d748ec44c531fb4d9442624f13ae5693c3d3389b4f4d4a698bf5b01de95fa
+RUN_DIR=/home/eliott/p53mdm2/run_p53md_20261020T043021Z
+--- END SUMMARY ---
+
+======== RESULT: rc=1 ========

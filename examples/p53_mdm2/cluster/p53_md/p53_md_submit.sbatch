@@ -1,9 +1,9 @@
 #!/bin/bash
 # ============================================================================
-# p53_md_submit.sbatch — HOST SIDE of the first p53-MDM2 MD run, dgx1 V100.
+# p53_md_submit.sbatch — HOST SIDE of the first p53-MDM2 MD run (dgx1 V100 or banyan H100).
 #
-# STATUS: NOT YET EXECUTED. No p53-MDM2 MD has run on any cluster; every
-# execution so far is the 2652-atom smoke-test water box.
+# STATUS: first executed 2026-10-20 on banyan H100, job 119, rc=0 (evidence
+# p53_md_banyan_job119.txt, manifest seq 18). Not yet run on dgx1 V100.
 #
 # WHAT THIS ESTABLISHES. That the 1YCR complex builds into a solvated,
 # neutralised AMBER99SB-ILDN/TIP3P system inside the one container we have,
@@ -46,7 +46,9 @@ RUNDIR="$RUN/work"
 SENTINEL="$RUN/P53_MD_STATUS"
 OUT="$RUN/p53_md_out.txt"
 NTOMP=8                       # pinned, like-for-like with the smoke runs
-REQUIRED_CC=7.0               # dgx1 V100
+CLUSTER="$(hostname -s)"
+case "$CLUSTER" in banyan) DEFAULT_CC=9.0 ;; *) DEFAULT_CC=7.0 ;; esac
+REQUIRED_CC="${REQUIRED_CC:-$DEFAULT_CC}"   # dgx1 V100 = 7.0, banyan H100 = 9.0
 mkdir -p "$RUNDIR"
 
 rc=0
@@ -127,7 +129,7 @@ GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader | sort -u | paste -
 LOGCC=$(grep -m1 'compute cap' "$RUNDIR/md.log" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+' | head -1)
 DRIVER=$(grep -m1 'CUDA driver' "$RUNDIR/md.log" 2>/dev/null | sed 's/.*CUDA driver: *//' | tr -d ' ')
 echo "--- SUMMARY ---"
-echo "CLUSTER=dgx1"
+echo "CLUSTER=$CLUSTER"
 echo "SYSTEM=p53-MDM2 1YCR"
 echo "SINGULARITY_VERSION=$(singularity --version)"
 echo "GPU_NAME=${GPU_NAME:-NONE}"

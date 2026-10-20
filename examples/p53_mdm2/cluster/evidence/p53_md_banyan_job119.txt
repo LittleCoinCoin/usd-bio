@@ -1,0 +1,212 @@
+
+======== p53_md_submit.sbatch starting 2026-10-20T13:31:35+09:00  job=119 ========
+host: banyan
+singularity: singularity-ce version 4.5.0-noble
+sif: /home/eliott/p53mdm2/gromacs-2025.3-cuda12.9-sm70_90.sif
+deck: /home/eliott/p53mdm2/p53_md
+pdb: /home/eliott/p53mdm2/p53_md/1ycr.pdb
+
+======== STEP 1: device resolution ========
+device_source: SLURM_JOB_GPUS=0
+resolved_global_gpu: 0
+0, NVIDIA H100 NVL, 9.0, 0 MiB, 95830 MiB
+1, NVIDIA H100 NVL, 9.0, 0 MiB, 95830 MiB
+
+======== STEP 2: gmx --version under singularity exec --nv ========
+GROMACS version:     2025.3
+Precision:           mixed
+GPU support:         CUDA
+SIMD instructions:   AVX2_256
+CUDA driver:         13.30
+CUDA runtime:        12.90
+version_exit: 0
+
+======== STEP 3: input digests ========
+pdb_sha256: d8f23749da9ec22da2e17bb31c33803e3db6123233cd0404bdc005111196e7a3
+deck_sha256 prep.env: d4b66b1cef9fa395504e7c4718b32c22d72fc68cfb4ee0d24955e57108facbc6
+deck_sha256 em.mdp: cb2a2f84af727c03e89d6eafd9843135b8a4e4b97a49d107a8642a44f370b3e3
+deck_sha256 md.mdp: 7434d8a9bedd1f6aadee97eeb338b53f0be60e4bb43e100fe0de862e9597e8e6
+deck_sha256 npt.mdp: e6441fd11e43bbfe7b9f6bb2e22c6dc4b0a717d481274e87694d478c37e8cf69
+deck_sha256 nvt.mdp: 1040deb7753f9e99340bca095e5922afd01e643a28dd5d340a6bac323fe110d9
+deck_sha256 p53_md_run.sh: e4d422d903ae03b82951ed10f6b1598f1af37b6fea7be0c1bd45a03c8905b1e4
+FORCE_FIELD='amber99sb-ildn'
+WATER_MODEL='tip3p'
+SOLVENT_BOX='spc216.gro'
+BOX_SHAPE='dodecahedron'
+BOX_DISTANCE_NM='1'
+ION_POSITIVE='NA'
+ION_NEGATIVE='CL'
+ION_CONCENTRATION_MOLAR='0.15'
+STAGES='em nvt npt md'
+
+======== STEP 4: prep + EM + NVT + NPT + production (container side) ========
+/usr/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+STAGES=em nvt npt md
+FORCE_FIELD=amber99sb-ildn
+WATER_MODEL=tip3p
+GROMPP_MAXWARN=0
+
+-------- 1. clean PDB (ATOM/TER/END only; complete missing terminal OXT) --------
+OXT_ADDED=A109
+PDB_ATOM_RECORDS_IN=818
+PDB_ATOM_RECORDS_CLEAN=819
+OXT_ADDED=A109
+
+-------- 2. pdb2gmx -ff amber99sb-ildn -water tip3p -ignh --------
+There are 2 chains and 0 blocks of water and 98 residues with 819 atoms
+Processing chain 1 'A' (706 atoms, 85 residues)
+Total charge 5.000 e
+Processing chain 2 'B' (113 atoms, 13 residues)
+Total charge -2.000 e
+Total charge in system 3.000 e
+PROTEIN_RESIDUES_CHAIN_A=85
+CHARGE_CHAIN_A=5.000
+PROTEIN_RESIDUES_CHAIN_B=13
+CHARGE_CHAIN_B=-2.000
+PROTEIN_CHAINS=2
+PROTEIN_ATOMS=1670
+NET_CHARGE_TOPOLOGY=3.000
+
+-------- 3. editconf -bt dodecahedron -d 1 ; solvate -cs spc216.gro --------
+new box vectors :  6.319  6.319  6.319 (nm)
+new box volume  : 178.40               (nm^3)
+
+-------- 4. grompp (em.mdp) + genion -neutral -conc 0.15 --------
+GROMPP_IONS_MAXWARN=1
+NET_CHARGE_PRE_IONS_GROMPP=3.000000
+Replacing solvent molecule 3407 (atom 11891) with NA
+Replacing solvent molecule 1519 (atom 6227) with NA
+Replacing solvent molecule 135 (atom 2075) with NA
+WATERS=5286
+IONS_NA=16
+IONS_CL=19
+TOTAL_ATOMS=17563
+
+-------- 5. stage em (/deck/em.mdp) --------
+EM_POTENTIAL_ENERGY=-2.7035906e+05
+EM_MAX_FORCE=9.5286469e+02
+EM_CONVERGED=yes
+
+-------- 5. stage nvt (/deck/nvt.mdp) --------
+NVT_NS_PER_DAY=1066.275
+NVT_NONBONDED_ON_GPU=yes
+NVT_PME_ON_GPU=yes
+NVT_AVG_TEMPERATURE=309.698
+NVT_AVG_PRESSURE=-172.616
+
+-------- 5. stage npt (/deck/npt.mdp) --------
+NPT_NS_PER_DAY=1207.779
+NPT_NONBONDED_ON_GPU=yes
+NPT_PME_ON_GPU=yes
+NPT_AVG_TEMPERATURE=309.81
+NPT_AVG_PRESSURE=-25.3264
+NPT_AVG_DENSITY=1011.68
+
+-------- 5. stage md (/deck/md.mdp) --------
+MD_NS_PER_DAY=1208.677
+MD_NONBONDED_ON_GPU=yes
+MD_PME_ON_GPU=yes
+MD_AVG_TEMPERATURE=309.876
+MD_AVG_PRESSURE=-28.27
+MD_AVG_DENSITY=1010.04
+CONTAINER_EXIT=0
+container_exit: 0
+
+======== STEP 5: GPU evidence from each dynamics md.log ========
+--- nvt.log ---
+    Number of GPUs detected: 1
+    #0: NVIDIA NVIDIA H100 NVL, compute cap.: 9.0, ECC: yes, stat: compatible
+1 GPU selected for this run.
+PP tasks will do (non-perturbed) short-ranged interactions on the GPU
+PP task will update and constrain coordinates on the GPU
+PME tasks will do all aspects on the GPU
+Using GPU 8x4 nonbonded short-range kernels
+Updating coordinates and applying constraints on the GPU.
+--- npt.log ---
+    Number of GPUs detected: 1
+    #0: NVIDIA NVIDIA H100 NVL, compute cap.: 9.0, ECC: yes, stat: compatible
+1 GPU selected for this run.
+PP tasks will do (non-perturbed) short-ranged interactions on the GPU
+PP task will update and constrain coordinates on the GPU
+PME tasks will do all aspects on the GPU
+Using GPU 8x4 nonbonded short-range kernels
+Updating coordinates and applying constraints on the GPU.
+--- md.log ---
+    Number of GPUs detected: 1
+    #0: NVIDIA NVIDIA H100 NVL, compute cap.: 9.0, ECC: yes, stat: compatible
+1 GPU selected for this run.
+PP tasks will do (non-perturbed) short-ranged interactions on the GPU
+PP task will update and constrain coordinates on the GPU
+PME tasks will do all aspects on the GPU
+Using GPU 8x4 nonbonded short-range kernels
+Updating coordinates and applying constraints on the GPU.
+
+======== STEP 5b: production kernel timing — did work reach the device? ========
+ PME GPU mesh              1    8      50001       1.109         18.639  15.5
+ Wait GPU NB local         1    8      50001       0.014          0.239   0.2
+ Wait GPU state copy       1    8     111503       1.191         20.004  16.7
+ Wait PME GPU gather       1    8      50001       0.002          0.034   0.0
+ Launch PME GPU ops.       1    8     450009       1.077         18.100  15.1
+               Core t (s)   Wall t (s)        (%)
+       Time:       57.172        7.148      799.8
+Performance:     1208.677        0.020
+
+======== SUMMARY ========
+--- SUMMARY ---
+CLUSTER=banyan
+SYSTEM=p53-MDM2 1YCR
+SINGULARITY_VERSION=singularity-ce version 4.5.0-noble
+GPU_NAME=NVIDIA H100 NVL
+GPU_COMPUTE_CAP_NVIDIASMI=9.0
+GPU_COMPUTE_CAP_MDLOG=9.0
+REQUIRED_COMPUTE_CAP=9.0
+CUDA_DRIVER=13.30
+NTOMP=8
+VERSION_EXIT=0
+CONTAINER_EXIT=0
+STAGES=em nvt npt md
+FORCE_FIELD=amber99sb-ildn
+WATER_MODEL=tip3p
+GROMPP_MAXWARN=0
+PDB_ATOM_RECORDS_IN=818
+PDB_ATOM_RECORDS_CLEAN=819
+OXT_ADDED=A109
+PROTEIN_RESIDUES_CHAIN_A=85
+CHARGE_CHAIN_A=5.000
+PROTEIN_RESIDUES_CHAIN_B=13
+CHARGE_CHAIN_B=-2.000
+PROTEIN_CHAINS=2
+PROTEIN_ATOMS=1670
+NET_CHARGE_TOPOLOGY=3.000
+GROMPP_IONS_MAXWARN=1
+NET_CHARGE_PRE_IONS_GROMPP=3.000000
+WATERS=5286
+IONS_NA=16
+IONS_CL=19
+TOTAL_ATOMS=17563
+EM_POTENTIAL_ENERGY=-2.7035906e+05
+EM_MAX_FORCE=9.5286469e+02
+EM_CONVERGED=yes
+NVT_NS_PER_DAY=1066.275
+NVT_NONBONDED_ON_GPU=yes
+NVT_PME_ON_GPU=yes
+NVT_AVG_TEMPERATURE=309.698
+NVT_AVG_PRESSURE=-172.616
+NPT_NS_PER_DAY=1207.779
+NPT_NONBONDED_ON_GPU=yes
+NPT_PME_ON_GPU=yes
+NPT_AVG_TEMPERATURE=309.81
+NPT_AVG_PRESSURE=-25.3264
+NPT_AVG_DENSITY=1011.68
+MD_NS_PER_DAY=1208.677
+MD_NONBONDED_ON_GPU=yes
+MD_PME_ON_GPU=yes
+MD_AVG_TEMPERATURE=309.876
+MD_AVG_PRESSURE=-28.27
+MD_AVG_DENSITY=1010.04
+PDB_SHA256=d8f23749da9ec22da2e17bb31c33803e3db6123233cd0404bdc005111196e7a3
+SIF_SHA256=221d748ec44c531fb4d9442624f13ae5693c3d3389b4f4d4a698bf5b01de95fa
+RUN_DIR=/home/eliott/p53mdm2/run_p53md_20261020T043135Z
+--- END SUMMARY ---
+
+======== RESULT: rc=0 ========
