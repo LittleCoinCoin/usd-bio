@@ -145,7 +145,13 @@ run solvate "$GMX" solvate -cp box.gro -cs "$SOLVENT_BOX" -o solv.gro -p topol.t
 # --- 4. ions ------------------------------------------------------------------
 FIRST="${STAGES%% *}"
 note "4. grompp ($FIRST.mdp) + genion -neutral -conc $ION_CONCENTRATION_MOLAR"
-run grompp_ions "$GMX" grompp -f "$DECK/$FIRST.mdp" -c solv.gro -p topol.top -o ions.tpr -maxwarn "$MAXWARN"
+# ions.tpr is built BEFORE genion neutralises the box, so grompp 2025.3 always
+# raises one WARNING here ("Ewald electrostatics in a system with net charge").
+# Seen on the first run (banyan job 118, 2026-10-20). Allow exactly that one
+# for this call only; the dynamics stages below stay at $MAXWARN.
+IONS_MAXWARN=$(( MAXWARN + 1 ))
+kv GROMPP_IONS_MAXWARN "$IONS_MAXWARN"
+run grompp_ions "$GMX" grompp -f "$DECK/$FIRST.mdp" -c solv.gro -p topol.top -o ions.tpr -maxwarn "$IONS_MAXWARN"
 PRE="$(grep -m1 -oE 'non-zero total charge: *-?[0-9.]+' grompp_ions.txt | grep -oE '\-?[0-9.]+$')"
 kv NET_CHARGE_PRE_IONS_GROMPP "${PRE:-0 (no non-zero-charge note)}"
 # genion asks for the group to replace; SOL is fed by name on stdin.
