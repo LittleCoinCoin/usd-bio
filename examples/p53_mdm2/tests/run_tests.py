@@ -112,6 +112,9 @@ def main() -> int:
     import test_container_evidence
     all_rows += _rows_from("container-evidence", test_container_evidence.run())
 
+    import test_md_run_evidence
+    all_rows += _rows_from("md-run-evidence", test_md_run_evidence.run())
+
     # summary table
     print(f"\np53_mdm2 topology test harness")
     print(f"  stage: {STAGE_PATH}")
