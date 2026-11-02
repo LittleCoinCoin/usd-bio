@@ -48,3 +48,17 @@ The production trajectory of banyan job 119 (100 ps NPT, amber99sb-ildn/TIP3P, a
 
 - **Time axes.** The integrated stage counts MaBoSS frames (0–499), while Dynamics counts ps (0–100).
 - **Reference frames.** MD coordinates are in the GROMACS box, not the 1YCR crystal frame of hop 1.
+
+## Appendix — verifier verdict (recorded here because the sealed WORKLOG lacks it)
+
+The cycle-011 WORKLOG was sealed by `finish-cycle` **without** its `## Verifier verdict` section. The coordinator's scripted insert failed, and `finish-cycle` ran in the same command anyway. A sealed WORKLOG is immutable, so the verifier's verdict is reproduced here verbatim:
+
+```
+verdict: aligned
+inbox-coverage: INBOX empty (vacuous); cycle-010 HANDOFF commitments met — job-119 gro/xtc fetched (8be37e3, shasums recomputed and matching the manifest for all 4 files); MD->USD read-back built (converter, two layers, 11 rows registered); Q-018 needed no action.
+intent-tracking: drift-documented — Dynamics layer deliberately not joined to the integrated stage, deferred to soft Q-019 (report 18). Otherwise advances INTENT's MD -> OpenUSD pipeline on the real run.
+work-depth: matches commitment; verifier re-ran suite 87/87; oracles independent (md.mdp frame grid, summary.txt/md.gro header counts, plain-text md.gro final-frame parse at 0.02 A, staleness byte-compare, 8-mutation self-test); Payload LoadNone tested; gaps owned (engineVersion source, no usdview check, no scientific claim). Corners cut: (a) Q-019 heading duplicates its id, cosmetic (same as all prior umbod-asked Qs); (b) converter takes --run-dir/--out-dir but output filenames/docstrings hard-code job 119, short of INTENT's "generalize"; (c) no roadmap node records this MD->USD trajectory leaf, roadmap_refs empty.
+recommended-action: proceed
+```
+
+Next-cycle follow-ups from the verifier: parameterise the converter's output names by run (b), and add a `__roadmap__/p53-mdm2-v2/` leaf for the trajectory work (c).
