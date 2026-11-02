@@ -101,3 +101,8 @@ The seq 5 evidence should stand as a dated observation of a transient state no l
 *priority: soft*
 *answer:* Leave as a record of first build — PI, 2026-11-02
 
+## Q-019 Q-019 -- HOW SHOULD THE NEW DYNAMICS LAYER JOIN THE INTEGRATED STAGE? Cycle-011 put job 119's trajectory into USD (output/p53_mdm2_dynamics_job119.usda, frames behind a Payload, 87/87, report 18), but deliberately left it OUT of demos/p53_mdm2_integrated.usda because two choices are yours. (1) TIME AXIS: Dynamics time codes are picoseconds (0-100 every 10 ps); the integrated stage's time codes are MaBoSS frames (0-499). Options: (a) keep them separate and use the stage's time only for one domain at a time; (b) put Dynamics on the integrated stage through a layer offset/scale so both axes play together (it is physically meaningless to align 100 ps of MD with MaBoSS's abstract time, but it is visually convenient); (c) add the Dynamics layer only through a reference with its own timing and treat the integrated stage's clock as MaBoSS-only. My recommendation is (c), because it composes cleanly and does not invent a relation between two unrelated clocks. (2) REFERENCE FRAME: the MD coordinates sit in the GROMACS box, and the topology hop sits in the 1YCR crystal frame, so the two would render offset from each other. Should the converter fit each frame onto 1YCR CA atoms (a Kabsch alignment, which changes the coordinates while keeping the raw ones recoverable from the xtc), or should we leave the raw box coordinates and offset the Dynamics prim with a single transform? Also FYI: Value Clips are still unused. 11 frames fit in one 481 kB layer, and clips wait for a longer run.
+*asked: cycle-011*
+*priority: soft*
+*answer:*
+
