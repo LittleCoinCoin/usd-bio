@@ -1,0 +1,48 @@
+#usda 1.0
+(
+    defaultPrim = "p53_MDM2_complex"
+    doc = "Dynamics layer (MD -> USD): the banyan job-119 GROMACS production trajectory of p53-MDM2 (1YCR), protein + ions, behind a Payload so frames load on demand. Plumbing run (PI Q-017): not for scientific claims."
+    endTimeCode = 100
+    framesPerSecond = 10
+    metersPerUnit = 1e-10
+    startTimeCode = 0
+    timeCodesPerSecond = 10
+    upAxis = "Y"
+)
+
+def Xform "p53_MDM2_complex"
+{
+    def Scope "dynamics"
+    {
+        custom string bio:md:atomSelection = "protein + ions (NA, CL); waters omitted"
+        custom token bio:md:cluster = "banyan"
+        custom token bio:md:engine = "GROMACS"
+        custom string bio:md:engineVersion = "2025.3"
+        custom token bio:md:forceField = "amber99sb-ildn"
+        custom string bio:md:forceFieldStatus = "plumbing run: AMBER99SB-ILDN/TIP3P accepted to exercise the pipeline, GPU path and USD read-back, NOT for scientific claims; revisit ff14SB/ff19SB before any scientific use (PI answer to Q-017, 2026-10-20)"
+        custom int bio:md:frameCount = 11
+        custom double bio:md:frameIntervalPs = 10
+        custom string bio:md:framesLayer = "p53_mdm2_dynamics_job119_frames.usda"
+        custom string bio:md:jobId = "119"
+        custom int bio:md:omittedAtomCount = 15858
+        custom string bio:md:pbcTreatment = "chains made whole (per-atom minimum image), chain B imaged to chain A, groups continuous in time; no fit"
+        custom double bio:md:positionPrecisionAngstrom = 0.01
+        custom token bio:md:positionUnit = "angstrom"
+        custom string bio:md:sourceGroSha256 = "ee29938edbc460aef082ee804db82fd7d5f33e26005eca05b44664f9207b6c72"
+        custom string bio:md:sourceSummarySha256 = "f68d959a2fc6a55c0830f940d989bdc987fa25d269a2edc0754e7267a0c4872e"
+        custom string bio:md:sourceTopolSha256 = "c671eae319c986fd918368031c8c97c49ed20ab52e177c909e1f4aa79069816d"
+        custom string bio:md:sourceXtc = "banyan:/home/eliott/p53mdm2/run_p53md_20261020T043135Z/work/md.xtc"
+        custom string bio:md:sourceXtcSha256 = "45f5036d8daa2334a13741fe689094f929ec60a3031ff16967885fd1df77060f"
+        custom int bio:md:systemAtomCount = 17563
+        custom token bio:md:timeCodeUnit = "ps"
+        custom token bio:md:waterModel = "tip3p"
+        custom int bio:md:writtenAtomCount = 1705
+
+        def Xform "trajectory" (
+            prepend payload = @./p53_mdm2_dynamics_job119_frames.usda@
+        )
+        {
+        }
+    }
+}
+
