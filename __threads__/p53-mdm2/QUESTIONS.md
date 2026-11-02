@@ -99,5 +99,5 @@ The seq 5 evidence should stand as a dated observation of a transient state no l
 ## Q-018 Q-018 -- STALE IMAGE DIGEST in test_container_evidence.py: its _DELIVERED_SIF_SHA256 (1fc7...81ac) is the OLD pre-rebuild sif, while the PI-designated image (and job 119) is 221d748e...95fa (cold rebuild, convert_verify_cold_banyan.txt). The new test_md_run_evidence.py pins 221d.... Should the old constant be repointed to 221d... (and the old-sif evidence checks kept as historical), or left as a record of the first build? Default if unanswered: leave as is, since the PI said the old .sif is retired around the 2026-10-13 cleanup. Also FYI: job 119's +3 net charge was neutralised by 3 CL (NA=16, CL=19), inferred from totals; the log shows only head -3 of genion output.
 *asked: cycle-010*
 *priority: soft*
-*answer:*
+*answer:* Leave as a record of first build — PI, 2026-11-02
 
