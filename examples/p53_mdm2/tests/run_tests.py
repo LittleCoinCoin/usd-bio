@@ -14,6 +14,8 @@ Layers (mirrors the v8 4-layer ladder; rebuilt for 1YCR topology-only):
     readback-md-gmx -- GROMACS deck: USD read-back + USD -> .mdp round-trip,
                        committed-deck staleness guard (test_md_gromacs_deck)
     integrated-p5 -- the composed four-pipeline stage (demos/run_end_to_end.py)
+    readback-traj -- MD -> USD Dynamics layer (job-119 trajectory behind a
+                     Payload) vs md.mdp / summary.txt / md.gro (test_trajectory_readback)
     anti-chimera  -- static grep-gate for the ABL root literal / dataset counts
     container-evidence -- offline gates over cluster/evidence + recipe pins
                           (contributes zero rows when evidence is not captured)
@@ -114,6 +116,9 @@ def main() -> int:
 
     import test_md_run_evidence
     all_rows += _rows_from("md-run-evidence", test_md_run_evidence.run())
+
+    import test_trajectory_readback
+    all_rows += _rows_from("readback-traj", test_trajectory_readback.run())
 
     # summary table
     print(f"\np53_mdm2 topology test harness")

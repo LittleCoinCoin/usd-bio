@@ -11,7 +11,7 @@ Python), but the lazy pattern is preserved so future mdtraj-backed converters
 import importlib
 from typing import TYPE_CHECKING
 
-__all__ = ["pdb_parser"]
+__all__ = ["pdb_parser", "trajectory_to_usd"]
 
 
 def __getattr__(name: str):
