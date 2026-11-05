@@ -162,6 +162,20 @@ def build_analysis_layer(
                           custom=True).Set(float(any_pt.time_tick))
     scope.CreateAttribute("bio:maboss:maxTime", Sdf.ValueTypeNames.Float,
                           custom=True).Set(float(any_pt.max_time))
+    # The ASSUMED physical unit of MaBoSS model time (PI Q-019): one constant,
+    # owned by run_maboss, recorded as data and flagged as an assumption.
+    unit = scope.CreateAttribute("bio:maboss:timeUnit", Sdf.ValueTypeNames.Token,
+                                 custom=True)
+    unit.Set(run_maboss.ASSUMED_TIME_UNIT)
+    unit.SetDocumentation("[assumption] physical unit of one MaBoSS model time "
+                          "unit; see bio:maboss:timeUnitStatus")
+    secs = scope.CreateAttribute("bio:maboss:secondsPerTimeUnit",
+                                 Sdf.ValueTypeNames.Double, custom=True)
+    secs.Set(run_maboss.ASSUMED_SECONDS_PER_TIME_UNIT)
+    secs.SetDocumentation("[assumption] seconds per MaBoSS model time unit; "
+                          "one USD time code here is bio:maboss:timeTick units")
+    scope.CreateAttribute("bio:maboss:timeUnitStatus", Sdf.ValueTypeNames.String,
+                          custom=True).Set(run_maboss.ASSUMED_TIME_UNIT_STATUS)
     scope.CreateAttribute("bio:maboss:seedPseudorandom", Sdf.ValueTypeNames.Int,
                           custom=True).Set(100)
     scope.CreateAttribute("bio:maboss:sampleCount", Sdf.ValueTypeNames.Int,
