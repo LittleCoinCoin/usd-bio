@@ -2,16 +2,19 @@
 """
 trajectory_to_usd.py -- MD trajectory (GROMACS .xtc + .gro) -> OpenUSD Dynamics layer.
 
-The first p53-MDM2 MD -> USD path, driven by the real banyan job-119 production
-run committed under ``data/md_runs/banyan_job119/``. Two layers are written:
+The p53-MDM2 MD -> USD path for one GROMACS production run committed under
+``data/md_runs/<run>/`` (default: ``p53_env.DEFAULT_MD_RUN``). Every run-specific
+name is derived from the run, never hard-coded: the ``run_id`` is ``--run-id`` if
+given, else ``job<job_id>`` from the run's ``manifest.jsonl``. Two layers are
+written:
 
-    output/p53_mdm2_dynamics_job119.usda          (light: the Dynamics department)
-        /p53_MDM2_complex/dynamics                Scope, bio:md: run provenance
-            trajectory                            Xform, PAYLOAD -> frames layer
-    output/p53_mdm2_dynamics_job119_frames.usda   (heavy: loaded on demand)
+    output/p53_mdm2_dynamics_<run_id>.usda          (light: the Dynamics department)
+        /p53_MDM2_complex/dynamics                  Scope, bio:md: run provenance
+            trajectory                              Xform, PAYLOAD -> frames layer
+    output/p53_mdm2_dynamics_<run_id>_frames.usda   (heavy: loaded on demand)
         /trajectory
-            chain_A, chain_B                      Points, time-sampled `points`
-            ions                                  Points, time-sampled `points`
+            chain_A, chain_B                        Points, time-sampled `points`
+            ions                                    Points, time-sampled `points`
 
 Design choices (each is recorded on the stage as a ``bio:md:`` attribute):
 
@@ -40,7 +43,9 @@ Design choices (each is recorded on the stage as a ``bio:md:`` attribute):
   (minimum image against the previous atom in file order), chain B is imaged
   next to chain A, and every group is made continuous in time. No fitting or
   centering is applied: coordinates stay in the MD box frame, not the 1YCR
-  crystal frame.
+  crystal frame. Alignment to the crystal frame is an INTEGRATION concern: the
+  integrated stage places this layer under ONE rigid ``xformOp:transform``
+  (``composition/dynamics_alignment.py``), so the raw frames are never refitted.
 
 No dataset counts are hard-coded here; everything is read from the run files.
 The converter refuses to write if a source file's sha256 disagrees with the
@@ -72,9 +77,7 @@ if _PKG_PARENT not in sys.path:
 from p53_mdm2 import p53_env
 from p53_mdm2.data import ELEMENTS, IONS
 
-RUN_DIR = os.path.join(p53_env.PACKAGE_DIR, "data", "md_runs", "banyan_job119")
-DYNAMICS_NAME = "p53_mdm2_dynamics_job119.usda"
-FRAMES_NAME = "p53_mdm2_dynamics_job119_frames.usda"
+RUN_DIR = p53_env.default_md_run_dir()
 
 TIME_CODES_PER_SECOND = 10.0      # playback only: 10 ps of MD per second
 ION_RESNAMES = ("NA", "CL")       # GROMACS ion residue names in this deck
@@ -85,6 +88,28 @@ FORCE_FIELD_STATUS = (
     "plumbing run: AMBER99SB-ILDN/TIP3P accepted to exercise the pipeline, GPU "
     "path and USD read-back, NOT for scientific claims; revisit ff14SB/ff19SB "
     "before any scientific use (PI answer to Q-017, 2026-10-20)")
+
+
+# --- run identity ------------------------------------------------------------
+
+def run_id_from_manifest(manifest):
+    """``job<job_id>`` from the run's manifest (the xtc record's ``job_id``)."""
+    return f"job{manifest['md.xtc']['job_id']}"
+
+
+def output_names(run_id):
+    """(dynamics layer, frames layer) file names for *run_id*."""
+    return (f"p53_mdm2_dynamics_{run_id}.usda",
+            f"p53_mdm2_dynamics_{run_id}_frames.usda")
+
+
+def default_output_paths(run_dir=RUN_DIR, out_dir=None, run_id=None):
+    """{"dynamics": path, "frames": path} the converter writes for *run_dir*."""
+    run_id = run_id or run_id_from_manifest(read_manifest(run_dir))
+    dyn, frames = output_names(run_id)
+    out_dir = out_dir or p53_env.output_dir()
+    return {"dynamics": os.path.join(out_dir, dyn),
+            "frames": os.path.join(out_dir, frames)}
 
 
 # --- source files ------------------------------------------------------------
@@ -257,13 +282,16 @@ def _new_stage(path):
     return Usd.Stage.CreateNew(path)
 
 
-def write_frames_layer(path, topology, names, groups, positions_A, times):
-    """Heavy layer: one Points prim per group, `points` time-sampled in ps."""
+def write_frames_layer(path, topology, names, groups, positions_A, times, run_label):
+    """Heavy layer: one Points prim per group, `points` time-sampled in ps.
+
+    *run_label* names the run in the layer doc, e.g. ``"<cluster> job <id>"``.
+    """
     from pxr import Gf, Sdf, Usd, UsdGeom, Vt
     stage = _new_stage(path)
     _stage_metadata(stage, float(times[0]), float(times[-1]),
                     "Dynamics frames (payload target): protein chains + ions of "
-                    "banyan job 119, positions in Angstrom, time codes in ps.")
+                    f"{run_label}, positions in Angstrom, time codes in ps.")
     root = UsdGeom.Xform.Define(stage, "/trajectory")
     stage.SetDefaultPrim(root.GetPrim())
     for name, idx in groups.items():
@@ -285,12 +313,16 @@ def write_frames_layer(path, topology, names, groups, positions_A, times):
     stage.Save()
 
 
-def write_dynamics_layer(path, frames_name, root_path, times, provenance):
-    """Light Dynamics department layer: provenance + the payload arc."""
+def write_dynamics_layer(path, frames_name, root_path, times, provenance,
+                         run_label):
+    """Light Dynamics department layer: provenance + the payload arc.
+
+    *run_label* names the run in the layer doc, e.g. ``"<cluster> job-<id>"``.
+    """
     from pxr import Sdf, UsdGeom
     stage = _new_stage(path)
     _stage_metadata(stage, float(times[0]), float(times[-1]),
-                    "Dynamics layer (MD -> USD): the banyan job-119 GROMACS "
+                    f"Dynamics layer (MD -> USD): the {run_label} GROMACS "
                     "production trajectory of p53-MDM2 (1YCR), protein + ions, "
                     "behind a Payload so frames load on demand. Plumbing run "
                     "(PI Q-017): not for scientific claims.")
@@ -304,8 +336,13 @@ def write_dynamics_layer(path, frames_name, root_path, times, provenance):
     stage.Save()
 
 
-def convert(run_dir=RUN_DIR, out_dir=None, root_path=p53_env.DEFAULT_ROOT_PATH):
-    """Full pipeline. Returns {"dynamics": path, "frames": path}."""
+def convert(run_dir=RUN_DIR, out_dir=None, root_path=p53_env.DEFAULT_ROOT_PATH,
+            run_id=None):
+    """Full pipeline. Returns {"dynamics": path, "frames": path}.
+
+    *run_id* defaults to ``job<job_id>`` from the run's manifest and only names
+    the output files; the stage content is derived from the run files alone.
+    """
     import mdtraj as md
     from pxr import Sdf
 
@@ -326,9 +363,12 @@ def convert(run_dir=RUN_DIR, out_dir=None, root_path=p53_env.DEFAULT_ROOT_PATH):
     S, T, I, F = (Sdf.ValueTypeNames.String, Sdf.ValueTypeNames.Token,
                   Sdf.ValueTypeNames.Int, Sdf.ValueTypeNames.Double)
     job = manifest["md.xtc"]["job_id"]
+    cluster = manifest["md.xtc"]["source"].split(":", 1)[0]
+    paths = default_output_paths(run_dir, out_dir, run_id)
+    frames_name = os.path.basename(paths["frames"])
     provenance = {
         "jobId": (S, job),
-        "cluster": (T, manifest["md.xtc"]["source"].split(":", 1)[0]),
+        "cluster": (T, cluster),
         "engine": (T, "GROMACS"),
         "engineVersion": (S, engine_version(run_dir)),
         "forceField": (T, summary.get("FORCE_FIELD", "unknown")),
@@ -351,25 +391,28 @@ def convert(run_dir=RUN_DIR, out_dir=None, root_path=p53_env.DEFAULT_ROOT_PATH):
         "positionPrecisionAngstrom": (F, 10.0 ** -POSITION_DECIMALS),
         "pbcTreatment": (S, "chains made whole (per-atom minimum image), chain B "
                          "imaged to chain A, groups continuous in time; no fit"),
-        "framesLayer": (S, FRAMES_NAME),
+        "framesLayer": (S, frames_name),
     }
 
-    frames_path = os.path.join(out_dir, FRAMES_NAME)
-    dyn_path = os.path.join(out_dir, DYNAMICS_NAME)
     names = gro_names(gro)
     if len(names) != traj.n_atoms:
         raise ValueError(f"md.gro lists {len(names)} atoms, md.xtc {traj.n_atoms}")
-    write_frames_layer(frames_path, traj.topology, names, groups, positions_A, times)
-    write_dynamics_layer(dyn_path, FRAMES_NAME, root_path, times, provenance)
-    return {"dynamics": dyn_path, "frames": frames_path}
+    write_frames_layer(paths["frames"], traj.topology, names, groups, positions_A,
+                       times, f"{cluster} job {job}")
+    write_dynamics_layer(paths["dynamics"], frames_name, root_path, times,
+                         provenance, f"{cluster} job-{job}")
+    return paths
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--run-dir", default=RUN_DIR)
     ap.add_argument("--out-dir", default=None)
+    ap.add_argument("--run-id", default=None,
+                    help="names the output files; default job<job_id> from "
+                         "the run's manifest.jsonl")
     args = ap.parse_args(argv)
-    paths = convert(args.run_dir, args.out_dir)
+    paths = convert(args.run_dir, args.out_dir, run_id=args.run_id)
     for k, p in paths.items():
         print(f"  {k:9s} {p} ({os.path.getsize(p)} bytes)")
     return 0

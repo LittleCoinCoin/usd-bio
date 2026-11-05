@@ -1,7 +1,7 @@
 #usda 1.0
 (
     defaultPrim = "p53_MDM2_complex"
-    doc = "Integrated demonstration (Pipeline 5): a single composed stage carrying the 1YCR Biology topology, the Protocol bio:md: setup deck, the Perturbation Genotype VariantSet with its DDMut-PPI ΔΔG and correlated MaBoSS parameter S, and the time-sampled MaBoSS node probabilities -- across four departmental SubLayers. This root layer adds ONLY the subLayers list, the root-layer-only stage metadata, a Local Genotype selection, and the integration/ cross-pipeline join. MaBoSS backend: MaBoSS (external binary, colomoto) (MaBoSS version 2.6.6 [networks up to 64 nodes])."
+    doc = "Integrated demonstration (Pipeline 5): a single composed stage carrying the 1YCR Biology topology, the Protocol bio:md: setup deck, the Perturbation Genotype VariantSet with its DDMut-PPI ΔΔG and correlated MaBoSS parameter S, and the time-sampled MaBoSS node probabilities -- across four departmental SubLayers, plus the MD Dynamics layer by Reference (own ps clock, no layer offset; one rigid Kabsch transform onto 1YCR CA). This root layer adds ONLY the subLayers list, the root-layer-only stage metadata (clock = MaBoSS frames), a Local Genotype selection, the dynamics reference + transform, and the integration/ cross-pipeline join. MaBoSS backend: MaBoSS (external binary, colomoto) (MaBoSS version 2.6.6 [networks up to 64 nodes])."
     endTimeCode = 499
     framesPerSecond = 10
     metersPerUnit = 1e-10
@@ -21,12 +21,32 @@ over "p53_MDM2_complex" (
     }
 )
 {
+    over "dynamics" (
+        prepend references = @../output/p53_mdm2_dynamics_job119.usda@</p53_MDM2_complex/dynamics>
+    )
+    {
+        custom string bio:demo:clockRelation = "independent clocks: this stage's time codes are MaBoSS frames (Analysis layer, bio:maboss:timeTick model units per frame, bio:maboss:timeUnit assumed); the referenced Dynamics time codes are MD picoseconds (bio:md:timeCodeUnit). The reference has NO layer offset, so USD maps time code t to Dynamics t 1:1 by mechanism only; no physical relation between the clocks is asserted (PI Q-019, 2026-11-04)"
+
+        over "trajectory"
+        {
+            custom int bio:md:alignmentAtomCount = 98
+            custom double bio:md:alignmentFitTimeCode = 0
+            custom token bio:md:alignmentMethod = "kabsch"
+            custom string bio:md:alignmentResidueMapping = "CA atoms matched by chain + residue number, identity numbering, residue names checked: MD chain_A 25-109 -> 1YCR chain A 25-109 (85 CA); MD chain_B 17-29 -> 1YCR chain B 17-29 (13 CA)"
+            custom double bio:md:alignmentRmsdAngstrom = 0.3482
+            custom double bio:md:alignmentRmsdBeforeAngstrom = 71.9137
+            custom string bio:md:alignmentTarget = "CA atoms of ../output/p53_mdm2_topology.usda (1YCR crystal frame)"
+            matrix4d xformOp:transform = ( (0.9999914871830545, 0.0025639034397608963, -0.0032329492068735657, 0), (-0.0025722426351704876, 0.999993368913865, -0.002577924770808926, 0), (0.0032263182187215115, 0.0025862187551945483, 0.9999914511351092, 0), (-18.35624782682605, -64.3982836679304, -26.343412835679917, 1) )
+            uniform token[] xformOpOrder = ["xformOp:transform"]
+        }
+    }
+
     def Scope "integration"
     {
-        custom string[] bio:demo:hops = ["1: MD/structure -> USD topology (1YCR -> bio: atoms, elements, bonds)", "2: USD -> ΔΔG (Genotype VariantSet -> DDMut-PPI -> bio:ddgKcalPerMol)", "3: ΔΔG -> MaBoSS model (logistic correlation -> $KMn_pMC*, bio:maboss:*)", "4: MaBoSS run -> USD (node probtraj -> time-sampled bio:maboss:prob:<node>)"]
+        custom string[] bio:demo:hops = ["1: MD/structure -> USD topology (1YCR -> bio: atoms, elements, bonds)", "2: USD -> ΔΔG (Genotype VariantSet -> DDMut-PPI -> bio:ddgKcalPerMol)", "3: ΔΔG -> MaBoSS model (logistic correlation -> $KMn_pMC*, bio:maboss:*)", "4: MaBoSS run -> USD (node probtraj -> time-sampled bio:maboss:prob:<node>)", "1c (joined at 5): MD trajectory -> USD Dynamics (referenced, own ps clock, one rigid transform onto 1YCR CA)"]
         custom string bio:demo:provenance = "Cross-pipeline join derived from the composed departmental layers (ΔΔG + S read through the Genotype VariantSet; <P(node up)> averaged over the Analysis layer's committed MaBoSS time samples). The ΔΔG status/source tokens below carry the input lineage unchanged -- a 'fixture' ΔΔG is never presented as measured or predicted."
         custom token bio:demo:readoutNode = "p53"
-        custom string[] bio:demo:sourceLayers = ["../analysis/p53_mdm2_analysis.usda", "../composition/p53_mdm2_genotype.usda", "../output/p53_mdm2_md_setup.usda", "../output/p53_mdm2_topology.usda"]
+        custom string[] bio:demo:sourceLayers = ["../analysis/p53_mdm2_analysis.usda", "../composition/p53_mdm2_genotype.usda", "../output/p53_mdm2_md_setup.usda", "../output/p53_mdm2_topology.usda", "../output/p53_mdm2_dynamics_job119.usda"]
         custom string bio:maboss:backend = "MaBoSS (external binary, colomoto)"
         custom string bio:maboss:engineVersion = "MaBoSS version 2.6.6 [networks up to 64 nodes]"
 

@@ -70,3 +70,19 @@ DEFAULT_REPRESENTATIONS = ("points", "balls", "vdw", "ballstick")
 
 # Ångström length unit for USD stages: 1 Å = 1e-10 m (project convention).
 METERS_PER_UNIT = 1e-10
+
+# The committed MD run the Dynamics pipeline converts by default: a directory
+# name under ``data/md_runs/``. This is the ONE place the default run is named;
+# library code derives every run-specific file name and docstring from the run
+# directory's ``manifest.jsonl`` (see ``converters/trajectory_to_usd.py``).
+DEFAULT_MD_RUN = "banyan_job119"
+
+
+def md_runs_dir() -> str:
+    """Directory holding fetched MD run outputs, one sub-directory per run."""
+    return os.path.join(PACKAGE_DIR, "data", "md_runs")
+
+
+def default_md_run_dir() -> str:
+    """Absolute path of :data:`DEFAULT_MD_RUN`."""
+    return os.path.join(md_runs_dir(), DEFAULT_MD_RUN)

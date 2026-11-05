@@ -23,8 +23,15 @@ over "p53_MDM2_complex"
         custom token[] bio:maboss:nodes = ["p53", "p53_h", "Mdm2C", "Mdm2N", "Dam"]
         custom string bio:maboss:provenance = "genuine MaBoSS simulation output (not fabricated)"
         custom int bio:maboss:sampleCount = 50000
+        custom double bio:maboss:secondsPerTimeUnit = 3600 (
+            doc = "[assumption] seconds per MaBoSS model time unit; one USD time code here is bio:maboss:timeTick units"
+        )
         custom int bio:maboss:seedPseudorandom = 100
         custom float bio:maboss:timeTick = 0.1
+        custom token bio:maboss:timeUnit = "hour" (
+            doc = "[assumption] physical unit of one MaBoSS model time unit; see bio:maboss:timeUnitStatus"
+        )
+        custom string bio:maboss:timeUnitStatus = "assumption (PI Q-019, 2026-11-04: 'assume one and stick to it'): one MaBoSS model time unit is taken as one hour, from the hours-scale p53-Mdm2 feedback; the model itself is dimensionless and assigns no unit"
 
         def Scope "WildType"
         {
