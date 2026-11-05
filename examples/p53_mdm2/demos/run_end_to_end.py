@@ -13,6 +13,7 @@ reimplemented here; this script is orchestration + the P5 composition only):
 
     hop 1  P1  topology     builders.build_assembly       1ycr.pdb -> topology .usda
            P1b protocol     templates.md_parameters       bio:md: setup deck (Protocol layer)
+           P1c dynamics     converters.trajectory_to_usd  MD xtc/gro -> Dynamics layer (Payload)
     hop 2  P2  ΔΔG          composition.build_genotype    Genotype (Perturbation) VariantSet
                             converters.ddmut_client       ΔΔG -> bio:ddgKcalPerMol per variant
     hop 3  P3  correlation  maboss.dg_correlation         S = 1/(1+exp(-k(ΔΔG-m)))
@@ -29,9 +30,41 @@ It contains no copy of any pipeline's data; it contains only
     ``metersPerUnit``, ``upAxis``, start/end time codes) -- sublayers cannot
     supply these, which is why a dedicated integration root layer is needed,
   * a Local-arc ``Genotype`` variant selection (the "which hypothesis am I
-    consulting" switch), and
+    consulting" switch),
   * an ``integration`` Scope: the cross-pipeline JOIN, one prim per variant
-    carrying (ΔΔG, S, <P(p53 up)>) side by side.
+    carrying (ΔΔG, S, <P(p53 up)>) side by side, and
+  * a ``dynamics`` prim that brings the MD Dynamics layer in by REFERENCE,
+    placed in the crystal frame by ONE rigid transform (PI Q-019).
+
+Dynamics: reference, not sublayer, and two clocks (PI Q-019, 2026-11-04)
+------------------------------------------------------------------------
+The stage's clock is MaBoSS-only: start/end time codes and timeCodesPerSecond
+come from the Analysis layer (frames 0..N-1, one frame = ``bio:maboss:timeTick``
+model time units). The Dynamics layer keeps its own time codes in MD
+picoseconds (``bio:md:timeCodeUnit = "ps"``). No numeric relation between the
+two clocks is invented: the reference carries NO layer offset (offset 0, scale
+1). USD therefore maps a referenced time code 1:1 -- at stage time t the
+Dynamics samples are read at t, so "ps 0..100" play during "MaBoSS frames
+0..100". That coincidence is mechanical, not scientific, and is recorded on the
+prim as ``bio:demo:clockRelation``. Both layers author the same
+timeCodesPerSecond (10); were they to differ, USD would silently rescale the
+referenced samples by the ratio, which ``tests/test_dynamics_integration.py``
+guards against.
+
+Why a reference rather than a 6th sublayer:
+  * a reference grafts exactly ONE subtree (``<root>/dynamics``) at a chosen
+    prim, so the Dynamics department's own root-prim opinions and layer
+    metadata (its 0..100 ps range) stay out of the integrated stage's layer
+    stack, which remains the MaBoSS-clocked departmental stack;
+  * the clock relation then lives on ONE inspectable arc (the reference's
+    layer offset, deliberately identity) instead of being implied by stacking;
+  * the Q-019 option the PI accepted was phrased as a reference.
+The alignment transform is a Local opinion of THIS root layer on the
+referenced ``trajectory`` Xform (``composition.dynamics_alignment``): the
+Dynamics layer itself stays in the raw GROMACS box frame and is not edited. The
+``dynamics`` prim is a Scope (not xformable), so the single
+``xformOp:transform`` sits on its ``trajectory`` Xform child, which holds the
+Payload to every frame.
 
 Why the join exists (and is not redundant): the ΔΔG and S of a variant live
 INSIDE that variant's edit context, so only ONE variant's values resolve on the
@@ -139,7 +172,31 @@ HOP_DESCRIPTIONS = (
     "2: USD -> ΔΔG (Genotype VariantSet -> DDMut-PPI -> bio:ddgKcalPerMol)",
     "3: ΔΔG -> MaBoSS model (logistic correlation -> $KMn_pMC*, bio:maboss:*)",
     "4: MaBoSS run -> USD (node probtraj -> time-sampled bio:maboss:prob:<node>)",
+    "1c (joined at 5): MD trajectory -> USD Dynamics (referenced, own ps clock, "
+    "one rigid transform onto 1YCR CA)",
 )
+
+#: The prim under the complex root that references the Dynamics layer. Its
+#: name and source path match the Dynamics layer's own ``<root>/dynamics``.
+DYNAMICS_PRIM = "dynamics"
+DYNAMICS_TRAJECTORY = "trajectory"      # the Xform child carrying the Payload
+#: Recorded on the dynamics prim: how its clock relates to the stage clock.
+CLOCK_RELATION_ATTR = "bio:demo:clockRelation"
+CLOCK_RELATION = (
+    "independent clocks: this stage's time codes are MaBoSS frames (Analysis "
+    "layer, bio:maboss:timeTick model units per frame, bio:maboss:timeUnit "
+    "assumed); the referenced Dynamics time codes are MD picoseconds "
+    "(bio:md:timeCodeUnit). The reference has NO layer offset, so USD maps time "
+    "code t to Dynamics t 1:1 by mechanism only; no physical relation between "
+    "the clocks is asserted (PI Q-019, 2026-11-04)")
+#: Alignment provenance, authored next to the transform on the trajectory prim.
+ALIGN_METHOD_ATTR = "bio:md:alignmentMethod"
+ALIGN_RMSD_ATTR = "bio:md:alignmentRmsdAngstrom"
+ALIGN_RMSD_BEFORE_ATTR = "bio:md:alignmentRmsdBeforeAngstrom"
+ALIGN_COUNT_ATTR = "bio:md:alignmentAtomCount"
+ALIGN_MAPPING_ATTR = "bio:md:alignmentResidueMapping"
+ALIGN_TIME_ATTR = "bio:md:alignmentFitTimeCode"
+ALIGN_TARGET_ATTR = "bio:md:alignmentTarget"
 
 WILDTYPE = "WildType"
 
@@ -169,6 +226,12 @@ def genotype_path() -> str:
 
 def analysis_path() -> str:
     return build_analysis_layer.default_output_path()
+
+
+def dynamics_paths() -> dict:
+    """{"dynamics": light layer, "frames": payload target} of the default run."""
+    from p53_mdm2.converters.trajectory_to_usd import default_output_paths
+    return default_output_paths()
 
 
 def source_layers() -> List[str]:
@@ -222,6 +285,15 @@ def hop1_topology_and_protocol(*, verbose: bool = True) -> None:
     build_assembly(topology_path(), p53_env.get_structure_path("1ycr.pdb"),
                    system_name="p53-MDM2 complex (1YCR)")
     build_md_setup_artifact(md_setup_path())
+
+
+def hop1c_dynamics(*, verbose: bool = True) -> dict:
+    """P1c: the committed MD run -> the Dynamics layer + its Payload frames."""
+    from p53_mdm2.converters.trajectory_to_usd import convert
+
+    if verbose:
+        print("\n=== hop 1c -- P1c MD trajectory -> Dynamics layer ===")
+    return convert()
 
 
 def hop2_genotype_and_ddg(*, ddg_source: str = "captured",
@@ -359,7 +431,9 @@ def build_integrated_stage(
     layers = layers or source_layers()
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    missing = [p for p in (*layers, topology_path()) if not os.path.isfile(p)]
+    dyn = dynamics_paths()
+    missing = [p for p in (*layers, topology_path(), *dyn.values())
+               if not os.path.isfile(p)]
     if missing:
         raise FileNotFoundError(
             "hop 5 cannot compose -- missing upstream layer(s): "
@@ -398,6 +472,42 @@ def build_integrated_stage(
     stage.SetEndTimeCode(analysis_stage.GetEndTimeCode())
     stage.SetTimeCodesPerSecond(analysis_stage.GetTimeCodesPerSecond())
     stage.SetFramesPerSecond(analysis_stage.GetFramesPerSecond())
+
+    # Dynamics: a REFERENCE to the Dynamics layer's own <root>/dynamics subtree,
+    # with NO layer offset (the clocks stay independent -- see module doc).
+    dyn_layer_stage = Usd.Stage.Open(dyn["dynamics"], Usd.Stage.LoadNone)
+    if dyn_layer_stage.GetTimeCodesPerSecond() != stage.GetTimeCodesPerSecond():
+        raise ValueError(
+            "Dynamics and integrated timeCodesPerSecond differ -- USD would "
+            "rescale the referenced ps time codes; refusing to compose")
+    dyn_src = f"{dyn_layer_stage.GetDefaultPrim().GetPath()}/{DYNAMICS_PRIM}"
+    dyn_prim = stage.OverridePrim(f"{root_path}/{DYNAMICS_PRIM}")
+    dyn_prim.GetReferences().AddReference(
+        Sdf.Reference(_relative_sublayer(output_path, dyn["dynamics"]),
+                      Sdf.Path(dyn_src), Sdf.LayerOffset()))
+    dyn_prim.CreateAttribute(CLOCK_RELATION_ATTR, Sdf.ValueTypeNames.String,
+                             custom=True).Set(CLOCK_RELATION)
+
+    # Reference frame: ONE rigid transform on the trajectory Xform (PI Q-019).
+    from p53_mdm2.composition.dynamics_alignment import fit_dynamics_to_topology
+    fit = fit_dynamics_to_topology(topology_path(), dyn["frames"])
+    traj = stage.OverridePrim(
+        f"{root_path}/{DYNAMICS_PRIM}/{DYNAMICS_TRAJECTORY}")
+    UsdGeom.Xformable(traj).AddTransformOp().Set(fit.usd_matrix())
+    for name, vtype, value in (
+            (ALIGN_METHOD_ATTR, Sdf.ValueTypeNames.Token, "kabsch"),
+            (ALIGN_TARGET_ATTR, Sdf.ValueTypeNames.String,
+             "CA atoms of " + _relative_sublayer(output_path, topology_path())
+             + " (1YCR crystal frame)"),
+            (ALIGN_MAPPING_ATTR, Sdf.ValueTypeNames.String,
+             fit.mapping_description()),
+            (ALIGN_COUNT_ATTR, Sdf.ValueTypeNames.Int, len(fit.pairs)),
+            (ALIGN_TIME_ATTR, Sdf.ValueTypeNames.Double, fit.fit_time_code),
+            (ALIGN_RMSD_ATTR, Sdf.ValueTypeNames.Double,
+             round(fit.rmsd_angstrom, 4)),
+            (ALIGN_RMSD_BEFORE_ATTR, Sdf.ValueTypeNames.Double,
+             round(fit.rmsd_before_angstrom, 4))):
+        traj.CreateAttribute(name, vtype, custom=True).Set(value)
     layer.Save()
 
     # ---- pass B: read the COMPOSED stage, then author the join ------------
@@ -450,7 +560,8 @@ def build_integrated_stage(
     scope.CreateAttribute(
         DEMO_LAYERS_ATTR, Sdf.ValueTypeNames.StringArray, custom=True).Set(
         [_relative_sublayer(output_path, p) for p in layers]
-        + [_relative_sublayer(output_path, topology_path())])
+        + [_relative_sublayer(output_path, topology_path()),
+           _relative_sublayer(output_path, dyn["dynamics"])])
     scope.CreateAttribute(DEMO_READOUT_ATTR, Sdf.ValueTypeNames.Token,
                           custom=True).Set(run_maboss.P53_NODE)
     scope.CreateAttribute("bio:maboss:backend", Sdf.ValueTypeNames.String,
@@ -499,9 +610,12 @@ def build_integrated_stage(
         "the 1YCR Biology topology, the Protocol bio:md: setup deck, the "
         "Perturbation Genotype VariantSet with its DDMut-PPI ΔΔG and correlated "
         "MaBoSS parameter S, and the time-sampled MaBoSS node probabilities -- "
-        "across four departmental SubLayers. This root layer adds ONLY the "
-        "subLayers list, the root-layer-only stage metadata, a Local Genotype "
-        "selection, and the integration/ cross-pipeline join. "
+        "across four departmental SubLayers, plus the MD Dynamics layer by "
+        "Reference (own ps clock, no layer offset; one rigid Kabsch transform "
+        "onto 1YCR CA). This root layer adds ONLY the subLayers list, the "
+        "root-layer-only stage metadata (clock = MaBoSS frames), a Local "
+        "Genotype selection, the dynamics reference + transform, and the "
+        "integration/ cross-pipeline join. "
         f"MaBoSS backend: {backend} ({engine_version})."
     )
     layer.Save()
@@ -546,6 +660,7 @@ def run_end_to_end(*, ddg_source: str = "captured",
         print("  MD/structure -> USD -> ΔΔG -> MaBoSS -> USD")
     if not from_committed:
         hop1_topology_and_protocol(verbose=verbose)
+        hop1c_dynamics(verbose=verbose)
         hop2_genotype_and_ddg(ddg_source=ddg_source, verbose=verbose)
         hop3_emit_maboss(verbose=verbose)
     elif verbose:
