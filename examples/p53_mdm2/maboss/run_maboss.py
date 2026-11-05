@@ -76,6 +76,37 @@ P53_NODE = "p53"
 DEFAULT_TIME_TICK = 0.1
 DEFAULT_MAX_TIME = 50.0
 
+# ---------------------------------------------------------------------------
+# ASSUMED physical unit of MaBoSS model time  [assumption]
+# ---------------------------------------------------------------------------
+# MaBoSS time is dimensionless: every ``rate_up``/``rate_down`` in the .bnd is
+# ``1/$t...`` with the ``$t...`` constants of the reference .cfg (0.3 to 5), so
+# ``max_time``/``time_tick`` are in "model time units" and mean nothing physical
+# until someone says what one unit is. PI Q-019 (2026-11-04): "at least assume
+# one and stick to it". This is that assumption, in ONE place:
+#
+#     1 MaBoSS model time unit == 1 hour
+#
+# Why hours [assumption, not verified against the model's source paper]:
+#   * the p53-Mdm2 negative-feedback loop this 5-node model abstracts is
+#     observed to pulse on an hours scale in single cells (Lahav et al. 2004,
+#     Nat Genet 36:147 -- period of a few hours; cited from memory);
+#   * under that reading the model's time constants (0.3-5) are 20 min to 5 h,
+#     and the wild-type P(p53 up) first peaks near model time 5.7 in the
+#     committed Analysis layer -- an hours-scale response, not seconds or days;
+#   * nothing in the repo (.bnd/.cfg comments, R02) assigns a unit, so this is
+#     a declared choice, recorded on the Analysis layer as
+#     ``bio:maboss:timeUnit`` / ``bio:maboss:secondsPerTimeUnit`` with a
+#     ``bio:maboss:timeUnitStatus`` that says it is an assumption.
+# It does NOT relate the MaBoSS clock to the MD clock: the integrated stage
+# keeps the two time axes separate (see demos/run_end_to_end.py).
+ASSUMED_TIME_UNIT = "hour"
+ASSUMED_SECONDS_PER_TIME_UNIT = 3600.0
+ASSUMED_TIME_UNIT_STATUS = (
+    "assumption (PI Q-019, 2026-11-04: 'assume one and stick to it'): one "
+    "MaBoSS model time unit is taken as one hour, from the hours-scale "
+    "p53-Mdm2 feedback; the model itself is dimensionless and assigns no unit")
+
 # Candidate directories that may hold the standalone MaBoSS binary + its libs.
 # colomoto's maboss_setup installs into ~/.local/share/colomoto/{bin,lib}.
 _HOME = os.path.expanduser("~")
