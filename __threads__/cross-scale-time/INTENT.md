@@ -4,8 +4,6 @@ created: 2026-11-05
 ---
 # Brief
 
-> Drafted by the agent on 2026-11-06 from the PI's Q-020 answer (p53-mdm2) and the PI's corrections in the same attended session. **PI to review and amend before the first cycle.**
-
 ## Goal — derive higher-scale parameters from lower-scale *dynamics*
 
 Find, design and test methods that use the dynamics of a low-scale model to derive the parameters of a higher-scale model. The running example derives MaBoSS transition rates for p53–MDM2 from molecular dynamics (MD).
@@ -18,7 +16,7 @@ The question is twofold:
 
 This is a **research topic**, not a technology demonstration. `p53-mdm2` keeps its current one-way parameter passing (ΔΔG → Kd → MaBoSS rate) as the baseline. It is the first testbed and consumer; this topic does not edit it.
 
-## PI stance (2026-11-06)
+## Stance
 
 1. **Not a composed, lock-step simulation.** The goal is not to make clocks advance together. Discrete-event simulation (e.g. the E-Cell multi-algorithm, multi-timescale scheduler, Takahashi, Kaizu, Hu & Tomita 2004) is cited because it has succeeded for *composed* simulations. It is inspiration, not the target architecture.
 2. **Thermodynamics is not the whole answer.** It is sometimes said to have solved this already. It gives equilibrium quantities, and this topic is after something different: what the *dynamics* carry.
@@ -26,9 +24,11 @@ This is a **research topic**, not a technology demonstration. `p53-mdm2` keeps i
 4. **The state of the art is not settled.** Many groups are still working on this. Treat published methods as inspiration unless there is strong evidence one works at scale. New, untested ideas are in scope.
 5. **Not only biology's scale gaps.** The method must not overfit to molecular and chemical kinetics. The same question arises between human dynamics and planetary (climate) dynamics, where kinetics vocabulary does not fit. The aim is the level of abstraction that transfers across scale gaps without becoming too abstract to apply anywhere.
 
-## Working vocabulary (agent, for PI review)
+## Working vocabulary (rough draft)
 
-These are the terms in which the problem is stated. Each comes with an instance from two different scale gaps, so that the vocabulary can be checked against both overfitting and over-abstraction.
+This is a rough first sketch to paint the picture of the topic, not a specification. Expect the terms, the table and the guard below to change as the work progresses or the problem is reframed.
+
+Each term comes with an instance from two different scale gaps, so that the vocabulary can be checked against both overfitting and over-abstraction.
 
 | Term | Meaning | Molecule → cell (p53–MDM2) | Human → planet (illustrative) |
 |---|---|---|---|
@@ -59,20 +59,20 @@ Two properties follow and must be testable:
   - lock-step co-simulation;
   - building non-biological instances such as human → climate. These are used as a paper check on the abstraction, not as deliverables;
   - feedback (H → L) in the first milestone;
-  - C++ schema authoring; edits to `p53-mdm2` deliverables; new production MD campaigns unless a cycle plans one and the PI approves it.
+  - C++ schema authoring; edits to `p53-mdm2` deliverables; new production MD campaigns unless a cycle plans one and it is approved.
 
-## Candidate first questions (PI picks)
+## Candidate first questions
 
 - **(Q-A) Toy benchmark.** A domain-neutral toy system: a fast stochastic process L modulates a slow process H. The ratio between their characteristic times can be tuned, and an exact reference solution exists. Fit θ from π(L) with several candidate methods and summaries. Score each on three things: does the fitted H reproduce the reference, is the fit unit-invariant, and at what ratio does a stationary summary stop being adequate?
-- **(Q-B) When do dynamic summaries matter?** Where stationary summaries agree, do dynamic ones change H's predictions? First instance: for p53–MDM2 mutants at equal ΔΔG, do koff or residence time change MaBoSS phenotype probabilities, or does Kd alone decide? (Proposed in p53-mdm2 Q-020.)
+- **(Q-B) When do dynamic summaries matter?** Where stationary summaries agree, do dynamic ones change H's predictions? First instance: for p53–MDM2 mutants at equal ΔΔG, do koff or residence time change MaBoSS phenotype probabilities, or does Kd alone decide?
 - **(Q-C) Paper check of the abstraction.** Before prototyping, write the vocabulary out for three scale gaps (molecule → cell, cell → tissue, human → planet) and record where it breaks.
 
 ## Seed material
 
 - `__reports__/p53-mdm2/19-cycle012_findings_v0.md` §"What the literature says": the cycle-012 survey.
-- `__reports__/cross-scale-time/00-literature_seed_v0.md`: the 2026-11-06 broader search. It was run under the earlier co-simulation framing and covers molecular and biological sources only. Its families F, A and E are the relevant ones. It does **not** yet cover the core dynamics-fitting literature, nor any non-biological field.
+- `__reports__/cross-scale-time/00-literature_seed_v0.md`: coupling methods from molecular and biological sources. Its families F, A and E are the relevant ones. It does **not** cover the core dynamics-fitting literature, nor any non-biological field.
 
-## Done definition (draft)
+## Done definition
 
 A research topic has no fixed end. A first milestone is:
 

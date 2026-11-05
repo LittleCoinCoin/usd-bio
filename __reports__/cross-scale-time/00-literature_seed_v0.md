@@ -8,7 +8,7 @@
 
 Three Haiku sub-agents searched in parallel (arXiv, web search, DuckDuckGo). Each had one angle: multi-algorithm cell simulation, MD-to-network coupling, and general multirate / co-simulation algorithms. **They read abstracts and bibliographic records, not full texts.** The coordinator did not open each source either. Treat every mechanism description as a lead to check, and every speed-up or accuracy figure as the authors' own claim. Items marked `[unverified]` are ones the agents could not confirm exist as cited. The coordinator also corrected one agent error: Karr et al. 2012 models *M. genitalium*, not JCVI-syn3A.
 
-Per the PI's stance (INTENT, PI stance §4), **nothing here is taken as a solution**. No item was found that integrates MD kinetics into a Boolean or MaBoSS network in time, rather than by passing a parameter. That absence comes from searching, not from a systematic review.
+Per the topic's stance (INTENT, Stance §4), **nothing here is taken as a solution**. No item was found that integrates MD kinetics into a Boolean or MaBoSS network in time, rather than by passing a parameter. That absence comes from searching, not from a systematic review.
 
 ## Taxonomy by the assumption each family needs
 
