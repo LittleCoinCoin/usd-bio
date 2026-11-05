@@ -16,6 +16,9 @@ Layers (mirrors the v8 4-layer ladder; rebuilt for 1YCR topology-only):
     integrated-p5 -- the composed four-pipeline stage (demos/run_end_to_end.py)
     readback-traj -- MD -> USD Dynamics layer (job-119 trajectory behind a
                      Payload) vs md.mdp / summary.txt / md.gro (test_trajectory_readback)
+    integrated-dyn -- Dynamics referenced into the integrated stage: own ps clock,
+                      MaBoSS-only stage clock, one Kabsch transform onto 1YCR CA,
+                      committed-layer staleness (test_dynamics_integration)
     anti-chimera  -- static grep-gate for the ABL root literal / dataset counts
     container-evidence -- offline gates over cluster/evidence + recipe pins
                           (contributes zero rows when evidence is not captured)
@@ -119,6 +122,9 @@ def main() -> int:
 
     import test_trajectory_readback
     all_rows += _rows_from("readback-traj", test_trajectory_readback.run())
+
+    import test_dynamics_integration
+    all_rows += _rows_from("integrated-dyn", test_dynamics_integration.run())
 
     # summary table
     print(f"\np53_mdm2 topology test harness")
