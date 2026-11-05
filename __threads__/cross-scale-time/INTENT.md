@@ -71,6 +71,7 @@ Two properties follow and must be testable:
 
 - `__reports__/p53-mdm2/19-cycle012_findings_v0.md` §"What the literature says": the cycle-012 survey.
 - `__reports__/cross-scale-time/00-literature_seed_v0.md`: coupling methods from molecular and biological sources. Its families F, A and E are the relevant ones. It does **not** cover the core dynamics-fitting literature, nor any non-biological field.
+- `__reports__/cross-scale-time/01-dynamics_fitting_literature_v0.md`: dynamics-fitting methods across physics, statistics, climate, human → planet, ecology and economics. It lists the concepts that recur across domains and where the working vocabulary breaks.
 
 ## Done definition
 
