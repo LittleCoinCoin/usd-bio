@@ -35,12 +35,12 @@ Each hop is owned by one module; `demos/run_end_to_end.py` is orchestration plus
 | Hop | Pipeline | Module | In → Out |
 |:--|:--|:--|:--|
 | **1** | MD/structure → USD | `builders/build_assembly.py`, `converters/pdb_parser.py` | `data/structures/1ycr.pdb` → `output/p53_mdm2_topology.usda` (818 atoms, 2 chains, 98 residues, 834 bonds; `bio:element` + `/_class_/` inherits + a `representation` VariantSet) |
-| **1c** | MD trajectory → USD | `converters/trajectory_to_usd.py` | the banyan job-119 GROMACS run in `data/md_runs/banyan_job119/` (`md.xtc` + `md.gro`, 11 frames, 0–100 ps) → `output/p53_mdm2_dynamics_job119.usda` (2 471 B: `bio:md:` run provenance + a **Payload**) → `output/p53_mdm2_dynamics_job119_frames.usda` (480 921 B: protein chains A/B + 35 ions as time-sampled `Points`, Å, time codes in ps; waters omitted). Standalone — not yet in the integrated stack |
+| **1c** | MD trajectory → USD | `converters/trajectory_to_usd.py` | the banyan job-119 GROMACS run in `data/md_runs/banyan_job119/` (`md.xtc` + `md.gro`, 11 frames, 0–100 ps) → `output/p53_mdm2_dynamics_job119.usda` (2 471 B: `bio:md:` run provenance + a **Payload**) → `output/p53_mdm2_dynamics_job119_frames.usda` (480 921 B: protein chains A/B + 35 ions as time-sampled `Points`, Å, time codes in ps; waters omitted). Output names derive from the run's manifest (`--run-id`), not a hard-coded job. Joined to the integrated stage by hop 5 |
 | **1b** | MD setup parameters | `templates/md_parameters.py` | the R01 reproducible parameter set → `output/p53_mdm2_md_setup.usda` (`bio:md:` deck, 17 CORE + 7 optional fields, units and per-field provenance in `customData`) |
 | **2** | USD → ΔΔG | `composition/build_genotype.py`, `converters/ddmut_client.py` | a `Genotype` VariantSet over the p53 hydrophobic triad (Phe19/Trp23/Leu26 alanine scan, geometry built from real 1YCR coordinates) → DDMut-PPI → `bio:ddgKcalPerMol` + six-field provenance, authored **inside each variant's edit context** |
 | **3** | ΔΔG → MaBoSS model | `maboss/dg_correlation.py`, `maboss/emit_model.py` | `S = 1/(1+exp(-k(ΔΔG−m)))` → the reference `.cfg` with **only** `$KMn_pMCD`/`$KMn_pMC` reset to `S` (the `.bnd` stays byte-identical) → `maboss/output/p53_Mdm2_<variant>.{bnd,cfg}` + the `bio:maboss:*` correlation contract back on the variant |
 | **4** | MaBoSS → USD | `maboss/run_maboss.py`, `templates/build_analysis_layer.py` | a **real** MaBoSS 2.6.6 run → per-node probability trajectories → `analysis/p53_mdm2_analysis.usda`, time-sampled `bio:maboss:prob:<node>` over 500 frames on a separate Analysis SubLayer |
-| **5** | integration | `demos/run_end_to_end.py` | the four layers → `demos/p53_mdm2_integrated.usda`: one composed stage + the `integration/` cross-pipeline join |
+| **5** | integration | `demos/run_end_to_end.py` | the four layers → `demos/p53_mdm2_integrated.usda`: one composed stage + the `integration/` cross-pipeline join. The Dynamics layer joins by a **Reference** on `/p53_MDM2_complex/dynamics` with an identity layer offset (PI Q-019): it keeps its own ps clock, the stage clock stays MaBoSS frames 0–499, and one Kabsch `xformOp:transform` on `dynamics/trajectory` places frame-0 CA onto the 1YCR CA (98 CA matched by chain + residue number, 0.348 Å RMSD; `composition/dynamics_alignment.py`). Raw frames are untouched |
 
 ### Why hop 5 needs its own layer
 
@@ -63,8 +63,8 @@ Per `__design__/openusd_for_research_architecture.md` §2 and §4.1, strongest a
 | **I** — Inherits | *Biological taxonomy* | Every atom in hop 1 inherits its `bio:atomicMass`, `bio:vdwRadius`, `bio:covalentRadius`, `bio:electronegativity` and CPK `bio:cpkColor` from an element `class` prim under `/_class_/` (`builders/element_templates.py`). |
 | **V** — VariantSets | *The Hypothesis* | Two of the design doc's three scientific patterns are live here. **Perturbation** (`Genotype`): one variant per p53-peptide alanine mutant, each carrying its own ΔΔG and correlated `S`. **Representation**: the canonical `points`/`balls`/`vdw`/`ballstick` visual-mode set on the atoms. (The **Ensemble** `ReplicaID` pattern is not exercised — see *Not yet done*.) |
 | **E** — rElocates | path reorganization | Not used. |
-| **R** — References | *Standard asset libraries* | Each `Genotype` variant authors a `Reference` on the mutation-site prim pointing at the geometry file that realises that genotype's residue (`composition/geometries/`). Swapping the variant swaps the referenced residue geometry. |
-| **P** — Payloads | *The Raw Data* | The job-119 trajectory frames sit behind a Payload on `/p53_MDM2_complex/dynamics/trajectory` in `output/p53_mdm2_dynamics_job119.usda`. `traj_payload_on_demand` asserts that a `Usd.Stage.LoadNone` open shows the run provenance but no frame prims, and that `Load()` brings in the time-sampled points. **Value Clips are not used**: 11 frames fit in one 481 kB layer, so chunking them would buy nothing yet. Clips remain the path for long trajectories. The Dynamics layer is **not** in the integrated stage's `subLayers` (see *Not yet done*). |
+| **R** — References | *Standard asset libraries* | Each `Genotype` variant authors a `Reference` on the mutation-site prim pointing at the geometry file that realises that genotype's residue (`composition/geometries/`). Swapping the variant swaps the referenced residue geometry. The integrated stage also References the Dynamics layer's `dynamics` subtree, so MD time codes keep their ps meaning and the Dynamics root opinions stay out of the layer stack. |
+| **P** — Payloads | *The Raw Data* | The job-119 trajectory frames sit behind a Payload on `/p53_MDM2_complex/dynamics/trajectory` in `output/p53_mdm2_dynamics_job119.usda`. `traj_payload_on_demand` asserts that a `Usd.Stage.LoadNone` open shows the run provenance but no frame prims, and that `Load()` brings in the time-sampled points. **Value Clips are not used**: 11 frames fit in one 481 kB layer, so chunking them would buy nothing yet. Clips remain the path for long trajectories. The integrated stage reaches this Payload through its Reference to the Dynamics layer (not through `subLayers`). |
 | **S** — Specializes | *specialized refinements* | Not used. |
 
 ## Departmental layering, verified
@@ -76,8 +76,8 @@ Mapping onto the design doc's §4.1 table:
 | **Biology** | `output/p53_mdm2_topology.usda` | topology, elements, bonds, `representation` variants |
 | **Protocol** | `output/p53_mdm2_md_setup.usda` | the `bio:md:` setup deck on an `mdSetup` Scope |
 | **Perturbation** | `composition/p53_mdm2_genotype.usda` | the `Genotype` VariantSet, ΔΔG, and the `bio:maboss:*` correlation contract |
-| **Dynamics** *(standalone, not in the integrated stack yet)* | `output/p53_mdm2_dynamics_job119.usda` | job-119 run provenance (`bio:md:`) + a Payload to the time-sampled frames |
-| **Analysis** | `analysis/p53_mdm2_analysis.usda` | time-sampled `bio:maboss:prob:<node>` under a `maboss/` Scope |
+| **Dynamics** *(referenced, not sublayered)* | `output/p53_mdm2_dynamics_job119.usda` | job-119 run provenance (`bio:md:`, `bio:md:timeCodeUnit = ps`) + a Payload to the time-sampled frames |
+| **Analysis** | `analysis/p53_mdm2_analysis.usda` | time-sampled `bio:maboss:prob:<node>` under a `maboss/` Scope, plus the **assumed** MaBoSS time unit (`bio:maboss:timeUnit = hour`, `secondsPerTimeUnit = 3600`, tagged as an assumption) |
 | **Integration** | `demos/p53_mdm2_integrated.usda` | the composition itself + the `integration/` join |
 
 Non-destructiveness is a tested claim, not an aspiration: every downstream layer brings the complex root in as an **`over`**, and `tests/test_integrated.py` opens the Biology layer *alone* and asserts it carries no `maboss/`, no `mdSetup`, no `integration/`, no `bio:ddg*` / `bio:md:` / `bio:maboss:` / `bio:demo:` attribute, and no `Genotype` VariantSet — while the composed stage still resolves all the atoms.
@@ -99,7 +99,7 @@ Strictly increasing along the destabilization order, with `S` strictly decreasin
 
 ## Testing discipline
 
-`tests/run_tests.py` runs everything (**87 checks**). The rule, inherited from v8's hard-won lesson and restated in the INTENT: **read-back tests assert committed artifacts against expectations derived independently from the source data — never against the generator's own in-memory state.** `tests/test_integrated.py` imports attribute *names* from the demo module and no values, and uses one independent oracle per hop:
+`tests/run_tests.py` runs everything (**96 checks**). The rule, inherited from v8's hard-won lesson and restated in the INTENT: **read-back tests assert committed artifacts against expectations derived independently from the source data — never against the generator's own in-memory state.** `tests/test_integrated.py` imports attribute *names* from the demo module and no values, and uses one independent oracle per hop:
 
 | Hop | Oracle |
 |:--|:--|
@@ -108,8 +108,9 @@ Strictly increasing along the destabilization order, with `S` strictly decreasin
 | 3 | the logistic recomputed inline with `math.exp` — `dg_correlation` is deliberately *not* called — from the ΔΔG and the `(m, k)` both read off the composed stage |
 | 4 | a fresh `run_maboss.run_all()`; MaBoSS is deterministic here, so a re-run is a valid oracle |
 | 1c | `tests/test_trajectory_readback.py`: frame grid from `cluster/p53_md/md.mdp` (`nsteps`·`dt`/`nstxout-compressed`); atom/ion/residue counts from `summary.txt` and the `md.gro` header; final frame against a separate fixed-column parse of `md.gro` (≤ 0.02 Å, up to one box vector per molecule); whole chains checked by consecutive CA–CA ≤ 4.2 Å; digests via `hashlib` against `manifest.jsonl` |
+| 1c→5 | `tests/test_dynamics_integration.py`: stage clock from the MaBoSS reference `.cfg`; ps grid from `md.mdp`; composed samples against the frames layer read as a bare `Sdf.Layer`; CA correspondence re-derived from `1ycr.pdb` and `md.gro` by fixed columns; post-transform CA RMSD ≤ 0.35 Å and within 1e-3 Å of a Horn-quaternion optimum; an in-memory probe proving a TCPS mismatch would rescale ps samples |
 
-If MaBoSS cannot run, the affected checks report an **honest skip** — never a pass on fabricated data. Layers: `compliance` (usdchecker), `domain`, `readback`, `unit-correlation`, `readback-ddg`, `readback-md`, `readback-maboss`, `readback-maboss-p4`, `integrated-p5`, `anti-chimera`, `container-evidence`, `md-run-evidence`, `readback-traj`.
+If MaBoSS cannot run, the affected checks report an **honest skip** — never a pass on fabricated data. Layers: `compliance` (usdchecker), `domain`, `readback`, `unit-correlation`, `readback-ddg`, `readback-md`, `readback-maboss`, `readback-maboss-p4`, `integrated-p5`, `anti-chimera`, `container-evidence`, `md-run-evidence`, `readback-traj`, `integrated-dyn`.
 
 ## Layout
 
@@ -125,7 +126,7 @@ examples/p53_mdm2/
   templates/             # md_parameters (bio:md:), build_analysis_layer (P4)
   maboss/                # dg_correlation, emit_model, run_maboss; reference/, output/
   demos/                 # run_end_to_end.py + the committed integrated .usda   <-- P5
-  tests/                 # the 87-check anti-tautology read-back harness
+  tests/                 # the 96-check anti-tautology read-back harness
   cluster/               # GROMACS container scaffold (PI-gated; nothing built or submitted)
   figures/               # the six PRIMe poster P-14 tiles + make_poster_figures.py
   data/md_runs/          # fetched MD run outputs (banyan job 119: xtc, gro, top, manifest)
@@ -146,6 +147,7 @@ Runs under the forOUSD venv (`~/Documents/src/AOUSD/forOUSD/bin/python3`, Python
 ## Not yet done
 
 - **One short plumbing trajectory, not a scientific one.** Banyan job 119 ran 100 ps of GROMACS 2025.3 NPT production (AMBER99SB-ILDN/TIP3P). Per PI Q-017 that force field is accepted to exercise the pipeline only, and the Dynamics layer carries that tag in `bio:md:forceFieldStatus`. No ff14SB/ff19SB or GENESIS run exists. There is one replica, so the `ReplicaID` Ensemble VariantSet is still not exercised. Value Clips are not used either.
-- **The Dynamics layer is not in the integrated stage.** It is a standalone departmental layer. Adding it to `demos/p53_mdm2_integrated.usda` raises two open choices. The first is time: the composed stage's time axis is MaBoSS frames (0–499), while the Dynamics time codes are picoseconds (0–100). The second is frame alignment: the MD coordinates are in the GROMACS box, not the 1YCR crystal frame, and no fit has been applied. Both need a decision before the layer joins the stack.
+- **The two clocks are not related.** Per PI Q-019 the Dynamics layer keeps ps time codes and the stage clock stays MaBoSS-only; no layer offset or scale ties them. The physical unit of MaBoSS model time is an **assumption** (1 unit = 1 hour, `run_maboss.ASSUMED_TIME_UNIT`): the model itself is dimensionless. Under that assumption the whole 100 ps trajectory spans about 3×10⁻¹⁴ of one model time unit, so a shared timeline would carry no information at this run length.
+- **One rigid fit, not per-frame alignment.** The Kabsch transform is fitted on frame 0 only; later frames are not refitted, so any motion of the complex within the box is shown as-is.
 - **The ΔΔG→`S` correlation is a placeholder shape.** The logistic is monotone and invertible, which is all the mechanism needs, but `m` and `k` are not fitted to anything.
 - **No Review layer.** The design doc's fifth department (annotations, cameras, PI comments) is not authored.
