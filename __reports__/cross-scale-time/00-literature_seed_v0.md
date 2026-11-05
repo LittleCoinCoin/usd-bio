@@ -2,22 +2,26 @@
 
 2026-11-06 · topic `cross-scale-time` · seed material for the first cycle
 
+> **Reframed 2026-11-06, the same day.** The search was briefed as *co-simulation*: clocks advancing together. The PI has since corrected the goal (INTENT §Goal). It is to derive higher-scale parameters from lower-scale *dynamics* after the fact, with post-hoc alignment of the dynamics ("dynamics fitting"), and not to co-simulate. The "Relevance" column below is re-ranked for that goal. The search itself was not re-run, so the core dynamics-fitting literature is still missing (see §"Not yet searched").
+
 ## How this was produced, and how far to trust it
 
 Three Haiku sub-agents searched in parallel (arXiv, web search, DuckDuckGo). Each had one angle: multi-algorithm cell simulation, MD-to-network coupling, and general multirate / co-simulation algorithms. **They read abstracts and bibliographic records, not full texts.** The coordinator did not open each source either. Treat every mechanism description as a lead to check, and every speed-up or accuracy figure as the authors' own claim. Items marked `[unverified]` are ones the agents could not confirm exist as cited. The coordinator also corrected one agent error: Karr et al. 2012 models *M. genitalium*, not JCVI-syn3A.
 
-Per the PI's stance (INTENT §2), **nothing here is taken as a solution**. No item was found that integrates MD kinetics into a Boolean or MaBoSS network in time, rather than by passing a parameter. That absence comes from searching, not from a systematic review.
+Per the PI's stance (INTENT, PI stance §4), **nothing here is taken as a solution**. No item was found that integrates MD kinetics into a Boolean or MaBoSS network in time, rather than by passing a parameter. That absence comes from searching, not from a systematic review.
 
 ## Taxonomy by the assumption each family needs
 
-| Family | Assumes | Representative work | Fit for usd-bio |
+Rows are ordered by relevance to the corrected goal: deriving higher-scale parameters from lower-scale dynamics, after the fact.
+
+| Family | Assumes | Representative work | Relevance to dynamics fitting |
 |---|---|---|---|
-| **A. Parameter passing / averaging** | Strict timescale separation (fast scale is at quasi-steady state) | ΔΔG → Kd → rate (current p53-mdm2); HMM (E & Engquist 2003; E et al. 2007); equation-free / coarse projective integration (Kevrekidis et al. 2003, Comm Math Sci 1:715); Haseltine & Rawlings 2002 hybrid SSA (J Chem Phys 117:6959, doi:10.1063/1.1505860) | Established, but it is exactly the assumption the topic wants to test, not inherit |
-| **B. Spatial resolution partition** | A region can be resolved finely and the rest coarsely, with a justified interface | Two-regime method (Flegg, Chapman & Erban 2012, J R Soc Interface 9:859, doi:10.1098/rsif.2011.0574); pseudo-compartment (Yates & Flegg 2015, arXiv:1501.02976); blending region (Yates et al. 2020, arXiv:2010.00124); AdResS (Praprotnik, Delle Site & Kremer 2005, arXiv:cond-mat/0510223); MD-GFRD (Vijaykumar et al. 2015, J Chem Phys 143:214102; 2017, arXiv:1611.09239) | The PI's "particles for the lower scale, compartments for the higher" idea. Mostly couples *space*; time follows from it |
-| **C. Event-driven multi-algorithm scheduling / co-simulation** | Only that each component can step, report its next event time, and be interpolated | **E-Cell multi-algorithm, multi-timescale scheduler** (Takahashi, Kaizu, Hu & Tomita 2004, Bioinformatics 20:538, doi:10.1093/bioinformatics/btg442); GFRD (van Zon & ten Wolde 2005, PRL 94:128103); Spatiocyte (Arjunan & Tomita 2010); on-the-fly KMC (Henkelman & Jónsson 2001, doi:10.1063/1.1415500); co-simulation master algorithms: FMI Jacobi/Gauss–Seidel, F3ORNITS (arXiv:2101.09309), ECCO (arXiv:1602.06434); DEVS (Zeigler) `[not searched]` | Needs no scale separation, so it is the natural home for a unit-invariant design. Error control across heterogeneous steppers is the open part |
-| **D. Parallel-in-time** | A cheap, reasonably accurate coarse propagator | Parareal (Lions, Maday & Turinici 2001) `[not searched]`; stochastic parareal (Pentland et al. 2021, arXiv:2106.10139; arXiv:2502.12909); PFASST-ER (arXiv:1912.00702); RandNet-Parareal (arXiv:2411.06225) | Untested on stochastic biology across ps to hours. A candidate for the "new algorithm" space |
-| **E. Learned time bridges** | A training distribution, plus a stability argument | Implicit Transfer Operator learning (Schreiner, Winther & Olsson 2023, arXiv:2305.18046); multiscale graph-network CG-MD (arXiv:2204.10348); learned HMM micro-solvers with an error proof (arXiv:2507.13902) | The weakest evidence (stability, out-of-distribution), but ITO targets multiple time resolutions directly |
-| **F. Fine-scale kinetics extraction** (feeds A or C) | Enough sampling to resolve the transitions | SEEKR / SEEKR2 (MD milestoning + BD; Votapka et al. 2017, Biophys J); weighted-ensemble milestoning (arXiv:2007.09325); MSMs (Bowman, Pande & Noé 2014, doi:10.1007/978-94-007-7606-7); MSM/RD (arXiv:2103.06889); BrownDye, SDA7 | Gives kon, koff and residence time, which a family-C scheduler could consume as event rates instead of Kd |
+| **F. Fine-scale kinetics extraction** | Enough sampling to resolve the transitions | SEEKR / SEEKR2 (MD milestoning + BD; Votapka et al. 2017, Biophys J); weighted-ensemble milestoning (arXiv:2007.09325); MSMs (Bowman, Pande & Noé 2014, doi:10.1007/978-94-007-7606-7); MSM/RD (arXiv:2103.06889); BrownDye, SDA7 | **Core.** These derive rates, residence times and waiting-time distributions *from* dynamics. MSMs are already a temporal coarse-graining with an explicit lag time, which is a built-in alignment parameter |
+| **E. Learned transfer operators** | A training distribution, plus a stability argument | Implicit Transfer Operator learning (Schreiner, Winther & Olsson 2023, arXiv:2305.18046); multiscale graph-network CG-MD (arXiv:2204.10348); learned HMM micro-solvers with an error proof (arXiv:2507.13902) | **High.** ITO learns dynamics at several time resolutions at once, which is close to "fit coarse dynamics to fine dynamics across a time-resolution change". Evidence on stability and out-of-distribution behaviour is weak |
+| **A. Parameter passing / averaging** | Strict timescale separation (fast scale is at quasi-steady state) | ΔΔG → Kd → rate (current p53-mdm2); HMM (E & Engquist 2003; E et al. 2007); equation-free coarse time-steppers, which *estimate* coarse dynamics from short fine bursts (Kevrekidis et al. 2003, Comm Math Sci 1:715); Haseltine & Rawlings 2002 hybrid SSA (J Chem Phys 117:6959, doi:10.1063/1.1505860) | **Baseline, and partly core.** ΔΔG → Kd is the thermodynamic baseline to beat. The equation-free "lifting/restriction" step is itself a way of estimating coarse dynamics from fine dynamics, so it is worth re-reading in that light |
+| **C. Event-driven multi-algorithm scheduling / co-simulation** | Only that each component can step, report its next event time, and be interpolated | **E-Cell multi-algorithm, multi-timescale scheduler** (Takahashi, Kaizu, Hu & Tomita 2004, Bioinformatics 20:538, doi:10.1093/bioinformatics/btg442); GFRD (van Zon & ten Wolde 2005, PRL 94:128103); Spatiocyte (Arjunan & Tomita 2010); on-the-fly KMC (Henkelman & Jónsson 2001, doi:10.1063/1.1415500); FMI Jacobi/Gauss–Seidel, F3ORNITS (arXiv:2101.09309), ECCO (arXiv:1602.06434) | **Inspiration only.** These are the successes for *composed* simulation (PI stance §1). Their event and interpolation abstractions may still help when a fitted model is run |
+| **B. Spatial resolution partition** | A region can be resolved finely and the rest coarsely, with a justified interface | Two-regime method (Flegg, Chapman & Erban 2012, J R Soc Interface 9:859, doi:10.1098/rsif.2011.0574); pseudo-compartment (Yates & Flegg 2015, arXiv:1501.02976); blending region (Yates et al. 2020, arXiv:2010.00124); AdResS (Praprotnik, Delle Site & Kremer 2005, arXiv:cond-mat/0510223); MD-GFRD (Vijaykumar et al. 2015, J Chem Phys 143:214102; 2017, arXiv:1611.09239) | **Low.** Concurrent spatial coupling. The interface conditions show how particle-level rates map to compartment rates, which is a narrow instance of the question |
+| **D. Parallel-in-time** | A cheap, reasonably accurate coarse propagator | Stochastic parareal (Pentland et al. 2021, arXiv:2106.10139; arXiv:2502.12909); PFASST-ER (arXiv:1912.00702); RandNet-Parareal (arXiv:2411.06225) | **Out of scope.** These methods speed up concurrent integration |
 
 Coupling frameworks that sit across families: MUSCLE3 and the scale separation map / MML (Veen & Hoekstra 2020, doi:10.1007/978-3-030-50433-5_33; Borgdorff et al. 2013; Chopard, Borgdorff & Hoekstra 2014); MaMiCo (doi:10.1016/j.cpc.2015.10.029); preCICE v2 (arXiv:2109.14470).
 
@@ -40,13 +44,23 @@ Coupling frameworks that sit across families: MUSCLE3 and the scale separation m
 - MSM/RD: no general coupling framework yet; limited to isotropic ligands in one conformation (arXiv:2103.06889).
 - Co-simulation coupling error is **not monotone in macro step size**: reducing the step can increase it (Kyllingstad 2025, arXiv:2512.13845). An adaptive cross-clock step rule cannot simply shrink the step to be safe.
 
-## Gaps that look under-explored
+## Gaps that look under-explored (re-ranked for dynamics fitting)
 
-1. A single master algorithm that schedules a discrete-event network (MaBoSS, DEVS) together with continuous or stochastic molecular simulation in biology. No instance surfaced. E-Cell 3 is the nearest, and it predates MaBoSS.
-2. Stochastic multirate or parallel-in-time coupling across ps to hours. Stochastic parareal exists, but no biology application surfaced.
-3. Formal error and stability propagation across coupled stochastic clocks. Such proofs exist for HMM with learned micro-solvers, but not for chemical-master-equation co-simulation.
-4. Feeding kinetics (koff, residence time) rather than Kd into a logical network as event rates.
-5. Unit invariance as an explicit test criterion. The search found no paper that states it as one.
+1. Feeding dynamic quantities (koff, residence time, waiting-time distributions) rather than Kd into a logical network's rates. No instance surfaced.
+2. Fitting a continuous-time Boolean model's rates to a coarse-grained projection of molecular trajectories, by aligning the two dynamics rather than matching equilibria. No instance surfaced.
+3. A test of when a memoryless (Markovian) rate is adequate at the higher scale's resolution, which MaBoSS assumes. The MSM lag-time validation (Chapman–Kolmogorov tests) is the nearest tool, and it is not used across model types.
+4. Unit invariance as an explicit test criterion. The search found no paper that states it as one.
+
+## Not yet searched (needed for the corrected goal)
+
+The following were outside all three briefs, and are the core of "dynamics fitting":
+
+- Temporal coarse-graining with memory: Mori–Zwanzig formalism, generalized Langevin equations, memory-kernel estimation from MD.
+- Koopman and transfer-operator methods (VAMP, TICA, dynamic mode decomposition) as a way to extract slow rates and timescales.
+- System identification and equation discovery from trajectories (SINDy and successors) and kinetic-parameter inference.
+- Simulation-based inference and Bayesian calibration of a higher-scale model against lower-scale outputs.
+- Time alignment of trajectories with different clocks: dynamic time warping and lag-time selection.
+- Hidden Markov models and Markov-jump fitting for single-molecule data, used to infer rates and their timescales.
 
 ## Could not verify
 
