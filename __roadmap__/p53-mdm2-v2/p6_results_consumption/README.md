@@ -38,7 +38,7 @@ Make the p53–MDM2 simulation result legible to a human, both as in-stage geome
 ```mermaid
 graph TD
     review_layer_plots[Review Layer — In-Stage Result Curves]:::blocked
-    raw_probtraj_payload[Raw MaBoSS State-Space Output as a Payload]:::planned
+    raw_probtraj_payload[Raw MaBoSS State-Space Output as a Payload]:::done
     native_plots[Native MaBoSS Plots as Out-of-Stage Byproducts]:::planned
     results_layer_curves[Results Layer — In-Stage Result Curves]:::amendment
     state_space_payload[State-Space Output as a Payload — Deferred per Q-013.4]:::blocked
@@ -53,7 +53,7 @@ graph TD
 | Node | Type | Status |
 |:-----|:-----|:-------|
 | `review_layer_plots.md` | 📄 Leaf Task | 🚫 Blocked |
-| `raw_probtraj_payload.md` | 📄 Leaf Task | ⬜ Planned |
+| `raw_probtraj_payload.md` | 📄 Leaf Task | ✅ Done |
 | `native_plots/` | 📁 Directory | ⬜ Planned |
 | `results_layer_curves.md` | 📄 Leaf Task | 🔵 Amendment |
 | `state_space_payload.md` | 📄 Leaf Task | 🚫 Blocked |
