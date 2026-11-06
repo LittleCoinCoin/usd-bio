@@ -54,7 +54,7 @@ graph TD
     p5_integrated_demo[P5 Integrated Demonstration]:::done
     p1b_container_runtime[P1b Container Runtime Validation]:::inprogress
     p6_results_consumption[P6 Results Consumption — Making Simulation Output Legible]:::planned
-    p7_md_trajectory_integration[P7 MD Trajectory to USD + Integration]:::inprogress
+    p7_md_trajectory_integration[P7 MD Trajectory to USD + Integration]:::done
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -75,7 +75,7 @@ graph TD
 | `p5_integrated_demo.md` | 📄 Leaf Task | ✅ Done |
 | `p1b_container_runtime/` | 📁 Directory | 🔄 In Progress |
 | `p6_results_consumption/` | 📁 Directory | ⬜ Planned |
-| `p7_md_trajectory_integration.md` | 📄 Leaf Task | 🔄 In Progress |
+| `p7_md_trajectory_integration.md` | 📄 Leaf Task | ✅ Done |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |
