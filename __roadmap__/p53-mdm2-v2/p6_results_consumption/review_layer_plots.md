@@ -1,6 +1,6 @@
 # Review Layer — In-Stage Result Curves
 
-**Goal**: Author the design doc's fifth department — a Review SubLayer — carrying the MaBoSS node-probability series as renderable `UsdGeomBasisCurves` geometry plus a framing camera, so the p53-MDM2 result is legible in vanilla `usdview` without any image file, and every curve vertex remains assertable against the Analysis layer's own time samples.
+**Goal**: BLOCKED 2026-11-06. The PI's Q-013.2 answer (2026-09-22) reserves the Review layer for annotations only, so result curves cannot go there as this leaf specifies. The work moves to the amendment sibling `results_layer_curves.md`, which targets a separate Results SubLayer. Text below is kept as written for the record. Original goal: author the design doc's fifth department — a Review SubLayer — carrying the MaBoSS node-probability series as renderable `UsdGeomBasisCurves` geometry plus a framing camera, so the p53-MDM2 result is legible in vanilla `usdview` without any image file, and every curve vertex remains assertable against the Analysis layer's own time samples.
 **Pre-conditions**:
 - [ ] `analysis/p53_mdm2_analysis.usda` carries `bio:maboss:prob:<node>` time samples for four variants over frames 0..499 [source: `examples/p53_mdm2/README.md` §"The four hops" hop 4]
 - [ ] `demos/p53_mdm2_integrated.usda` composes the departmental stack and owns the root-layer-only stage metadata, so a fifth SubLayer is added there and nowhere else

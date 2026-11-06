@@ -1,0 +1,8 @@
+matplotlib 3.11.1 python 3.11.14
+same-process default: identical = True e10923ae6581dc75
+Software chunk: b'Software\x00Matplotlib version3.11.1, https://matplotlib.org/r\xda'
+Software stripped present = False e820edff5a03b141
+matplotlib 3.11.1 python 3.11.14
+same-process default: identical = True e10923ae6581dc75
+Software chunk: b'Software\x00Matplotlib version3.11.1, https://matplotlib.org/r\xda'
+Software stripped present = False e820edff5a03b141

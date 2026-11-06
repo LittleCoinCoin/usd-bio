@@ -99,18 +99,18 @@ Strictly increasing along the destabilization order, with `S` strictly decreasin
 
 ## Testing discipline
 
-`tests/run_tests.py` runs everything (**96 checks**). The rule, inherited from v8's hard-won lesson and restated in the INTENT: **read-back tests assert committed artifacts against expectations derived independently from the source data — never against the generator's own in-memory state.** `tests/test_integrated.py` imports attribute *names* from the demo module and no values, and uses one independent oracle per hop:
+`tests/run_tests.py` runs everything (**104 checks**). The rule, inherited from v8's hard-won lesson and restated in the INTENT: **read-back tests assert committed artifacts against expectations derived independently from the source data — never against the generator's own in-memory state.** `tests/test_integrated.py` imports attribute *names* from the demo module and no values, and uses one independent oracle per hop:
 
 | Hop | Oracle |
 |:--|:--|
 | 1 | `tests/independent_pdb.py` — re-derives atom/chain/element counts from `1ycr.pdb` by flat column slicing, a different code path from `converters/pdb_parser.py` |
 | 2 | the **verbatim captured DDMut-PPI response body** named by `bio:ddgResponseFile`, read with plain `json.load` (never via `ddmut_client`); a `fixture`-sourced ΔΔG is checked against the fixture JSON instead. The oracle is dispatched on the lineage the *stage* declares, so it follows Pipeline 2's live-vs-fixture choice instead of pinning one |
 | 3 | the logistic recomputed inline with `math.exp` — `dg_correlation` is deliberately *not* called — from the ΔΔG and the `(m, k)` both read off the composed stage |
-| 4 | a fresh `run_maboss.run_all()`; MaBoSS is deterministic here, so a re-run is a valid oracle |
+| 4 | a fresh `run_maboss.run_all()`; MaBoSS is deterministic here, so a re-run is a valid oracle. Second oracle, `tests/test_maboss_run_dir.py`: node marginals summed by plain `csv` parse over the states of the committed run's `res_probtraj.csv`, against `bio:maboss:prob:<node>` at every report time; plus SHA-256s against the run's `provenance.json` |
 | 1c | `tests/test_trajectory_readback.py`: frame grid from `cluster/p53_md/md.mdp` (`nsteps`·`dt`/`nstxout-compressed`); atom/ion/residue counts from `summary.txt` and the `md.gro` header; final frame against a separate fixed-column parse of `md.gro` (≤ 0.02 Å, up to one box vector per molecule); whole chains checked by consecutive CA–CA ≤ 4.2 Å; digests via `hashlib` against `manifest.jsonl` |
 | 1c→5 | `tests/test_dynamics_integration.py`: stage clock from the MaBoSS reference `.cfg`; ps grid from `md.mdp`; composed samples against the frames layer read as a bare `Sdf.Layer`; CA correspondence re-derived from `1ycr.pdb` and `md.gro` by fixed columns; post-transform CA RMSD ≤ 0.35 Å and within 1e-3 Å of a Horn-quaternion optimum; an in-memory probe proving a TCPS mismatch would rescale ps samples |
 
-If MaBoSS cannot run, the affected checks report an **honest skip** — never a pass on fabricated data. Layers: `compliance` (usdchecker), `domain`, `readback`, `unit-correlation`, `readback-ddg`, `readback-md`, `readback-maboss`, `readback-maboss-p4`, `integrated-p5`, `anti-chimera`, `container-evidence`, `md-run-evidence`, `readback-traj`, `integrated-dyn`.
+If MaBoSS cannot run, the affected checks report an **honest skip** — never a pass on fabricated data. Layers: `compliance` (usdchecker), `domain`, `readback`, `unit-correlation`, `readback-ddg`, `readback-md`, `readback-maboss`, `readback-maboss-p4`, `integrated-p5`, `anti-chimera`, `container-evidence`, `md-run-evidence`, `readback-traj`, `integrated-dyn`, `maboss-run-dir`.
 
 ## Layout
 
@@ -125,8 +125,10 @@ examples/p53_mdm2/
   composition/           # build_genotype (Perturbation VariantSet), provenance, geometries/
   templates/             # md_parameters (bio:md:), build_analysis_layer (P4)
   maboss/                # dg_correlation, emit_model, run_maboss; reference/, output/
+  maboss/output/run_<UTC>/  # ONE committed MaBoSS run of record (run_maboss.py --keep-run):
+                         #   <variant>/res_*.csv verbatim binary output + provenance.json
   demos/                 # run_end_to_end.py + the committed integrated .usda   <-- P5
-  tests/                 # the 96-check anti-tautology read-back harness
+  tests/                 # the 104-check anti-tautology read-back harness
   cluster/               # GROMACS container scaffold (PI-gated; nothing built or submitted)
   figures/               # the six PRIMe poster P-14 tiles + make_poster_figures.py
   data/md_runs/          # fetched MD run outputs (banyan job 119: xtc, gro, top, manifest)

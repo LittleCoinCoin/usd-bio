@@ -437,6 +437,12 @@ package-lock.json
 # Re-include committed input structures (the parent dir is not itself ignored).
 !examples/**/data/structures/*.pdb
 
+# MaBoSS kept runs (run_maboss.py --keep-run): exactly one run directory is
+# committed as the evidence of record; later run_<UTC>/ directories stay local
+# so repeated runs do not accrete in history.
+examples/p53_mdm2/maboss/output/run_*/
+!examples/p53_mdm2/maboss/output/run_20261106T004327Z/
+
 # >>> umbod-managed (do not edit between these markers) >>>
 .umbod/
 # <<< umbod-managed <<<
