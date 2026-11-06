@@ -22,6 +22,9 @@ Layers (mirrors the v8 4-layer ladder; rebuilt for 1YCR topology-only):
     anti-chimera  -- static grep-gate for the ABL root literal / dataset counts
     container-evidence -- offline gates over cluster/evidence + recipe pins
                           (contributes zero rows when evidence is not captured)
+    maboss-run-dir -- committed MaBoSS run directory of record: provenance
+                      digests, CSV-recomputed node marginals vs. the Analysis
+                      layer, nothing gitignored (zero rows when absent)
 
 Exit code: 0 all pass, 1 any failure.
 """
@@ -107,6 +110,9 @@ def main() -> int:
 
     import test_maboss_readback
     all_rows += _rows_from("readback-maboss-p4", test_maboss_readback.run())
+
+    import test_maboss_run_dir
+    all_rows += _rows_from("maboss-run-dir", test_maboss_run_dir.run())
 
     import test_integrated
     all_rows += _rows_from("integrated-p5", test_integrated.run())

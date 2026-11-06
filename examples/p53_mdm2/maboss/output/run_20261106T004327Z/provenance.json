@@ -1,0 +1,349 @@
+{
+  "backend": "MaBoSS (external binary, colomoto)",
+  "created_utc": "2026-11-06T00:43:27Z",
+  "finished_utc": "2026-11-06T00:43:32Z",
+  "generator": "examples/p53_mdm2/maboss/run_maboss.py run_all_kept()",
+  "maboss_binary": {
+    "path": "/Users/hacker/.local/share/colomoto/bin/MaBoSS",
+    "version": "MaBoSS version 2.6.6 [networks up to 64 nodes]"
+  },
+  "note": "Every file listed is machine-written and kept byte-for-byte; only the pyMaBoSS model copies were renamed. res_run.txt embeds the binary's wall-clock start/end time, so it is the one output expected to differ on a deterministic re-run.",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "pymaboss_version": "0.8.15",
+  "python": "3.11.14",
+  "schema": "usd-bio/maboss-run-provenance/v1",
+  "variants": {
+    "F19A": {
+      "cfg_settings": {
+        "discrete_time": "0",
+        "max_time": "50",
+        "sample_count": "50000",
+        "seed_pseudorandom": "100",
+        "statdist_traj_count": "100",
+        "thread_count": "1",
+        "time_tick": "0.1",
+        "use_physrandgen": "FALSE"
+      },
+      "files": [
+        {
+          "bytes": 1783,
+          "path": "F19A/pymaboss_input.bnd",
+          "sha256": "4dff11da192d6b7aa7fefb40a6655a98b0e196bd4ab1b8446dcc4ad4859a153d",
+          "written_by": "pyMaBoSS (model text handed to the binary; renamed from tmpsbv3k3jg.bnd)"
+        },
+        {
+          "bytes": 666,
+          "path": "F19A/pymaboss_input.cfg",
+          "sha256": "4f8209a34402faddde195367134420c6c7995a667fec9817d8d1eaf7cc750411",
+          "written_by": "pyMaBoSS (model text handed to the binary; renamed from tmpged0i810.cfg)"
+        },
+        {
+          "bytes": 85,
+          "path": "F19A/res_fp.csv",
+          "sha256": "ef20e1012b03524c98cf376fda29d02fce6d903750f4a468ea46f9c3771e725e",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 20,
+          "path": "F19A/res_observed_durations.csv",
+          "sha256": "addce3ec2ef98f7a92875a3ce0ada0b42f1702b449e59fac5af0c024498eb057",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 20,
+          "path": "F19A/res_observed_graph.csv",
+          "sha256": "addce3ec2ef98f7a92875a3ce0ada0b42f1702b449e59fac5af0c024498eb057",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 364803,
+          "path": "F19A/res_probtraj.csv",
+          "sha256": "94944b105f3c3559cf6e34a7fb547d9d76cd7dc507342e998be8a0bbabb2bb7a",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 3333,
+          "path": "F19A/res_run.txt",
+          "sha256": "0732ac30dc02b9b103eb1a4391eb4eb1f3a668e03f5a86f3b06fc1866317167d",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 13618,
+          "path": "F19A/res_statdist.csv",
+          "sha256": "bdc76af0cc2ed80b7946016941bd074f1f8cf918ceb7f8483aa2c1e35e756d5a",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 0,
+          "path": "F19A/res_statdist_cluster.csv",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 0,
+          "path": "F19A/res_statdist_distrib.csv",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "written_by": "MaBoSS binary"
+        }
+      ],
+      "input_bnd": {
+        "path": "maboss/output/p53_Mdm2_F19A.bnd",
+        "sha256": "59d359a3df9da30cdd15687d0383a84e1a1a8e042b598342f376aef34fa36e5c"
+      },
+      "input_cfg": {
+        "path": "maboss/output/p53_Mdm2_F19A.cfg",
+        "sha256": "482a415a92392e13227df1583f05511094f84b59650fea9cb54d850feae9dd5b"
+      },
+      "output_prefix": "res"
+    },
+    "L26A": {
+      "cfg_settings": {
+        "discrete_time": "0",
+        "max_time": "50",
+        "sample_count": "50000",
+        "seed_pseudorandom": "100",
+        "statdist_traj_count": "100",
+        "thread_count": "1",
+        "time_tick": "0.1",
+        "use_physrandgen": "FALSE"
+      },
+      "files": [
+        {
+          "bytes": 1783,
+          "path": "L26A/pymaboss_input.bnd",
+          "sha256": "4dff11da192d6b7aa7fefb40a6655a98b0e196bd4ab1b8446dcc4ad4859a153d",
+          "written_by": "pyMaBoSS (model text handed to the binary; renamed from tmpf450kq5a.bnd)"
+        },
+        {
+          "bytes": 666,
+          "path": "L26A/pymaboss_input.cfg",
+          "sha256": "12ed3c684b3b6b493423ea041e04580503cd19c5d00ea5dde65c5c0e577550f4",
+          "written_by": "pyMaBoSS (model text handed to the binary; renamed from tmp0m6_qstq.cfg)"
+        },
+        {
+          "bytes": 85,
+          "path": "L26A/res_fp.csv",
+          "sha256": "770325d1c9f357fdf2432af7e94dd5941f60762da9f19f4114df4419a904ce21",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 20,
+          "path": "L26A/res_observed_durations.csv",
+          "sha256": "addce3ec2ef98f7a92875a3ce0ada0b42f1702b449e59fac5af0c024498eb057",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 20,
+          "path": "L26A/res_observed_graph.csv",
+          "sha256": "addce3ec2ef98f7a92875a3ce0ada0b42f1702b449e59fac5af0c024498eb057",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 365284,
+          "path": "L26A/res_probtraj.csv",
+          "sha256": "bdb1a76e6766d2816c6c9c11f8802ebd378dd8e2e1c0fcd401707190964addff",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 3331,
+          "path": "L26A/res_run.txt",
+          "sha256": "e9601dee1c2802c037da593f7e325b806b885a6578bf66a07a8ce835ff99fdbd",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 13581,
+          "path": "L26A/res_statdist.csv",
+          "sha256": "7d962f35a4d67350d7010518b29d9eee24aba6d7cebaf1f78d55c9e8cbfb35bd",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 0,
+          "path": "L26A/res_statdist_cluster.csv",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 0,
+          "path": "L26A/res_statdist_distrib.csv",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "written_by": "MaBoSS binary"
+        }
+      ],
+      "input_bnd": {
+        "path": "maboss/output/p53_Mdm2_L26A.bnd",
+        "sha256": "59d359a3df9da30cdd15687d0383a84e1a1a8e042b598342f376aef34fa36e5c"
+      },
+      "input_cfg": {
+        "path": "maboss/output/p53_Mdm2_L26A.cfg",
+        "sha256": "e1a48e6f1dc65d5aab1c3a0a29141bfbfdf76ae25c2e41af1837d1f359b08793"
+      },
+      "output_prefix": "res"
+    },
+    "W23A": {
+      "cfg_settings": {
+        "discrete_time": "0",
+        "max_time": "50",
+        "sample_count": "50000",
+        "seed_pseudorandom": "100",
+        "statdist_traj_count": "100",
+        "thread_count": "1",
+        "time_tick": "0.1",
+        "use_physrandgen": "FALSE"
+      },
+      "files": [
+        {
+          "bytes": 1783,
+          "path": "W23A/pymaboss_input.bnd",
+          "sha256": "4dff11da192d6b7aa7fefb40a6655a98b0e196bd4ab1b8446dcc4ad4859a153d",
+          "written_by": "pyMaBoSS (model text handed to the binary; renamed from tmp49jqn_12.bnd)"
+        },
+        {
+          "bytes": 668,
+          "path": "W23A/pymaboss_input.cfg",
+          "sha256": "ac8fe4346dcea0465bd3669101497363e460de25214e16c0c48f7487b9a86980",
+          "written_by": "pyMaBoSS (model text handed to the binary; renamed from tmpxsb4lvwa.cfg)"
+        },
+        {
+          "bytes": 85,
+          "path": "W23A/res_fp.csv",
+          "sha256": "360fbabf40771ba62ace89effc185ab71c245ddb0981cbbaecf06a98a5997981",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 20,
+          "path": "W23A/res_observed_durations.csv",
+          "sha256": "addce3ec2ef98f7a92875a3ce0ada0b42f1702b449e59fac5af0c024498eb057",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 20,
+          "path": "W23A/res_observed_graph.csv",
+          "sha256": "addce3ec2ef98f7a92875a3ce0ada0b42f1702b449e59fac5af0c024498eb057",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 324026,
+          "path": "W23A/res_probtraj.csv",
+          "sha256": "5b964594dbe1816b4ea42293b62acbd17487a7b7b538328004a850f5a276851b",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 3335,
+          "path": "W23A/res_run.txt",
+          "sha256": "81dcc8e95843403bbf68f3efe2cc8af1f4b1240a534c38d9ef9bcad98a669955",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 13831,
+          "path": "W23A/res_statdist.csv",
+          "sha256": "4cd6cd076927d7da79a42b0cabb39df67eb8d5194ef2447dc65eea3e07e15c40",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 0,
+          "path": "W23A/res_statdist_cluster.csv",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 0,
+          "path": "W23A/res_statdist_distrib.csv",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "written_by": "MaBoSS binary"
+        }
+      ],
+      "input_bnd": {
+        "path": "maboss/output/p53_Mdm2_W23A.bnd",
+        "sha256": "59d359a3df9da30cdd15687d0383a84e1a1a8e042b598342f376aef34fa36e5c"
+      },
+      "input_cfg": {
+        "path": "maboss/output/p53_Mdm2_W23A.cfg",
+        "sha256": "bf149ddb9e546ead8cde96c7504dc7b6e1f3264a8bf5eec96c47e7332b8865d6"
+      },
+      "output_prefix": "res"
+    },
+    "WildType": {
+      "cfg_settings": {
+        "discrete_time": "0",
+        "max_time": "50",
+        "sample_count": "50000",
+        "seed_pseudorandom": "100",
+        "statdist_traj_count": "100",
+        "thread_count": "1",
+        "time_tick": "0.1",
+        "use_physrandgen": "FALSE"
+      },
+      "files": [
+        {
+          "bytes": 1783,
+          "path": "WildType/pymaboss_input.bnd",
+          "sha256": "4dff11da192d6b7aa7fefb40a6655a98b0e196bd4ab1b8446dcc4ad4859a153d",
+          "written_by": "pyMaBoSS (model text handed to the binary; renamed from tmpeaqez5rb.bnd)"
+        },
+        {
+          "bytes": 640,
+          "path": "WildType/pymaboss_input.cfg",
+          "sha256": "490cc2e5feae2ec4a02e7b0b8f471aefa460ba516191d18ab35eaec53cd2cf82",
+          "written_by": "pyMaBoSS (model text handed to the binary; renamed from tmp2virdzfb.cfg)"
+        },
+        {
+          "bytes": 85,
+          "path": "WildType/res_fp.csv",
+          "sha256": "538c0a3b559dee36646031568ba1042d84a9aef5c67a743d0f3f2681eb066471",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 20,
+          "path": "WildType/res_observed_durations.csv",
+          "sha256": "addce3ec2ef98f7a92875a3ce0ada0b42f1702b449e59fac5af0c024498eb057",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 20,
+          "path": "WildType/res_observed_graph.csv",
+          "sha256": "addce3ec2ef98f7a92875a3ce0ada0b42f1702b449e59fac5af0c024498eb057",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 331859,
+          "path": "WildType/res_probtraj.csv",
+          "sha256": "b8f766328e727f3609173189aa01b66c6676e0ce1db8a717397c137d659d9975",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 3319,
+          "path": "WildType/res_run.txt",
+          "sha256": "a917406a3d33bb054c872914285d06aab84189a5b3d58cc9cdd5999f9eb45fd4",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 13617,
+          "path": "WildType/res_statdist.csv",
+          "sha256": "11b89d8545d131342d00c3992cbec6901e8824ce1c038ce13f3f1dd5921ab36d",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 0,
+          "path": "WildType/res_statdist_cluster.csv",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "written_by": "MaBoSS binary"
+        },
+        {
+          "bytes": 0,
+          "path": "WildType/res_statdist_distrib.csv",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "written_by": "MaBoSS binary"
+        }
+      ],
+      "input_bnd": {
+        "path": "maboss/reference/p53_Mdm2.bnd",
+        "sha256": "59d359a3df9da30cdd15687d0383a84e1a1a8e042b598342f376aef34fa36e5c"
+      },
+      "input_cfg": {
+        "path": "maboss/reference/p53_Mdm2_runcfg.cfg",
+        "sha256": "eefdabc8bc0695dda3cf76a6395466a39cf5d2fefd170e71d9a893893d426b6d"
+      },
+      "output_prefix": "res"
+    }
+  }
+}
